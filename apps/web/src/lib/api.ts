@@ -1,0 +1,282 @@
+/**
+ * Client-side API client for ClassLens backend services.
+ */
+
+export interface Assessment {
+  id: string;
+  class_id: string;
+  organization_id: string;
+  title: string;
+  status: string;
+  question: {
+    problem_reference_id: string;
+    question_text: string;
+    latex_formula: string;
+    expected_answer: string;
+    accepted_methods: string[];
+  };
+  total_responses: number;
+  reviewed_responses: number;
+  created_at: string;
+}
+
+export interface StudentResponse {
+  id: string;
+  assessment_id: string;
+  pseudonymous_student_id: string;
+  pseudonym_label: string;
+  source_filename: string;
+  image_mime_type: string;
+  upload_status: string;
+  task_status: string;
+  answer_status: string;
+  reasoning_status: string;
+  teacher_review_status: string;
+  is_compensatory_error: boolean;
+  needs_teacher_review: boolean;
+  misconception_taxonomy_id?: string;
+  teacher_override_taxonomy_id?: string;
+  teacher_notes?: string;
+  analysis_data?: any;
+}
+
+export interface VerifiedStep {
+  step_number: number;
+  operation: string;
+  expected_result: number;
+  observed_result?: number;
+  is_correct: boolean;
+  evidence_citation: string;
+}
+
+export interface FirstSupportedError {
+  step_number: number;
+  error_type: string;
+  observed_behavior: string;
+  expected_behavior: string;
+  explanation: string;
+}
+
+export interface StudentAnalysisDetail {
+  response_id: string;
+  pseudonym_label?: string;
+  quality_status: string;
+  answer_status: string;
+  reasoning_status: string;
+  is_compensatory_error: boolean;
+  needs_teacher_review: boolean;
+  teacher_review_reason?: string;
+  teacher_review_status?: string;
+  teacher_override_taxonomy_id?: string;
+  teacher_notes?: string;
+  visual_evidence: {
+    confidence: number;
+    has_number_line: boolean;
+    final_answer_marked?: string;
+    observations: Array<{
+      kind: string;
+      value: string;
+      confidence: number;
+      start_pos?: number;
+      end_pos?: number;
+      direction?: string;
+    }>;
+  };
+  candidate_hypotheses: {
+    detected_strategy: string;
+    reasoning_completeness: string;
+    hypotheses: Array<{
+      hypothesis_id: string;
+      starting_point: number;
+      strategy_description: string;
+      step_sequence: string[];
+      is_valid_alternative_path: boolean;
+    }>;
+  };
+  diagnosis: {
+    answer_status: string;
+    reasoning_status: string;
+    inferred_final_answer?: string;
+    misconception_taxonomy_id?: string;
+    taxonomy_title?: string;
+    is_compensatory_error: boolean;
+    confidence: number;
+    verified_steps: Array<{
+      step_number: number;
+      operation: string;
+      expected_result: number;
+      observed_result?: number;
+      is_correct: boolean;
+      evidence_citation: string;
+    }>;
+    first_supported_error?: FirstSupportedError;
+  };
+  critic_audit: {
+    approved: boolean;
+    reinterpretation_needed: boolean;
+    discrepancy_notes: string[];
+    requires_teacher_review: boolean;
+    teacher_review_reason?: string;
+  };
+  is_mock: boolean;
+  model_version: string;
+}
+
+export interface MisconceptionCluster {
+  taxonomy_id: string;
+  title: string;
+  affected_count: number;
+  affected_percentage: number;
+  teacher_confirmed_count: number;
+  ai_proposed_count: number;
+  sample_response_ids: string[];
+}
+
+export interface CohortStatistics {
+  total_responses: number;
+  correct_count: number;
+  correct_percentage: number;
+  error_count: number;
+  error_percentage: number;
+  incomplete_count: number;
+  incomplete_percentage: number;
+  unreadable_count: number;
+  unreadable_percentage: number;
+  compensatory_errors_count: number;
+  needs_teacher_review_count: number;
+  misconception_clusters: MisconceptionCluster[];
+}
+
+export interface DifferentiatedAction {
+  target_misconception_id: string;
+  action_type: "concrete_manipulative" | "worked_example" | "guided_inquiry";
+  title: string;
+  instructional_steps: string[];
+  student_count_affected: number;
+}
+
+export interface ExitTicketItem {
+  question_number: number;
+  prompt: string;
+  target_misconception: string;
+  expected_answer: string;
+  sympy_verified: boolean;
+}
+
+export interface CohortInsights {
+  assessment_id: string;
+  statistics: CohortStatistics;
+  intelligence: {
+    executive_narrative: string;
+    dominant_misconceptions: string[];
+    differentiated_actions: DifferentiatedAction[];
+    formative_exit_ticket: ExitTicketItem[];
+  };
+}
+
+export interface AuditEvent {
+  id: string;
+  assessment_id: string;
+  response_id: string;
+  teacher_id: string;
+  action: string;
+  old_state: any;
+  new_state: any;
+  notes?: string;
+  timestamp: string;
+}
+
+const API_BASE = "/api/v1";
+
+async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers || {});
+  headers.set("X-Requested-With", "ClassLens");
+
+  if (!headers.has("Content-Type") && options.body && typeof options.body === "string") {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+
+  return res;
+}
+
+export const api = {
+  async ensureDemoSession() {
+    const res = await fetchWithCsrf(`${API_BASE}/auth/google`, {
+      method: "POST",
+      body: JSON.stringify({ demo_mode: true }),
+    });
+    return res.json();
+  },
+
+  async getAssessment(id: string): Promise<Assessment> {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${id}`);
+    if (!res.ok) throw new Error("Failed to load assessment");
+    return res.json();
+  },
+
+  async importDemoResponses(id: string) {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${id}/demo-import`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Failed to import demo responses");
+    return res.json();
+  },
+
+  async listResponses(assessmentId: string): Promise<StudentResponse[]> {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/responses`);
+    if (!res.ok) throw new Error("Failed to list responses");
+    return res.json();
+  },
+
+  async triggerAnalysis(assessmentId: string, idempotencyKey?: string) {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/analyze`, {
+      method: "POST",
+      body: JSON.stringify({ idempotency_key: idempotencyKey }),
+    });
+    if (!res.ok) throw new Error("Failed to trigger analysis");
+    return res.json();
+  },
+
+  async getAnalysisStatus(assessmentId: string) {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/status`);
+    if (!res.ok) throw new Error("Failed to fetch status");
+    return res.json();
+  },
+
+  async getResponseDetail(responseId: string): Promise<StudentAnalysisDetail> {
+    const res = await fetchWithCsrf(`${API_BASE}/responses/${responseId}`);
+    if (!res.ok) throw new Error("Failed to load response detail");
+    return res.json();
+  },
+
+  async submitReview(responseId: string, decision: string, overrideTaxonomyId?: string, notes?: string) {
+    const res = await fetchWithCsrf(`${API_BASE}/responses/${responseId}/review`, {
+      method: "PUT",
+      body: JSON.stringify({
+        decision,
+        override_misconception_id: overrideTaxonomyId,
+        notes,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to submit review");
+    return res.json();
+  },
+
+  async getAuditTrail(responseId: string): Promise<AuditEvent[]> {
+    const res = await fetchWithCsrf(`${API_BASE}/responses/${responseId}/audit-trail`);
+    if (!res.ok) throw new Error("Failed to fetch audit trail");
+    return res.json();
+  },
+
+  async getCohortInsights(assessmentId: string): Promise<CohortInsights> {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/insights`);
+    if (!res.ok) throw new Error("Failed to fetch cohort insights");
+    return res.json();
+  },
+};

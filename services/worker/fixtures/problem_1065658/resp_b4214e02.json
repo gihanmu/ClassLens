@@ -1,0 +1,41 @@
+{
+  "response_id": "resp_b4214e02",
+  "row_index": 9,
+  "quality_status": "clear",
+  "confidence": 0.97,
+  "has_number_line": true,
+  "final_answer_marked": "2",
+  "observations": [
+    {
+      "kind": "equation",
+      "value": "12 - 4 - 6 = 2",
+      "confidence": 0.99
+    },
+    {
+      "kind": "number_line",
+      "value": "Number line starting at 12",
+      "confidence": 0.98
+    },
+    {
+      "kind": "arrow_jump",
+      "value": "Jump 12 to 8 (-4)",
+      "confidence": 0.97,
+      "start_pos": 12.0,
+      "end_pos": 8.0,
+      "direction": "left"
+    },
+    {
+      "kind": "arrow_jump",
+      "value": "Jump 8 to 2 (-6)",
+      "confidence": 0.97,
+      "start_pos": 8.0,
+      "end_pos": 2.0,
+      "direction": "left"
+    },
+    {
+      "kind": "circled_result",
+      "value": "2",
+      "confidence": 0.99
+    }
+  ]
+}

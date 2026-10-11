@@ -1,0 +1,1 @@
+"""ClassLens FastAPI application package."""

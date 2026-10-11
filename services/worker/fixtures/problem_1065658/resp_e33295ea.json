@@ -1,0 +1,20 @@
+{
+  "response_id": "resp_e33295ea",
+  "row_index": 11,
+  "quality_status": "clear",
+  "confidence": 0.95,
+  "has_number_line": true,
+  "final_answer_marked": "2",
+  "observations": [
+    {
+      "kind": "number_line",
+      "value": "Number line present with zero marks/hops",
+      "confidence": 0.96
+    },
+    {
+      "kind": "circled_result",
+      "value": "2",
+      "confidence": 0.98
+    }
+  ]
+}

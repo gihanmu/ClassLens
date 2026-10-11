@@ -1,0 +1,47 @@
+{
+  "response_id": "resp_a5c95313",
+  "row_index": 8,
+  "quality_status": "clear",
+  "confidence": 0.93,
+  "has_number_line": true,
+  "final_answer_marked": "1",
+  "observations": [
+    {
+      "kind": "number_line",
+      "value": "Mislabeled intervals skipping 3",
+      "confidence": 0.92
+    },
+    {
+      "kind": "arrow_jump",
+      "value": "Jump 0 to -6",
+      "confidence": 0.95,
+      "start_pos": 0.0,
+      "end_pos": -6.0,
+      "direction": "left",
+      "stated_magnitude": 6.0
+    },
+    {
+      "kind": "arrow_jump",
+      "value": "Jump -6 to 5 with label +12",
+      "confidence": 0.92,
+      "start_pos": -6.0,
+      "end_pos": 5.0,
+      "direction": "right",
+      "stated_magnitude": 12.0
+    },
+    {
+      "kind": "arrow_jump",
+      "value": "Jump 5 to 1 with label -4",
+      "confidence": 0.92,
+      "start_pos": 5.0,
+      "end_pos": 1.0,
+      "direction": "left",
+      "stated_magnitude": 4.0
+    },
+    {
+      "kind": "circled_result",
+      "value": "1",
+      "confidence": 0.96
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-platform-inference": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/agent-platform-inference/SKILL.md",
+      "computedHash": "8a22f59613d12fd93319524b3cede174c5c592150df2da6872cbcf67ed59ef37"
+    },
+    "cloud-logging-configuration-basics": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/cloud-logging-configuration-basics/SKILL.md",
+      "computedHash": "7c317c0ed9506b62b1a361aba6640917cf7ff575fbb84d0e624a7705a643ba65"
+    },
+    "cloud-run-alert-configuration": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/cloud-run-alert-configuration/SKILL.md",
+      "computedHash": "e72e26e8e0e6a05c7eda006d29d0bcfefb49b5f924d11ee4315cd325f93cf374"
+    },
+    "cloud-run-basics": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/cloud-run-basics/SKILL.md",
+      "computedHash": "a0446f5d1ce8edcb6413b34b7ee5f9a50941f7813dc12a650b258dd6f5435c50"
+    },
+    "cloud-trace-querying": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/cloud-trace-querying/SKILL.md",
+      "computedHash": "4ca041fb7d1230b1e10cd3e2d9f8dec933bb367a7ed2441cba9ccd4ef0d1dd42"
+    },
+    "gemini-api": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/gemini-api/SKILL.md",
+      "computedHash": "9f9d266325137f47c3176dba69b570c7abde9a11f59542b3e3ccf42886952bc9"
+    },
+    "google-agents-cli-adk-code": {
+      "source": "google/agents-cli",
+      "sourceType": "github",
+      "skillPath": "skills/google-agents-cli-adk-code/SKILL.md",
+      "computedHash": "760043289fbb67a4243782901dfd714e44ed0527f6b29a875b0a0f1fcd9cfb86"
+    },
+    "google-agents-cli-onboarding": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-agents-cli-onboarding/SKILL.md",
+      "computedHash": "df6fc4a64c5e8861dbcee9cfd049df4c000401d1cfb14ddcaf5b616d94a30fbc"
+    },
+    "google-agents-cli-workflow": {
+      "source": "google/agents-cli",
+      "sourceType": "github",
+      "skillPath": "skills/google-agents-cli-workflow/SKILL.md",
+      "computedHash": "bd4e50116a5c33fee58067103fffbdd80ce56a57cbd8efbd51a458475ce8fe87"
+    },
+    "google-cloud-recipe-auth": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-cloud-recipe-auth/SKILL.md",
+      "computedHash": "243d9127491820a82523a04b56ed9334ba930cb4b81bcbc37b3656916cc2784b"
+    },
+    "google-cloud-solution-n-tier-serverless-web-app": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-cloud-solution-n-tier-serverless-web-app/SKILL.md",
+      "computedHash": "ee97e2022492c92d97549c27ec3e344482e2464883157f824c5fd8d90b5bfc10"
+    },
+    "google-cloud-storage-basics": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-cloud-storage-basics/SKILL.md",
+      "computedHash": "8d243a55b6a3a39428cc765c1639e3ba62a9b508f36e646880ef4b66dfac00fe"
+    },
+    "google-cloud-waf-cost-optimization": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-cloud-waf-cost-optimization/SKILL.md",
+      "computedHash": "694ea3303304057ce1ca3f1ef0821b681d25a7f56120715dd0cb0e94297dc25c"
+    },
+    "google-cloud-waf-security": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/google-cloud-waf-security/SKILL.md",
+      "computedHash": "ab0c355c033001b7ec182705a1c0c5a1255a22c3fb0ef269ce53c3e16f63bcf3"
+    },
+    "iam-helper-for-policy-management": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloud/iam-helper-for-policy-management/SKILL.md",
+      "computedHash": "8101f343b1ca929c72acb46b813d43c66f89f66c99bfb64a108a16ed2c78e6cc"
+    },
+    "sign-in-with-google-web": {
+      "source": "google/skills",
+      "sourceType": "github",
+      "skillPath": "skills/identity/sign-in-with-google-web/SKILL.md",
+      "computedHash": "f8d9074e6e3ff1e935e345399663b14822668f9c2f9351f0596b6f96eb1b511a"
+    }
+  }
+}

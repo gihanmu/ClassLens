@@ -1,0 +1,106 @@
+# ==============================================================================
+# Environment variables and secrets
+# ==============================================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*service-account*.json
+*credentials*.json
+*secrets*.json
+*secret*.json
+application_default_credentials.json
+**/.config/gcloud/
+
+# ==============================================================================
+# Python
+# ==============================================================================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# ==============================================================================
+# Node.js / Next.js
+# ==============================================================================
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================================================================
+# Local databases and runtime state
+# ==============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+tmp/
+temp/
+.cache/
+logs/
+*.log
+
+# ==============================================================================
+# Local uploads and private exports
+# ==============================================================================
+uploads/
+private/
+secrets/
+local-data/
+artifacts/private/
+
+# ==============================================================================
+# OS and editor
+# ==============================================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.swp
+
+# ==============================================================================
+# Test outputs
+# ==============================================================================
+playwright-report/
+test-results/
+blob-report/
+
+# ==============================================================================
+# Datasets and Archives
+# ==============================================================================
+# In compliance with SEC-PRV-002, CC BY-NC 4.0, ASSISTments human subjects ethics,
+# and GitHub 100MB file limits, raw student response images and archives are excluded
+# from public version control. See dataset/DATASET_MANIFEST.md for dataset provenance,
+# synthetic test fixtures (tests/fixtures/), and local setup instructions.
+/dataset/*
+!/dataset/DATASET_MANIFEST.md
+*.zip
+*.tar.gz
+mathwriting-2024/
