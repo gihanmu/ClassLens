@@ -88,9 +88,9 @@ class GeminiEvaluationAdapter:
 
     def __init__(
         self,
-        model_id: str = "gemini-2.5-flash",
-        location: str = "asia-southeast1",
-        project: Optional[str] = None,
+        model_id: str = "gemini-3.8-flash",
+        location: str = "global",
+        project: Optional[str] = "precise-equator-511303-m1",
         vertexai: bool = True,
         max_calls: int = 3,
         timeout_seconds: float = 30.0,
@@ -224,7 +224,7 @@ class GeminiEvaluationAdapter:
             response_mime_type="application/json",
             response_schema=GeminiVisualEvidenceSchema,
             temperature=0.0,
-            max_output_tokens=2048,
+            max_output_tokens=4096,
         )
 
         user_content = [
@@ -259,7 +259,16 @@ class GeminiEvaluationAdapter:
         if not response.text:
             raise ValueError(f"Empty response text received from Gemini for {response_id}")
 
-        evidence = GeminiVisualEvidenceSchema.model_validate_json(response.text)
+        raw_json = response.text.strip()
+        if raw_json.startswith("```json"):
+            raw_json = raw_json[7:]
+        if raw_json.startswith("```"):
+            raw_json = raw_json[3:]
+        if raw_json.endswith("```"):
+            raw_json = raw_json[:-3]
+        raw_json = raw_json.strip()
+
+        evidence = GeminiVisualEvidenceSchema.model_validate_json(raw_json)
         return evidence
 
     def _record_telemetry(

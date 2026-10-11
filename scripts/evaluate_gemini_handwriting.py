@@ -56,20 +56,20 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-2.5-flash",
-        help="Target Gemini model ID (default: gemini-2.5-flash; verified GA on Vertex AI).",
+        default="gemini-3.8-flash",
+        help="Target Gemini model ID (default: gemini-3.8-flash).",
     )
     parser.add_argument(
         "--location",
         type=str,
-        default="asia-southeast1",
-        help="Google Cloud regional location (default: asia-southeast1). Automatic global fallback is disabled.",
+        default="global",
+        help="Google Cloud location endpoint (default: global).",
     )
     parser.add_argument(
         "--project",
         type=str,
-        default=None,
-        help="Google Cloud project ID (optional, defaults to active gcloud ADC project).",
+        default="precise-equator-511303-m1",
+        help="Google Cloud project ID (default: precise-equator-511303-m1).",
     )
     parser.add_argument(
         "--max-calls",
@@ -80,8 +80,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--max-output-tokens",
         type=int,
-        default=2048,
-        help="Max output tokens for JSON schema response (default: 2048).",
+        default=4096,
+        help="Max output tokens for JSON schema response (default: 4096).",
     )
     parser.add_argument(
         "--output-dir",

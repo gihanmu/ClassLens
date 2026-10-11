@@ -245,6 +245,12 @@ class TestGeminiEvaluationAdapter:
         assert rates["input_per_token"] == 0.30 / 1_000_000.0
         assert rates["output_per_token"] == 2.50 / 1_000_000.0
 
+    def test_token_rates_lookup_for_gemini_3_8_flash(self):
+        adapter = GeminiEvaluationAdapter(model_id="gemini-3.8-flash")
+        rates = adapter.get_token_rates()
+        assert rates["input_per_token"] == 0.75 / 1_000_000.0
+        assert rates["output_per_token"] == 3.75 / 1_000_000.0
+
     def test_synthetic_isolation_guardrail_blocks_dataset_paths(self):
         adapter = GeminiEvaluationAdapter(dry_run=True)
         # Attempt to pass a path containing 'dataset' must raise PermissionError
