@@ -1,0 +1,58 @@
+{
+  "gate": "Gate 3",
+  "title": "Gemini Handwriting Feasibility Evaluation Manifest",
+  "version": "1.0.0",
+  "description": "Bounded 3-case synthetic evaluation manifest for handwriting reconstruction feasibility without exposing real student PII.",
+  "max_authorized_calls": 3,
+  "budget_usd_ceiling": 0.01,
+  "cases": [
+    {
+      "response_id": "case_01_canonical_correct",
+      "category": "canonical_correct",
+      "image_path": "tests/fixtures/synthetic_evaluation_cases/case_01_canonical_correct.png",
+      "problem_statement": "-6 + 12 - 4",
+      "description": "High-contrast, clearly legible number line with distinct arrowheads and labels for all three hops. Final answer clearly written as 2.",
+      "expected": {
+        "image_quality": "clear",
+        "has_number_line": true,
+        "hops_count": 3,
+        "final_answer": "2",
+        "math_status": "valid",
+        "requires_teacher_review": false,
+        "first_error_step": null
+      }
+    },
+    {
+      "response_id": "case_02_off_by_one_error",
+      "category": "procedural_error",
+      "image_path": "tests/fixtures/synthetic_evaluation_cases/case_02_off_by_one_error.png",
+      "problem_statement": "-6 + 12 - 4",
+      "description": "Legible number line where student commits an off-by-one tick count error on step 2 (landing on +5 instead of +6, +11 displacement), steps left 4 to land on +1, and records final answer 1.",
+      "expected": {
+        "image_quality": "clear",
+        "has_number_line": true,
+        "hops_count": 3,
+        "final_answer": "1",
+        "math_status": "arithmetic_error",
+        "requires_teacher_review": false,
+        "first_error_step": 2
+      }
+    },
+    {
+      "response_id": "case_03_ambiguous_incomplete",
+      "category": "ambiguous_incomplete",
+      "image_path": "tests/fixtures/synthetic_evaluation_cases/case_03_ambiguous_incomplete.png",
+      "problem_statement": "-6 + 12 - 4",
+      "description": "Faint pencil markings, missing arrowheads on arcs, incomplete second hop terminating without clear tick alignment, erased smudges, and blank answer box. Must trigger teacher review escalation.",
+      "expected": {
+        "image_quality": "faint_readable",
+        "has_number_line": true,
+        "hops_count": 2,
+        "final_answer": null,
+        "math_status": "uninterpretable",
+        "requires_teacher_review": true,
+        "first_error_step": null
+      }
+    }
+  ]
+}

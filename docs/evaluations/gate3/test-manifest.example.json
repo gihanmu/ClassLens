@@ -1,0 +1,23 @@
+{
+  "gate": "Gate 3 Example Manifest",
+  "title": "Example Manifest for Future Multimodal Batch Evaluations",
+  "description": "Template structure for authoring evaluation manifests against synthetic or de-identified worksheets.",
+  "cases": [
+    {
+      "response_id": "example_student_01",
+      "category": "canonical_correct",
+      "image_path": "path/to/worksheet_image.png",
+      "problem_statement": "-6 + 12 - 4",
+      "description": "Clean worksheet showing standard canonical steps.",
+      "expected": {
+        "image_quality": "clear",
+        "has_number_line": true,
+        "hops_count": 3,
+        "final_answer": "2",
+        "math_status": "valid",
+        "requires_teacher_review": false,
+        "first_error_step": null
+      }
+    }
+  ]
+}
