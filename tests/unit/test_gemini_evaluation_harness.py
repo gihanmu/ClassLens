@@ -224,7 +224,7 @@ class TestVerificationConnector:
 class TestGeminiEvaluationAdapter:
     def test_dry_run_executes_offline_with_deterministic_mock(self):
         adapter = GeminiEvaluationAdapter(
-            model_id="gemini-3.8-flash",
+            model_id="gemini-2.5-flash",
             max_calls=3,
             dry_run=True,
             live_opt_in=False,
@@ -236,24 +236,35 @@ class TestGeminiEvaluationAdapter:
         assert evidence.visible_final_answer.value == "2"
         assert adapter.call_count == 1
         assert adapter.total_input_tokens > 0
-        assert adapter.total_cost_usd > 0.0
+        assert adapter.total_estimated_cost_usd > 0.0
         assert adapter.call_history[0]["dry_run"] is True
 
+    def test_token_rates_lookup_for_gemini_2_5_flash(self):
+        adapter = GeminiEvaluationAdapter(model_id="gemini-2.5-flash")
+        rates = adapter.get_token_rates()
+        assert rates["input_per_token"] == 0.30 / 1_000_000.0
+        assert rates["output_per_token"] == 2.50 / 1_000_000.0
+
+    def test_synthetic_isolation_guardrail_blocks_dataset_paths(self):
+        adapter = GeminiEvaluationAdapter(dry_run=True)
+        # Attempt to pass a path containing 'dataset' must raise PermissionError
+        with pytest.raises(PermissionError, match="Security Guardrail Violation"):
+            adapter.extract_visual_evidence("dataset/raw/image.png", "student_01")
+
     def test_live_opt_in_guardrail_blocks_unauthorized_call(self):
-        # Attempting live execution without live_opt_in=True must raise PermissionError
+        # Attempting live execution without live_opt_in=True must fall back to dry run if dry_run=True
         adapter = GeminiEvaluationAdapter(
-            model_id="gemini-3.8-flash",
+            model_id="gemini-2.5-flash",
             dry_run=False,
             live_opt_in=False,  # Not opted in
         )
-        # Even if dry_run=False was passed, extract_visual_evidence should fall back to dry run if live_opt_in=False
         image_path = "tests/fixtures/synthetic_evaluation_cases/case_01_canonical_correct.png"
         evidence = adapter.extract_visual_evidence(image_path, "case_01_test")
         assert adapter.call_history[-1]["dry_run"] is True
 
     def test_hard_call_ceiling_blocks_excessive_calls(self):
         adapter = GeminiEvaluationAdapter(
-            model_id="gemini-3.8-flash",
+            model_id="gemini-2.5-flash",
             max_calls=2,
             dry_run=False,
             live_opt_in=True,
@@ -267,7 +278,7 @@ class TestGeminiEvaluationAdapter:
     def test_missing_image_file_raises_not_found(self):
         adapter = GeminiEvaluationAdapter(dry_run=True)
         with pytest.raises(FileNotFoundError):
-            adapter.extract_visual_evidence("non_existent_image.png", "missing_id")
+            adapter.extract_visual_evidence("tests/fixtures/synthetic_evaluation_cases/non_existent.png", "missing_id")
 
 
 class TestHarnessManifestAndReport:

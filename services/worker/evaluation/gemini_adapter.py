@@ -1,8 +1,9 @@
 """Gemini Multimodal Evaluation Adapter for Gate 3 Handwriting Feasibility.
 
 Provides an enterprise-ready, bounded adapter using the Google GenAI SDK (`google-genai`).
-Features strict call ceilings, offline dry-run emulation, in-memory image streaming
-(zero GCS uploads), cost accounting, and structured Pydantic schema validation.
+Features strict call ceilings (max 3 calls), zero retries, zero automatic region fallback,
+synthetic-only image enforcement, in-memory image streaming (zero GCS uploads),
+and decoupled deterministic SymPy verification compatibility.
 """
 
 from __future__ import annotations
@@ -24,9 +25,34 @@ from services.worker.evaluation.contracts import (
     VisualAmbiguity,
 )
 
-# Standard pricing for Gemini 3.8 Flash / 2.5 Flash
-INPUT_PRICE_PER_TOKEN: float = 0.15 / 1_000_000.0  # $0.15 per 1M tokens
-OUTPUT_PRICE_PER_TOKEN: float = 0.60 / 1_000_000.0  # $0.60 per 1M tokens
+# Published Vertex AI token pricing schedules per 1,000,000 tokens
+MODEL_PRICING: Dict[str, Dict[str, float]] = {
+    "gemini-2.5-flash": {
+        "input_per_million": 0.30,
+        "output_per_million": 2.50,
+    },
+    "gemini-1.5-flash": {
+        "input_per_million": 0.075,
+        "output_per_million": 0.30,
+    },
+    "gemini-1.5-flash-002": {
+        "input_per_million": 0.075,
+        "output_per_million": 0.30,
+    },
+    "gemini-2.0-flash": {
+        "input_per_million": 0.10,
+        "output_per_million": 0.40,
+    },
+    "gemini-3.8-flash": {
+        "input_per_million": 0.75,  # Introductory pricing through Dec 2026
+        "output_per_million": 3.75,
+    },
+}
+
+DEFAULT_FALLBACK_PRICING = {
+    "input_per_million": 0.30,
+    "output_per_million": 2.50,
+}
 
 DEFAULT_SYSTEM_PROMPT = """You are an objective handwriting and mathematical mark transcription assistant for elementary and middle school mathematics worksheets.
 Your sole job is to observe and report physical ink markings on the student's number-line worksheet with high fidelity.
@@ -50,13 +76,22 @@ CRITICAL INSTRUCTIONS:
 
 
 class GeminiEvaluationAdapter:
-    """Adapter for executing or simulating Gemini visual evidence extractions."""
+    """Adapter for executing or simulating Gemini visual evidence extractions.
+
+    SAFETY AND BOUNDARY GUARANTEES:
+    - Exactly 1 API call per worksheet (NO retries, NO multi-agent loops, NO fallback requests).
+    - Hard software ceiling of `max_calls` (default: 3).
+    - Regional data residency: strictly connects to the configured `location` (no automatic global failover).
+    - Synthetic isolation: prohibits transmitting images from real dataset directories.
+    - Zero GCS uploads: image bytes streamed in-memory via types.Part.from_bytes.
+    """
 
     def __init__(
         self,
-        model_id: str = "gemini-3.8-flash",
+        model_id: str = "gemini-2.5-flash",
         location: str = "asia-southeast1",
-        enterprise: bool = True,
+        project: Optional[str] = None,
+        vertexai: bool = True,
         max_calls: int = 3,
         timeout_seconds: float = 30.0,
         dry_run: bool = True,
@@ -64,19 +99,28 @@ class GeminiEvaluationAdapter:
     ) -> None:
         self.model_id = model_id
         self.location = location
-        self.enterprise = enterprise
+        self.project = project
+        self.vertexai = vertexai
         self.max_calls = max_calls
         self.timeout_seconds = timeout_seconds
         self.dry_run = dry_run
         self.live_opt_in = live_opt_in
 
-        # Telemetry and accounting
+        # Telemetry and local accounting
         self.call_count: int = 0
         self.total_input_tokens: int = 0
         self.total_output_tokens: int = 0
-        self.total_cost_usd: float = 0.0
+        self.total_estimated_cost_usd: float = 0.0
         self.last_latency_ms: int = 0
         self.call_history: List[Dict[str, Any]] = []
+
+    def get_token_rates(self) -> Dict[str, float]:
+        """Returns input and output price per token for the active model."""
+        rates = MODEL_PRICING.get(self.model_id, DEFAULT_FALLBACK_PRICING)
+        return {
+            "input_per_token": rates["input_per_million"] / 1_000_000.0,
+            "output_per_token": rates["output_per_million"] / 1_000_000.0,
+        }
 
     def extract_visual_evidence(
         self,
@@ -88,8 +132,16 @@ class GeminiEvaluationAdapter:
 
         In dry-run mode (default), returns deterministic synthetic observations
         without network calls or cost.
-        In live mode, enforces strict guardrails before invoking the Google GenAI SDK.
+        In live mode, enforces strict security and budget guardrails.
         """
+        # Strict synthetic isolation check: real student datasets must never be transmitted
+        norm_path = str(Path(image_path).resolve()).lower()
+        if "/dataset/" in norm_path or "drawedumath" in norm_path or "mathwriting" in norm_path or "dataset/" in image_path.lower():
+            raise PermissionError(
+                f"Security Guardrail Violation: Path '{image_path}' points to a real dataset location. "
+                "Gate 3 live evaluation is strictly restricted to synthetic fixtures in tests/fixtures/."
+            )
+
         p = Path(image_path)
         if not p.is_file():
             raise FileNotFoundError(f"Evaluation image not found: {image_path}")
@@ -122,7 +174,7 @@ class GeminiEvaluationAdapter:
                 f"authorized maximum ceiling of {self.max_calls} calls."
             )
 
-        # Execute live GenAI API call
+        # Execute single, non-retried live GenAI API call
         result = self._execute_live_call(
             image_path=p,
             response_id=response_id,
@@ -138,7 +190,13 @@ class GeminiEvaluationAdapter:
         prompt: str,
         start_time: float,
     ) -> GeminiVisualEvidenceSchema:
-        """Execute real multimodal call using google.genai SDK with in-memory streaming."""
+        """Execute real multimodal call using google.genai SDK with in-memory streaming.
+
+        Guarantees:
+        - Exactly one API call. No automatic retry loop.
+        - Strictly targeted to self.location. No automatic global fallback.
+        - Uses vertexai=True SDK parameter.
+        """
         from google import genai
         from google.genai import types
 
@@ -152,11 +210,15 @@ class GeminiEvaluationAdapter:
 
         image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
 
-        # Initialize enterprise GenAI Client
-        client = genai.Client(
-            enterprise=self.enterprise,
-            location=self.location,
-        )
+        # Initialize Vertex AI client with validated SDK parameters
+        client_kwargs: Dict[str, Any] = {
+            "vertexai": self.vertexai,
+            "location": self.location,
+        }
+        if self.project:
+            client_kwargs["project"] = self.project
+
+        client = genai.Client(**client_kwargs)
 
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
@@ -170,6 +232,7 @@ class GeminiEvaluationAdapter:
             f"Analyze this student number-line response. Unique Response ID: {response_id}.\n{prompt}",
         ]
 
+        # Single non-retried call
         response = client.models.generate_content(
             model=self.model_id,
             contents=user_content,
@@ -178,7 +241,7 @@ class GeminiEvaluationAdapter:
 
         latency = int((time.perf_counter() - start_time) * 1000)
 
-        # Token accounting
+        # Token accounting from actual API usage metadata
         input_tokens = 0
         output_tokens = 0
         if hasattr(response, "usage_metadata") and response.usage_metadata:
@@ -193,7 +256,6 @@ class GeminiEvaluationAdapter:
             is_dry_run=False,
         )
 
-        # Parse and validate response JSON
         if not response.text:
             raise ValueError(f"Empty response text received from Gemini for {response_id}")
 
@@ -209,12 +271,13 @@ class GeminiEvaluationAdapter:
         is_dry_run: bool,
     ) -> None:
         """Update cumulative usage, costs, and call logs."""
-        call_cost = (input_tokens * INPUT_PRICE_PER_TOKEN) + (output_tokens * OUTPUT_PRICE_PER_TOKEN)
+        rates = self.get_token_rates()
+        call_est_cost = (input_tokens * rates["input_per_token"]) + (output_tokens * rates["output_per_token"])
 
         self.call_count += 1
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
-        self.total_cost_usd += call_cost
+        self.total_estimated_cost_usd += call_est_cost
         self.last_latency_ms = latency_ms
 
         self.call_history.append(
@@ -223,9 +286,11 @@ class GeminiEvaluationAdapter:
                 "response_id": response_id,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
-                "cost_usd": round(call_cost, 6),
+                "estimated_cost_usd": round(call_est_cost, 6),
                 "latency_ms": latency_ms,
                 "dry_run": is_dry_run,
+                "model_id": self.model_id,
+                "location": self.location,
             }
         )
 

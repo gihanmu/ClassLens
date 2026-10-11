@@ -1,38 +1,49 @@
-# ClassLens — Gate 3 Cost Estimation & Token Budgeting
+# ClassLens — Gate 3 Cost Estimation & Accounting Details (Corrected)
 
-## 1. Rate Schedule (Google Cloud Vertex AI / GenAI SDK)
+## 1. Rate Schedule & Cost Distinction
 
-The Gate 3 evaluation uses `gemini-3.8-flash` (or `gemini-2.5-flash`), with standard multimodal API pricing:
+> [!IMPORTANT]
+> The figures presented below are **local software estimates** calculated mathematically from published Google Cloud Vertex AI token rates. They represent an offline budgeting calculation and software-level circuit breaker, **not a guaranteed Google Cloud billing account quota or hard cap**. Actual billing is determined exclusively by Google Cloud invoicing.
 
-| Item | Rate per 1,000,000 Tokens | Cost per Token |
+### Published Rate Comparison (per 1,000,000 tokens)
+
+| Model | Input Rate (USD) | Output Rate (USD) |
 | :--- | :--- | :--- |
-| **Input Tokens (Text & Image)** | $0.150000 USD | $0.000000150 USD |
-| **Output Tokens (JSON Schema)** | $0.600000 USD | $0.000000600 USD |
+| **`gemini-2.5-flash`** *(Recommended Default)* | $0.300000 | $2.500000 |
+| **`gemini-1.5-flash`** *(Cost-Optimized)* | $0.075000 | $0.300000 |
+| **`gemini-2.0-flash`** | $0.100000 | $0.400000 |
+| **`gemini-3.8-flash`** *(Introductory)* | $0.750000 | $3.750000 |
 
 ---
 
-## 2. Token Consumption Per Image Worksheet
+## 2. Projected Token Consumption for Bounded 3-Case Run
 
-- **Image Multimodal Token Cost:** Standard resolution number-line image (1000x500 pixels) consumes ~258 input tokens in Gemini tile encoding.
-- **System Prompt & Instructions:** ~200 text input tokens.
-- **Total Input Tokens Per Image:** ~458 tokens.
-- **Structured JSON Output:** Detailed `GeminiVisualEvidenceSchema` response (3 hops, coordinates, labels, description, quality) produces ~320 output tokens.
+- **Image Multimodal Tokens:** ~258 tokens per 1000x500 image crop.
+- **System Instructions & Schema:** ~200 text input tokens.
+- **Estimated Input per Case:** ~458 tokens $\times$ 3 cases = **1,374 input tokens**.
+- **Estimated Output per Case:** ~320 tokens $\times$ 3 cases = **960 output tokens**.
+
+### Estimated Software Cost by Model
+
+1. **`gemini-2.5-flash` (Recommended):**
+   $$\text{Input Cost} = 1,374 \times \$0.000000300 = \$0.000412$$
+   $$\text{Output Cost} = 960 \times \$0.000002500 = \$0.002400$$
+   $$\mathbf{\text{Total Estimated Software Cost}} = \mathbf{\$0.002812 \text{ USD}}$$
+
+2. **`gemini-1.5-flash` (Baseline):**
+   $$\text{Input Cost} = 1,374 \times \$0.000000075 = \$0.000103$$
+   $$\text{Output Cost} = 960 \times \$0.000000300 = \$0.000288$$
+   $$\mathbf{\text{Total Estimated Software Cost}} = \mathbf{\$0.000391 \text{ USD}}$$
+
+3. **`gemini-3.8-flash` (If enabled on Agent Platform):**
+   $$\text{Input Cost} = 1,374 \times \$0.000000750 = \$0.001031$$
+   $$\text{Output Cost} = 960 \times \$0.000003750 = \$0.003600$$
+   $$\mathbf{\text{Total Estimated Software Cost}} = \mathbf{\$0.004631 \text{ USD}}$$
 
 ---
 
-## 3. Projected Budget for Bounded 3-Case Feasibility Test
+## 3. Software Safety Guardrails (Not Billing Caps)
 
-| Component | Quantity | Tokens per Unit | Total Tokens | Rate USD | Subtotal USD |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Input Tokens | 3 worksheets | 458 tokens | 1,374 tokens | $0.15 / 1M | **$0.000206** |
-| Output Tokens | 3 worksheets | 320 tokens | 960 tokens | $0.60 / 1M | **$0.000576** |
-| **Total Estimated Run Cost** | — | — | **2,334 tokens** | — | **$0.000782** |
-
----
-
-## 4. Safety Margins and Hard Caps
-
-- **Authorized Cost Ceiling:** $0.010000 USD (1 cent USD).
-- **Buffer Ratio:** Projected cost ($0.000782) is less than **8%** of the $0.01 authorized ceiling.
-- **Hard Call Ceiling:** `--max-calls 3` prevents accidental repeated or looped invocations.
-- **Max Output Token Ceiling:** `--max-output-tokens 2048` limits maximum response length per request.
+- **Hard Call Ceiling:** The evaluation adapter enforces a software circuit breaker of `--max-calls 3`.
+- **Zero Retries:** No hidden retry loop; each worksheet receives at most 1 call.
+- **Budget Threshold:** A local warning threshold of $0.010000 USD is monitored in software. If estimated local cost exceeds this threshold, the script issues a warning.
