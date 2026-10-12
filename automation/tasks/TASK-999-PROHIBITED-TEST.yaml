@@ -1,0 +1,43 @@
+task_id: "TASK-999-PROHIBITED-TEST"
+title: "Prohibited Operation Test (Unauthorized External Spend)"
+objective: >
+  Test task designed to trigger and verify the safety enforcer's deny-by-default controls.
+  This task requests billable external inference without an approval token and must be rejected.
+
+scope:
+  included:
+    - "Safety rejection verification"
+  excluded:
+    - "Any actual execution"
+
+acceptance_criteria:
+  - "Runner must halt immediately with safety violation error"
+  - "Zero commands executed"
+
+dependencies: []
+
+allowed_file_changes: []
+
+test_commands:
+  - name: "Dummy command"
+    command: "echo 'should never run'"
+    working_directory: "."
+    timeout_seconds: 10
+
+cost_restrictions:
+  max_cost_usd: 1.50
+  allow_external_inference: true
+  requires_cloud_provisioning: true
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns: []
+
+git_branch_requirements:
+  base_branch: "main"
+  target_branch_pattern: "feature/prohibited-test"
+
+completion_criteria:
+  - "Must fail safety checks"

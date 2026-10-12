@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassLensTaskSpecification",
+  "description": "Schema for autonomous development tasks in ClassLens",
+  "type": "object",
+  "required": [
+    "task_id",
+    "title",
+    "objective",
+    "scope",
+    "acceptance_criteria",
+    "dependencies",
+    "allowed_file_changes",
+    "test_commands",
+    "cost_restrictions",
+    "security_restrictions",
+    "git_branch_requirements",
+    "completion_criteria"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["included", "excluded"],
+      "properties": {
+        "included": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "excluded": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowed_file_changes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "command"],
+        "properties": {
+          "name": { "type": "string" },
+          "command": { "type": "string" },
+          "working_directory": { "type": "string" },
+          "timeout_seconds": { "type": "integer" }
+        }
+      }
+    },
+    "cost_restrictions": {
+      "type": "object",
+      "required": ["max_cost_usd", "allow_external_inference"],
+      "properties": {
+        "max_cost_usd": { "type": "number", "minimum": 0 },
+        "allow_external_inference": { "type": "boolean" },
+        "requires_cloud_provisioning": { "type": "boolean" },
+        "approval_token": { "type": "string" }
+      }
+    },
+    "security_restrictions": {
+      "type": "object",
+      "required": [
+        "allow_real_student_data",
+        "allow_secret_access",
+        "allow_production_mutation"
+      ],
+      "properties": {
+        "allow_real_student_data": { "type": "boolean" },
+        "allow_secret_access": { "type": "boolean" },
+        "allow_production_mutation": { "type": "boolean" },
+        "prohibited_patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "git_branch_requirements": {
+      "type": "object",
+      "required": ["base_branch", "target_branch_pattern"],
+      "properties": {
+        "base_branch": { "type": "string" },
+        "target_branch_pattern": { "type": "string" }
+      }
+    },
+    "completion_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

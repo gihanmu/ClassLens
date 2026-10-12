@@ -1,0 +1,155 @@
+name: ClassLens Autonomous CI & Quality Gates
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CLASSLENS_AI_MODE: mock
+  CLASSLENS_LIVE_INFERENCE_ENABLED: "false"
+  DEFAULT_EXTERNAL_SPENDING_LIMIT_USD: "0.00"
+
+jobs:
+  secret-and-safety-scan:
+    name: Secret & Safety Policy Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Scan for Secret Leaks & Credentials
+        run: |
+          echo "Scanning repository for prohibited private keys, tokens, or credential leaks..."
+          python3 -c '
+          import os, re, sys
+          patterns = [
+              (re.compile(r"AIza[0-9A-Za-z-_]{35}"), "Google API Key"),
+              (re.compile(r"-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----"), "Private Key"),
+              (re.compile(r"\"type\":\s*\"service_account\""), "GCP Service Account Key"),
+          ]
+          violations = []
+          for root, dirs, files in os.walk("."):
+              if ".git" in root or "node_modules" in root or ".venv" in root:
+                  continue
+              for f in files:
+                  if f.endswith((".py", ".json", ".yaml", ".yml", ".md", ".ts", ".tsx")):
+                      path = os.path.join(root, f)
+                      try:
+                          with open(path, "r", errors="ignore") as fh:
+                              content = fh.read()
+                              for pat, label in patterns:
+                                  if pat.search(content):
+                                      violations.append(f"{label} found in {path}")
+                      except Exception as e:
+                          pass
+          if violations:
+              print("\n".join(violations))
+              sys.exit(1)
+          print("No secrets detected.")
+          '
+
+      - name: Enforce Mock AI Mode Defaults
+        run: |
+          echo "Verifying CLASSLENS_AI_MODE default is mock..."
+          test -f .env.example && grep "CLASSLENS_AI_MODE=mock" .env.example
+
+  backend-quality-gates:
+    name: Python Backend Tests & AI Regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv and Dependencies
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv .venv
+          source .venv/bin/activate
+          if [ -f pyproject.toml ]; then
+            uv pip install -e .
+          elif [ -f requirements.txt ]; then
+            uv pip install -r requirements.txt
+          fi
+          uv pip install pytest jsonschema pyyaml pydantic httpx
+
+      - name: Run Backend Unit & Integration Tests (Offline Mock Mode)
+        env:
+          CLASSLENS_AI_MODE: mock
+          CLASSLENS_LIVE_INFERENCE_ENABLED: "false"
+        run: |
+          source .venv/bin/activate
+          pytest tests/ -v
+
+      - name: Run Offline AI Pipeline & Synthetic Regression Tests
+        env:
+          CLASSLENS_AI_MODE: mock
+          CLASSLENS_LIVE_INFERENCE_ENABLED: "false"
+        run: |
+          source .venv/bin/activate
+          pytest tests/unit/test_math_verifier.py -v
+
+  frontend-quality-gates:
+    name: Next.js Frontend Production Build & TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: apps/web/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Next.js Production Build & TypeScript Check
+        working-directory: apps/web
+        run: npm run build
+
+  autonomous-runner-verification:
+    name: Autonomous Workflow Runner Self-Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Minimal Runner Dependencies
+        run: |
+          pip install jsonschema pyyaml pydantic pytest
+
+      - name: Dry Run Harmless Task (TASK-000-DRY-RUN)
+        run: |
+          python3 automation/run.py --task TASK-000-DRY-RUN --dry-run
+
+      - name: Test Prohibited Task Rejection (TASK-999-PROHIBITED-TEST)
+        run: |
+          echo "Verifying safety violation triggers non-zero exit code..."
+          if python3 automation/run.py --task TASK-999-PROHIBITED-TEST --dry-run; then
+            echo "FAILED: Prohibited task was not blocked!"
+            exit 1
+          else
+            echo "PASSED: Prohibited task was properly rejected by safety enforcer."
+          fi
