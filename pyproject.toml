@@ -37,3 +37,7 @@ addopts = "-v --strict-markers"
 filterwarnings = [
     "ignore::DeprecationWarning:starlette.testclient.*",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["services*"]

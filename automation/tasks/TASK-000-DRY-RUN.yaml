@@ -1,0 +1,51 @@
+task_id: "TASK-000-DRY-RUN"
+title: "ClassLens Automation Smoke Test & Dry Run"
+objective: >
+  Demonstrate safe autonomous task verification, offline test execution, and reporting
+  using a non-destructive verification task without modifying production source code.
+
+scope:
+  included:
+    - "Offline backend test suite verification"
+    - "Task schema and runner validation"
+    - "Execution report generation"
+  excluded:
+    - "External API calls"
+    - "Cloud resources"
+    - "Modifications to existing application logic"
+
+acceptance_criteria:
+  - "Task parser validates task specification against JSON schema"
+  - "Safety enforcer verifies $0.00 spending limit and mock mode"
+  - "Verification commands execute and pass successfully"
+  - "Structured JSON and Markdown execution reports are generated"
+
+dependencies: []
+
+allowed_file_changes:
+  - "automation/reports/*"
+
+test_commands:
+  - name: "Core Offline Math Verifier Unit Tests"
+    command: "pytest tests/unit/test_autonomous_workflow.py -k test_quality_verifier_command_execution"
+    working_directory: "."
+    timeout_seconds: 30
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns: []
+
+git_branch_requirements:
+  base_branch: "main"
+  target_branch_pattern: "feature/autonomous-dev-workflow"
+
+completion_criteria:
+  - "Test commands exit with code 0"
+  - "Machine-readable report generated"

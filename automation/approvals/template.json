@@ -1,0 +1,15 @@
+{
+  "token_id": "APPRV-TEMPLATE",
+  "provider": "google-vertex-ai",
+  "purpose": "Template for authorized external operations",
+  "max_authorized_calls": 3,
+  "authorized_cost_usd": 0.05,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "approved_by": "lead-engineer",
+  "allowed_models": [
+    "gemini-3.8-flash"
+  ],
+  "allowed_regions": [
+    "global"
+  ]
+}

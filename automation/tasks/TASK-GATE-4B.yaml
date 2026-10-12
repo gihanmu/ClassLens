@@ -1,0 +1,89 @@
+task_id: "TASK-GATE-4B"
+title: "ClassLens Gate 4B: Teacher Dashboard & AI Analysis Integration"
+objective: >
+  Transform the existing ClassLens teacher dashboard into a fully functional,
+  evidence-grounded mathematical reasoning review experience connecting the multi-agent
+  pipeline with human educator review and cohort intelligence.
+
+scope:
+  included:
+    - "5 Overview metrics in teacher dashboard"
+    - "Review queue banner and direct table view"
+    - "Multi-assessment switcher supporting Problem 1065658 and Synthetic Cases"
+    - "Evidence-first dual-pane student inspection modal with zoom and fit controls"
+    - "3-Way separation of concerns: physical marks vs interpreted strategy vs SymPy verification"
+    - "CriticAuditCard showing adversarial audit verdicts and qualitative confidence tiers"
+    - "Ungrounded misconception suppression on ambiguous or incomplete evidence"
+    - "Human-in-the-loop teacher review & override panel with immutable audit trail"
+    - "Evidence-aware cohort intelligence excluding insufficient cases from confirmed clusters"
+    - "Deterministic demo data for Synthetic Cases 1, 2, and 3"
+  excluded:
+    - "Live external Gemini API calls in default runs"
+    - "Modifications to existing offline math verifier logic outside statistics calculator"
+    - "Production database provisioning or cloud infrastructure mutation"
+
+acceptance_criteria:
+  - "Teacher dashboard displays 5 core overview metrics and review queue"
+  - "Assessment switcher toggles between asm_1065658 and asm_synthetic_cases"
+  - "Inspection modal renders zoomable canvas, 3-way separation of concerns, and CriticAuditCard"
+  - "Teacher review panel supports confirm, override, and unreadable with persistent audit history"
+  - "Responses with insufficient evidence (Case 3) are excluded from confirmed misconception clusters"
+  - "All 206 backend tests pass offline without external network or LLM dependencies"
+  - "Next.js production build in apps/web succeeds with zero TypeScript or build errors"
+
+dependencies:
+  - "Gate 4A multi-agent pipeline and evidence sufficiency contracts"
+  - "Gate 4A.2 evidence grounding and uncertainty handling fix"
+
+allowed_file_changes:
+  - "apps/web/src/app/page.tsx"
+  - "apps/web/src/components/features/teacher-review/TeacherReviewPanel.tsx"
+  - "apps/web/src/components/inspection/CriticAuditCard.tsx"
+  - "apps/web/src/components/inspection/StudentInspectionModal.tsx"
+  - "apps/web/src/lib/api.ts"
+  - "services/api/repository/memory_repo.py"
+  - "services/api/routers/assessments.py"
+  - "services/api/routers/responses.py"
+  - "services/worker/cohort/contracts.py"
+  - "services/worker/cohort/statistics_calculator.py"
+  - "tests/unit/test_teacher_dashboard_gate4b.py"
+  - "docs/architecture/gate-4b-teacher-dashboard-plan.md"
+  - "docs/implementation/gate-4b-teacher-dashboard.md"
+
+test_commands:
+  - name: "Backend Gate 4B Unit Tests"
+    command: ".venv/bin/pytest tests/unit/test_teacher_dashboard_gate4b.py"
+    working_directory: "."
+    timeout_seconds: 60
+  - name: "Full Backend Test Suite"
+    command: ".venv/bin/pytest tests/"
+    working_directory: "."
+    timeout_seconds: 120
+  - name: "Next.js Frontend Production Build"
+    command: "npm run build"
+    working_directory: "apps/web"
+    timeout_seconds: 120
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns:
+    - "api_key"
+    - "service_account"
+    - "CLASSLENS_AI_MODE=live"
+
+git_branch_requirements:
+  base_branch: "main"
+  target_branch_pattern: "feature/gate-4b-teacher-dashboard"
+
+completion_criteria:
+  - "All specified test commands succeed with exit code 0"
+  - "No unauthorized files modified outside allowed_file_changes"
+  - "Zero external API or cloud calls made"
+  - "Structured implementation report generated in automation/reports/"
