@@ -3,8 +3,41 @@
 from __future__ import annotations
 
 import os
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_DOTENV_PATH = PROJECT_ROOT / ".env"
+
+
+def load_project_env(
+    env_path: Optional[Union[str, Path]] = None,
+    override: bool = False,
+) -> bool:
+    """Loads environment variables from project-root .env file using python-dotenv.
+
+    Preserves process-environment precedence:
+    Explicitly exported environment variables (e.g. from shell or container)
+    take precedence over .env file entries by default (override=False).
+
+    Args:
+        env_path: Optional explicit path to .env file (defaults to PROJECT_ROOT / ".env").
+        override: If True, .env values overwrite existing process variables. Defaults to False.
+
+    Returns:
+        True if the file was found and loaded, False otherwise.
+    """
+    target = Path(env_path) if env_path else DEFAULT_DOTENV_PATH
+    if target.is_file():
+        load_dotenv(dotenv_path=target, override=override)
+        return True
+    return False
+
+
+# Automatically load project .env on module import
+load_project_env()
 
 
 class ConfigurationError(ValueError):
@@ -48,8 +81,15 @@ class Settings(BaseModel):
     google_cloud_location: str = Field(
         default_factory=lambda: os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     )
+    google_genai_use_vertexai: bool = Field(
+        default_factory=lambda: os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "true").lower()
+        in ("true", "1", "yes")
+    )
     gemini_model: str = Field(
-        default_factory=lambda: os.getenv("CLASSLENS_GEMINI_MODEL", "gemini-3.8-flash")
+        default_factory=lambda: os.getenv(
+            "CLASSLENS_GEMINI_MODEL",
+            os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+        )
     )
     max_live_calls: int = Field(
         default_factory=lambda: int(os.getenv("CLASSLENS_MAX_LIVE_CALLS", "3"))
@@ -100,3 +140,16 @@ class Settings(BaseModel):
 
 
 settings = Settings()
+
+
+def reload_settings(env_path: Optional[Union[str, Path]] = None, override: bool = False) -> Settings:
+    """Reloads project environment configuration and returns a fresh Settings instance."""
+    global settings
+    load_project_env(env_path=env_path, override=override)
+    settings = Settings()
+    return settings
+
+
+def get_settings() -> Settings:
+    """Returns the current application settings instance."""
+    return settings
