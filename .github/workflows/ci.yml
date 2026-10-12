@@ -79,12 +79,8 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv .venv
           source .venv/bin/activate
-          if [ -f pyproject.toml ]; then
-            uv pip install -e .
-          elif [ -f requirements.txt ]; then
-            uv pip install -r requirements.txt
-          fi
-          uv pip install pytest jsonschema pyyaml pydantic httpx
+          uv pip install -r requirements.txt
+          uv pip install pytest pytest-asyncio jsonschema pyyaml pydantic httpx
 
       - name: Run Backend Unit & Integration Tests (Offline Mock Mode)
         env:
@@ -136,8 +132,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Minimal Runner Dependencies
+      - name: Install Runner Dependencies
         run: |
+          pip install -r requirements.txt
           pip install jsonschema pyyaml pydantic pytest
 
       - name: Dry Run Harmless Task (TASK-000-DRY-RUN)

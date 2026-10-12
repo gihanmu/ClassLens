@@ -50,6 +50,12 @@ class QualityVerifier:
         start_time = time.time()
 
         env = os.environ.copy()
+        # Prepend local .venv/bin to PATH if it exists
+        venv_bin = self.repo_root / ".venv" / "bin"
+        if venv_bin.exists():
+            env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
+            env["VIRTUAL_ENV"] = str(self.repo_root / ".venv")
+
         # Enforce mock mode in verification environment
         env["CLASSLENS_AI_MODE"] = "mock"
         env["CLASSLENS_LIVE_INFERENCE_ENABLED"] = "false"

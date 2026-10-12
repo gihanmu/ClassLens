@@ -27,7 +27,7 @@ allowed_file_changes:
 
 test_commands:
   - name: "Core Offline Math Verifier Unit Tests"
-    command: ".venv/bin/pytest tests/unit/test_math_verifier.py -k test_eval_simple_expressions"
+    command: "pytest tests/unit/test_autonomous_workflow.py -k test_quality_verifier_command_execution"
     working_directory: "."
     timeout_seconds: 30
 
