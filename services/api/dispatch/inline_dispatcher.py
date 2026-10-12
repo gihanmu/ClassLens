@@ -47,6 +47,9 @@ class InlineDispatcher(BaseDispatcher):
             resp.needs_teacher_review = analysis.needs_teacher_review
             resp.misconception_taxonomy_id = analysis.diagnosis.misconception_taxonomy_id
             resp.analysis_data = analysis.model_dump()
+            resp.is_mock = analysis.is_mock
+            resp.model_version = analysis.model_version
+            resp.cost_estimate_usd = analysis.cost_estimate_usd
             memory_repo.update_response(resp)
 
             memory_repo.increment_job_progress(job_id, success=True)

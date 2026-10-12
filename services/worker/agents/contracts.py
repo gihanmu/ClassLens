@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -86,6 +86,22 @@ class VisualEvidenceOutput(BaseModel):
     )
     resolution_mode: Literal["standard_768px", "high_res_evaluation"] = Field(
         default="standard_768px", description="Image resolution mode used for inference"
+    )
+    ambiguities: List[str] = Field(
+        default_factory=list,
+        description="Visual ambiguities identified during extraction",
+    )
+    requires_teacher_review: bool = Field(
+        default=False,
+        description="Whether perceptual ambiguities require teacher review",
+    )
+    teacher_review_reason: Optional[str] = Field(
+        default=None,
+        description="Explanation if teacher review is requested by visual extraction",
+    )
+    raw_extraction: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Raw structured schema dictionary from upstream multimodal model",
     )
 
 
@@ -218,4 +234,12 @@ class StudentResponseAnalysis(BaseModel):
     model_version: str = Field(
         default="mock-offline-fixture",
         description="Model identifier or mock fixture version label",
+    )
+    cost_estimate_usd: Optional[float] = Field(
+        default=None,
+        description="Estimated inference cost in USD for this analysis",
+    )
+    live_telemetry: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Live telemetry details including token counts and model location",
     )

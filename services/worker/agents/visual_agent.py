@@ -7,7 +7,9 @@ from typing import Optional
 from google.adk.agents import Agent
 
 
-DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+from services.api.config import settings
+
+DEFAULT_MODEL = os.getenv("GEMINI_MODEL", settings.gemini_model)
 
 VISUAL_AGENT_INSTRUCTION = """You are an objective mathematical visual evidence transcriber.
 Your sole role is to transcribe physically visible marks on the student response image:

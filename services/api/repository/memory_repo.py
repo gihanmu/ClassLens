@@ -68,6 +68,9 @@ class ResponseDoc(BaseModel):
     teacher_override_taxonomy_id: Optional[str] = None
     teacher_notes: Optional[str] = None
     analysis_data: Optional[Dict[str, Any]] = None
+    is_mock: bool = True
+    model_version: str = "mock-offline-fixture"
+    cost_estimate_usd: Optional[float] = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 

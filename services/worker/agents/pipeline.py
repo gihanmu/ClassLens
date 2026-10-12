@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from services.worker.agents.contracts import (
     CohortIntelligenceOutput,
@@ -12,6 +13,7 @@ from services.worker.agents.contracts import (
     StudentResponseAnalysis,
 )
 from services.worker.agents.mock_adapter import MockAgentAdapter
+from services.worker.agents.provider import VisualEvidenceProvider, get_visual_evidence_provider
 from services.worker.agents.tools import compute_cohort_statistics
 
 
@@ -27,6 +29,8 @@ class MultiAgentPipeline:
         confidence_override: Optional[float] = None,
         rule_expr: str = "-6 + 12 - 4",
         target_value: float = 2.0,
+        provider: Optional[VisualEvidenceProvider] = None,
+        image_source: Optional[Union[str, Path, bytes]] = None,
     ) -> StudentResponseAnalysis:
         """Executes the per-response multi-agent sequential pipeline with bounded adversarial audit.
 
@@ -44,6 +48,8 @@ class MultiAgentPipeline:
             confidence_override: Test override for visual perception confidence.
             rule_expr: Arithmetic expression string.
             target_value: Expected target numerical value.
+            provider: Optional injected VisualEvidenceProvider (defaults to configured provider).
+            image_source: Optional file path or raw image bytes for visual evidence extraction.
 
         Returns:
             Validated StudentResponseAnalysis Pydantic record.
@@ -52,8 +58,10 @@ class MultiAgentPipeline:
         reinterpretation_attempted = False
 
         # Stage 1: VisualEvidenceAgent
-        visual_evidence = MockAgentAdapter.get_visual_evidence(
+        active_provider = provider or get_visual_evidence_provider()
+        visual_evidence = active_provider.extract_evidence(
             response_id=response_id,
+            image_source=image_source,
             high_res_mode=high_res_mode,
             confidence_override=confidence_override,
         )
@@ -100,7 +108,16 @@ class MultiAgentPipeline:
         needs_review = False
         review_reason: Optional[str] = None
 
-        if visual_evidence.confidence < 0.70:
+        if visual_evidence.quality_status == QualityStatus.UNREADABLE:
+            needs_review = True
+            review_reason = "Unreadable student submission."
+        elif visual_evidence.requires_teacher_review:
+            needs_review = True
+            review_reason = (
+                visual_evidence.teacher_review_reason
+                or "Visual extraction flagged ambiguities requiring educator review."
+            )
+        elif visual_evidence.confidence < 0.70:
             needs_review = True
             review_reason = "low_confidence"
         elif diagnosis.confidence < 0.75:
@@ -115,13 +132,15 @@ class MultiAgentPipeline:
         elif diagnosis.reasoning_status == ReasoningStatus.INCOMPLETE:
             needs_review = True
             review_reason = "Incomplete reasoning: final answer present without supporting steps."
-        elif visual_evidence.quality_status == QualityStatus.UNREADABLE:
-            needs_review = True
-            review_reason = "Unreadable student submission."
 
         elapsed_ms = int((time.perf_counter() - start_t) * 1000.0)
 
-        # Provenance guardrail: Explicit mock flag prevents mock output from masquerading as real Gemini API output
+        is_mock = visual_evidence.provenance == "synthetic_mock_fixture"
+        model_version = "mock-offline-fixture" if is_mock else visual_evidence.provenance
+        tokens_consumed = getattr(active_provider, "last_tokens", 0)
+        cost_usd = getattr(active_provider, "last_cost_usd", None)
+        telemetry = getattr(active_provider, "last_telemetry", None)
+
         return StudentResponseAnalysis(
             response_id=response_id,
             quality_status=visual_evidence.quality_status,
@@ -136,9 +155,11 @@ class MultiAgentPipeline:
             teacher_review_reason=review_reason,
             reinterpretation_attempted=reinterpretation_attempted,
             execution_latency_ms=elapsed_ms,
-            tokens_consumed=0,  # Offline mock consumes zero live tokens
-            is_mock=True,
-            model_version="mock-offline-fixture",
+            tokens_consumed=tokens_consumed,
+            is_mock=is_mock,
+            model_version=model_version,
+            cost_estimate_usd=cost_usd,
+            live_telemetry=telemetry,
         )
 
     @classmethod
