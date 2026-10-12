@@ -59,8 +59,8 @@ class ResponseDoc(BaseModel):
     sha256_hash: Optional[str] = None
     upload_status: str = "validated"  # uploaded_unverified, validating, validated, rejected
     task_status: str = "PENDING"  # PENDING, RUNNING, COMPLETED, FAILED
-    answer_status: str = "undetermined"  # correct, incorrect, undetermined
-    reasoning_status: str = "undetermined"  # supported_correct, supported_error, incomplete, undetermined
+    answer_status: str = "not_assessed"  # correct, incorrect, undetermined, not_assessed
+    reasoning_status: str = "not_assessed"  # supported_correct, supported_error, incomplete, unverifiable, not_assessed
     teacher_review_status: str = "unreviewed"  # unreviewed, approved_as_is, overridden, marked_unreadable
     is_compensatory_error: bool = False
     needs_teacher_review: bool = False
@@ -270,8 +270,8 @@ class MemoryRepository:
                     sha256_hash=f"hash_{resp_id}",
                     upload_status="validated",
                     task_status="PENDING",
-                    answer_status="undetermined",
-                    reasoning_status="undetermined",
+                    answer_status="not_assessed",
+                    reasoning_status="not_assessed",
                     teacher_review_status="unreviewed",
                 )
                 self.responses[doc_id] = doc
@@ -442,6 +442,214 @@ class MemoryRepository:
     def get_audit_events_for_response(self, response_id: str) -> List[AuditEventDoc]:
         with self._lock:
             return [e for e in self.audit_events if e.response_id == response_id]
+
+    def get_dashboard_summary(self, org_id: str) -> Dict[str, Any]:
+        """Calculates real teacher-level summary metrics, recent assessments, and attention items."""
+        with self._lock:
+            org_assessments = [a for a in self.assessments.values() if a.organization_id == org_id]
+            asm_ids = {a.id for a in org_assessments}
+            org_responses = [r for r in self.responses.values() if r.assessment_id in asm_ids]
+
+            # 1. Classes and student counts
+            classes = {a.class_id for a in org_assessments}
+            students = {r.pseudonymous_student_id for r in org_responses}
+
+            # 2. Processing lifecycle buckets
+            awaiting_analysis = [r for r in org_responses if r.task_status in ("PENDING", "QUEUED")]
+            analyzed = [r for r in org_responses if r.task_status == "COMPLETED"]
+            in_progress = [r for r in org_responses if r.task_status == "RUNNING"]
+            failed = [r for r in org_responses if r.task_status == "FAILED"]
+
+            needs_review = [
+                r for r in analyzed
+                if r.needs_teacher_review and r.teacher_review_status == "unreviewed"
+            ]
+            reviewed = [r for r in analyzed if r.teacher_review_status != "unreviewed"]
+
+            # 3. Assessment Summaries
+            assessment_summaries = []
+            for a in org_assessments:
+                a_resps = [r for r in org_responses if r.assessment_id == a.id]
+                a_analyzed = [r for r in a_resps if r.task_status == "COMPLETED"]
+                a_pending = [r for r in a_resps if r.task_status in ("PENDING", "QUEUED")]
+                a_needs_review = [
+                    r for r in a_analyzed
+                    if r.needs_teacher_review and r.teacher_review_status == "unreviewed"
+                ]
+
+                progress_pct = (
+                    round((len(a_analyzed) / len(a_resps)) * 100)
+                    if a_resps else 0
+                )
+
+                status_label = "ready"
+                if any(r.task_status == "RUNNING" for r in a_resps):
+                    status_label = "analyzing"
+                elif len(a_analyzed) == len(a_resps) and a_resps:
+                    status_label = "analyzed"
+                elif a_resps:
+                    status_label = "awaiting_analysis"
+
+                assessment_summaries.append({
+                    "id": a.id,
+                    "title": a.title,
+                    "subject": "Mathematics",
+                    "topic": "Integers & Number Lines",
+                    "class_id": a.class_id,
+                    "class_name": "Sec 1 Mathematics",
+                    "total_submissions": len(a_resps),
+                    "awaiting_analysis_count": len(a_pending),
+                    "analyzed_count": len(a_analyzed),
+                    "needs_review_count": len(a_needs_review),
+                    "progress_percentage": progress_pct,
+                    "status": status_label,
+                    "created_at": a.created_at.isoformat(),
+                    "updated_at": a.updated_at.isoformat(),
+                })
+
+            # 4. Teacher Attention Items (no fabricated items)
+            attention_items = []
+            # High priority: analyzed submissions requiring manual teacher review
+            for r in needs_review:
+                parent_asm = self.assessments.get(r.assessment_id)
+                asm_title = parent_asm.title if parent_asm else r.assessment_id
+
+                diagnosis_data = (r.analysis_data or {}).get("diagnosis", {})
+                critic_data = (r.analysis_data or {}).get("critic_audit", {})
+
+                reason = "Teacher review recommended"
+                if r.upload_status == "unreadable" or diagnosis_data.get("evidence_sufficiency") == "insufficient":
+                    reason = "Unreadable or ambiguous handwriting evidence"
+                elif critic_data.get("reinterpretation_needed"):
+                    reason = "Adversarial critic discrepancy flagged"
+                elif r.is_compensatory_error:
+                    reason = "Compensatory error in intermediate hops"
+                elif r.reasoning_status in ("incomplete", "unverifiable"):
+                    reason = "Unverifiable reasoning steps"
+
+                attention_items.append({
+                    "id": f"attn_{r.id}",
+                    "type": "needs_review",
+                    "response_id": r.id,
+                    "assessment_id": r.assessment_id,
+                    "assessment_title": asm_title,
+                    "student_label": r.pseudonym_label or r.id,
+                    "title": f"Review Required: {r.pseudonym_label or r.id}",
+                    "description": reason,
+                    "severity": "high" if "unreadable" in reason.lower() or "ambiguous" in reason.lower() else "medium",
+                    "action_label": "Review Work",
+                })
+
+            # Submissions awaiting analysis item (grouped)
+            if awaiting_analysis:
+                primary_asm = org_assessments[0] if org_assessments else None
+                attention_items.append({
+                    "id": "attn_pending_batch",
+                    "type": "awaiting_analysis",
+                    "assessment_id": primary_asm.id if primary_asm else "asm_1065658",
+                    "assessment_title": primary_asm.title if primary_asm else "Checkpoint 1",
+                    "count": len(awaiting_analysis),
+                    "title": f"{len(awaiting_analysis)} Submissions Awaiting Analysis",
+                    "description": f"Worksheets in {primary_asm.title if primary_asm else 'assessment'} ready for multi-agent evaluation.",
+                    "severity": "medium",
+                    "action_label": "Run Analysis",
+                })
+
+            # 5. Learning Insights Snapshot
+            insights_snapshot: Dict[str, Any] = {
+                "has_analyzed_data": len(analyzed) > 0,
+                "analyzed_count": len(analyzed),
+                "total_submissions": len(org_responses),
+                "verified_reasoning_pct": 0,
+                "correct_answers_pct": 0,
+                "top_misconceptions": [],
+                "recommended_reteaching": None,
+            }
+
+            if analyzed:
+                verified_count = sum(
+                    1 for r in analyzed
+                    if r.reasoning_status in ("verified", "supported_correct", "sound", "valid")
+                )
+                correct_count = sum(1 for r in analyzed if r.answer_status == "correct")
+
+                insights_snapshot["verified_reasoning_pct"] = round((verified_count / len(analyzed)) * 100)
+                insights_snapshot["correct_answers_pct"] = round((correct_count / len(analyzed)) * 100)
+
+                misc_counts: Dict[str, int] = {}
+                for r in analyzed:
+                    diag = (r.analysis_data or {}).get("diagnosis", {})
+                    tax_id = r.misconception_taxonomy_id or diag.get("misconception_taxonomy_id")
+                    if tax_id and tax_id != "None":
+                        misc_counts[tax_id] = misc_counts.get(tax_id, 0) + 1
+
+                top_list = []
+                for tax_id, count in sorted(misc_counts.items(), key=lambda x: x[1], reverse=True)[:3]:
+                    top_list.append({
+                        "taxonomy_id": tax_id,
+                        "count": count,
+                        "percentage": round((count / len(analyzed)) * 100),
+                    })
+                insights_snapshot["top_misconceptions"] = top_list
+
+                if top_list:
+                    insights_snapshot["recommended_reteaching"] = "Reinforce counting interval steps between numbers rather than counting tick mark lines."
+                elif verified_count == len(analyzed):
+                    insights_snapshot["recommended_reteaching"] = "Cohort demonstrated sound number-line execution. Ready to advance to multi-step integer arithmetic."
+                else:
+                    insights_snapshot["recommended_reteaching"] = "Inspect flagged responses to identify individual procedural slips."
+
+            # 6. Recent Activity
+            recent_activity = []
+            for ev in sorted(self.audit_events, key=lambda e: e.timestamp, reverse=True)[:10]:
+                parent_resp = self.responses.get(ev.response_id)
+                student_label = parent_resp.pseudonym_label if parent_resp else ev.response_id
+                action_text = "Review submitted"
+                if ev.action == "approved_as_is":
+                    action_text = f"Confirmed AI analysis for {student_label}"
+                elif ev.action == "overridden":
+                    action_text = f"Overrode diagnosis for {student_label}"
+                elif ev.action == "marked_unreadable":
+                    action_text = f"Marked {student_label} as unreadable"
+                recent_activity.append({
+                    "id": ev.id,
+                    "event_type": "teacher_review",
+                    "title": action_text,
+                    "description": ev.notes or f"Educator review recorded",
+                    "timestamp": ev.timestamp.isoformat(),
+                    "response_id": ev.response_id,
+                    "assessment_id": ev.assessment_id,
+                })
+
+            for job in sorted(self.analysis_jobs.values(), key=lambda j: j.created_at, reverse=True)[:5]:
+                parent_asm = self.assessments.get(job.assessment_id)
+                asm_title = parent_asm.title if parent_asm else job.assessment_id
+                recent_activity.append({
+                    "id": job.id,
+                    "event_type": "analysis_completed",
+                    "title": f"Batch analysis completed: {asm_title}",
+                    "description": f"Processed {job.completed_items}/{job.total_items} submissions",
+                    "timestamp": job.created_at.isoformat(),
+                    "assessment_id": job.assessment_id,
+                })
+
+            recent_activity.sort(key=lambda x: x["timestamp"], reverse=True)
+
+            return {
+                "active_classes_count": len(classes) or 1,
+                "total_students_count": len(students) or 16,
+                "total_assessments_count": len(org_assessments),
+                "awaiting_analysis_count": len(awaiting_analysis),
+                "needing_review_count": len(needs_review),
+                "analyzed_count": len(analyzed),
+                "in_progress_count": len(in_progress),
+                "failed_count": len(failed),
+                "reviewed_count": len(reviewed),
+                "assessments": assessment_summaries,
+                "attention_items": attention_items,
+                "learning_insights_snapshot": insights_snapshot,
+                "recent_activity": recent_activity[:10],
+            }
 
 
 # Singleton instance

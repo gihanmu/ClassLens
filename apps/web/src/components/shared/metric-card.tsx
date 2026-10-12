@@ -64,8 +64,8 @@ export function MetricCard({
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <Typography variant="body-sm" className="font-medium text-ink-secondary line-clamp-1">
+      <div className="flex items-center justify-between gap-2 mb-3 min-h-[32px]">
+        <Typography variant="body-sm" className="font-medium text-ink-secondary line-clamp-2 leading-tight text-xs sm:text-sm">
           {title}
         </Typography>
         {icon && (

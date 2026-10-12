@@ -5,16 +5,18 @@ import { getReasoningStatusConfig } from "@/lib/terminology";
 
 export interface ReasoningStatusBadgeProps {
   status: string | null | undefined;
+  taskStatus?: string | null;
   className?: string;
   size?: "sm" | "md";
 }
 
 export function ReasoningStatusBadge({
   status,
+  taskStatus,
   className,
   size = "md",
 }: ReasoningStatusBadgeProps) {
-  const config = getReasoningStatusConfig(status);
+  const config = getReasoningStatusConfig(status, taskStatus);
 
   if (config.tone === "success") {
     return (

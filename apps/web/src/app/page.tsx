@@ -7,7 +7,9 @@ import {
   Assessment,
   StudentResponse,
   CohortInsights,
+  DashboardSummary,
 } from "@/lib/api";
+import { TeacherDashboardView } from "@/components/features/dashboard/TeacherDashboardView";
 import {
   Users,
   BarChart3,
@@ -51,11 +53,13 @@ export default function ClassLensApp() {
   const [currentAssessmentId, setCurrentAssessmentId] = useState<string>("asm_1065658");
   const [responses, setResponses] = useState<StudentResponse[]>([]);
   const [insights, setInsights] = useState<CohortInsights | null>(null);
-  const [currentTab, setCurrentTab] = useState<NavItemKey>("responses");
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
+  const [currentTab, setCurrentTab] = useState<NavItemKey>("dashboard");
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analyzingSingleId, setAnalyzingSingleId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
   const [showHeroBanner, setShowHeroBanner] = useState<boolean>(false);
@@ -66,6 +70,13 @@ export default function ClassLensApp() {
     try {
       setLoading(true);
       await api.ensureDemoSession();
+
+      try {
+        const dash = await api.getDashboardSummary();
+        setDashboardSummary(dash);
+      } catch (e) {
+        console.warn("Could not load dashboard summary:", e);
+      }
 
       try {
         const asms = await api.listAssessments();
@@ -87,6 +98,8 @@ export default function ClassLensApp() {
         } catch (e) {
           console.warn("Cohort insights not ready yet:", e);
         }
+      } else {
+        setInsights(null);
       }
     } catch (err) {
       console.error("Failed to load initial data:", err);
@@ -126,7 +139,7 @@ export default function ClassLensApp() {
       if (respParam) setSelectedResponseId(respParam);
       if (
         tabParam &&
-        ["responses", "insights", "recommendations", "resources", "assessments"].includes(tabParam)
+        ["dashboard", "responses", "insights", "recommendations", "resources", "assessments"].includes(tabParam)
       ) {
         setCurrentTab(tabParam as NavItemKey);
       }
@@ -182,42 +195,65 @@ export default function ClassLensApp() {
     }
   };
 
+  const handleAnalyzeSingle = async (resp: StudentResponse) => {
+    try {
+      setAnalyzingSingleId(resp.id);
+      await api.analyzeSingleResponse(resp.id);
+      await loadData(currentAssessmentId);
+    } catch (err) {
+      console.error("Failed to analyze response:", err);
+      alert(`Failed to analyze response ${resp.id}.`);
+    } finally {
+      setAnalyzingSingleId(null);
+    }
+  };
+
   // Derived cohort metrics with strict semantic boundaries
   const totalSubmissions = responses.length;
   const completedAnalyses = responses.filter((r) => r.task_status === "COMPLETED").length;
-  const correctCount = responses.filter((r) => r.answer_status === "correct").length;
+  const awaitingCount = responses.filter((r) => r.task_status !== "COMPLETED" && r.task_status !== "FAILED").length;
+  const failedCount = responses.filter((r) => r.task_status === "FAILED").length;
+
+  const correctCount = responses.filter((r) => r.task_status === "COMPLETED" && r.answer_status === "correct").length;
   const reasoningVerifiedCount = responses.filter(
     (r) =>
-      r.reasoning_status === "verified" ||
-      r.reasoning_status === "sound" ||
-      r.reasoning_status === "valid" ||
-      r.reasoning_status === "correct"
+      r.task_status === "COMPLETED" &&
+      (r.reasoning_status === "verified" ||
+        r.reasoning_status === "sound" ||
+        r.reasoning_status === "valid" ||
+        r.reasoning_status === "correct")
   ).length;
   const misconceptionCount = responses.filter(
-    (r) => Boolean(r.misconception_taxonomy_id || r.analysis_data?.diagnosis?.diagnosed_misconception_id)
+    (r) =>
+      r.task_status === "COMPLETED" &&
+      Boolean(r.misconception_taxonomy_id || r.analysis_data?.diagnosis?.diagnosed_misconception_id)
   ).length;
   const reviewedCount = responses.filter(
     (r) => r.teacher_review_status && r.teacher_review_status !== "unreviewed"
   ).length;
 
   // Strict semantics: only students flagged who are not yet confirmed/overridden
+  // Prior to completion, submissions are NOT flagged for review
   const needsReviewCount = responses.filter(
-    (r) => r.needs_teacher_review && r.teacher_review_status === "unreviewed"
+    (r) => r.task_status === "COMPLETED" && r.needs_teacher_review && r.teacher_review_status === "unreviewed"
   ).length;
 
-  // Insufficient evidence count
+  // Insufficient evidence count: ONLY computed on completed analyses
   const insufficientEvidenceCount = responses.filter(
     (r) =>
-      r.reasoning_status === "incomplete" ||
-      r.reasoning_status === "unverifiable" ||
-      r.answer_status === "undetermined" ||
-      r.upload_status === "unreadable" ||
-      r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
+      r.task_status === "COMPLETED" &&
+      (r.reasoning_status === "incomplete" ||
+        r.reasoning_status === "unverifiable" ||
+        r.answer_status === "undetermined" ||
+        r.upload_status === "unreadable" ||
+        r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient")
   ).length;
 
   // Procedural errors in reasoning or final answer incorrect
   const procedureErrorCount = responses.filter(
-    (r) => r.reasoning_status?.includes("error") || r.answer_status === "incorrect"
+    (r) =>
+      r.task_status === "COMPLETED" &&
+      (r.reasoning_status?.includes("error") || r.answer_status === "incorrect")
   ).length;
 
   // Filtered student responses
@@ -240,22 +276,36 @@ export default function ClassLensApp() {
       }
     }
 
+    if (filter === "awaiting") {
+      return r.task_status !== "COMPLETED" && r.task_status !== "FAILED";
+    }
+    if (filter === "analyzed") {
+      return r.task_status === "COMPLETED";
+    }
     if (filter === "review") {
-      return r.needs_teacher_review && r.teacher_review_status === "unreviewed";
+      return r.task_status === "COMPLETED" && r.needs_teacher_review && r.teacher_review_status === "unreviewed";
     }
     if (filter === "insufficient") {
       return (
-        r.reasoning_status === "incomplete" ||
-        r.answer_status === "undetermined" ||
-        r.upload_status === "unreadable" ||
-        r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
+        r.task_status === "COMPLETED" &&
+        (r.reasoning_status === "incomplete" ||
+          r.reasoning_status === "unverifiable" ||
+          r.answer_status === "undetermined" ||
+          r.upload_status === "unreadable" ||
+          r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient")
       );
     }
     if (filter === "errors") {
-      return r.reasoning_status?.includes("error") || r.answer_status === "incorrect";
+      return (
+        r.task_status === "COMPLETED" &&
+        (r.reasoning_status?.includes("error") || r.answer_status === "incorrect")
+      );
     }
     if (filter === "correct") {
-      return r.answer_status === "correct";
+      return r.task_status === "COMPLETED" && r.answer_status === "correct";
+    }
+    if (filter === "failed") {
+      return r.task_status === "FAILED";
     }
     return true;
   });
@@ -273,9 +323,50 @@ export default function ClassLensApp() {
     >
       <div className="space-y-6">
         {/* =========================================================================
+            SCREEN 0: DEDICATED TEACHER DASHBOARD (PRIMARY LANDING PAGE)
+           ========================================================================= */}
+        {currentTab === "dashboard" && (
+          <TeacherDashboardView
+            summary={dashboardSummary}
+            loading={loading}
+            onOpenAssessmentsModal={() => setShowAssessmentModal(true)}
+            onNavigateToStudentWork={(targetAsmId) => {
+              if (targetAsmId && targetAsmId !== currentAssessmentId) {
+                handleSelectAssessment(targetAsmId);
+              }
+              setCurrentTab("responses");
+            }}
+            onInspectSubmission={(respId) => {
+              setSelectedResponseId(respId);
+            }}
+            onNavigateToInsights={(targetAsmId) => {
+              if (targetAsmId && targetAsmId !== currentAssessmentId) {
+                handleSelectAssessment(targetAsmId);
+              }
+              setCurrentTab("insights");
+            }}
+            onRunBatchAnalysis={async (targetAsmId) => {
+              try {
+                setIsAnalyzing(true);
+                await api.triggerAnalysis(targetAsmId, `job_run_${Date.now()}`);
+                setTimeout(async () => {
+                  await loadData(targetAsmId);
+                  setIsAnalyzing(false);
+                }, 1200);
+              } catch (err) {
+                console.error("Failed to run batch analysis:", err);
+                setIsAnalyzing(false);
+                alert("Failed to run batch analysis.");
+              }
+            }}
+            isAnalyzing={isAnalyzing}
+          />
+        )}
+
+        {/* =========================================================================
             SCREEN A: COMPACT DISMISSIBLE INTRODUCTION (First-Visit or On-Demand)
            ========================================================================= */}
-        {showHeroBanner && (
+        {showHeroBanner && currentTab === "responses" && (
           <section
             aria-label="Welcome and System Guide"
             className="relative rounded-2xl bg-gradient-to-br from-surface-base via-surface-base to-brand-light/30 border border-border-default p-5 sm:p-6 shadow-xs overflow-hidden transition-all duration-200"
@@ -397,53 +488,57 @@ export default function ClassLensApp() {
                     disabled={responses.length === 0}
                   >
                     <Sparkles className="w-4 h-4" />
-                    {isAnalyzing ? "Analyzing Pipeline..." : "Run Multi-Agent Analysis"}
+                    {isAnalyzing ? "Analyzing All (13)..." : "Analyze All Submissions"}
                   </Button>
                 </div>
               }
             />
 
-            {/* 5 Metric Summary Cards */}
+            {/* 5 Metric Summary Cards with clean unanalyzed baseline */}
             <section aria-label="Assessment Metrics Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               <MetricCard
-                title="Students Assessed"
+                title="Total Submissions"
                 value={totalSubmissions}
-                subtext={currentAssessmentId === "asm_synthetic_cases" ? "Synthetic Test Cases" : "Curated Cohort"}
+                subtext={
+                  completedAnalyses === 0
+                    ? `${awaitingCount} awaiting analysis`
+                    : `${completedAnalyses} of ${totalSubmissions} analyzed`
+                }
                 accent="brand"
                 icon={<Layers className="w-5 h-5" />}
               />
               <MetricCard
                 title="Correct Final Answers"
-                value={correctCount}
-                denominator={totalSubmissions}
+                value={completedAnalyses === 0 ? "—" : correctCount}
+                denominator={completedAnalyses === 0 ? undefined : completedAnalyses}
                 subtext={
-                  totalSubmissions > 0
-                    ? `${Math.round((correctCount / totalSubmissions) * 100)}% of students`
-                    : "Pending"
+                  completedAnalyses === 0
+                    ? "Pending batch analysis"
+                    : `${Math.round((correctCount / Math.max(completedAnalyses, 1)) * 100)}% of analyzed`
                 }
                 accent="mint"
                 icon={<Check className="w-5 h-5" />}
               />
               <MetricCard
                 title="Reasoning Verified"
-                value={reasoningVerifiedCount}
-                denominator={totalSubmissions}
+                value={completedAnalyses === 0 ? "—" : reasoningVerifiedCount}
+                denominator={completedAnalyses === 0 ? undefined : completedAnalyses}
                 subtext={
-                  totalSubmissions > 0
-                    ? `${Math.round((reasoningVerifiedCount / totalSubmissions) * 100)}% completely sound`
-                    : "Pending"
+                  completedAnalyses === 0
+                    ? "Pending verification"
+                    : `${Math.round((reasoningVerifiedCount / Math.max(completedAnalyses, 1)) * 100)}% sound steps`
                 }
                 accent="brand"
                 icon={<CheckCheck className="w-5 h-5" />}
               />
               <MetricCard
                 title="Misconceptions Identified"
-                value={misconceptionCount}
-                denominator={totalSubmissions}
+                value={completedAnalyses === 0 ? "—" : misconceptionCount}
+                denominator={completedAnalyses === 0 ? undefined : completedAnalyses}
                 subtext={
-                  totalSubmissions > 0
-                    ? `${Math.round((misconceptionCount / totalSubmissions) * 100)}% supported patterns`
-                    : "Pending"
+                  completedAnalyses === 0
+                    ? "Pending analysis"
+                    : `${Math.round((misconceptionCount / Math.max(completedAnalyses, 1)) * 100)}% supported patterns`
                 }
                 accent="coral"
                 icon={<AlertTriangle className="w-5 h-5" />}
@@ -451,11 +546,11 @@ export default function ClassLensApp() {
               <MetricCard
                 title="Needs Teacher Review"
                 value={needsReviewCount}
-                denominator={totalSubmissions}
+                denominator={completedAnalyses === 0 ? undefined : completedAnalyses}
                 subtext={
-                  totalSubmissions > 0
-                    ? `${Math.round((needsReviewCount / totalSubmissions) * 100)}% flagged (${reviewedCount} reviewed)`
-                    : "0 flagged"
+                  completedAnalyses === 0
+                    ? "0 flagged prior to analysis"
+                    : `${Math.round((needsReviewCount / Math.max(completedAnalyses, 1)) * 100)}% flagged (${reviewedCount} reviewed)`
                 }
                 accent="yellow"
                 icon={<ShieldCheck className="w-5 h-5" />}
@@ -465,11 +560,12 @@ export default function ClassLensApp() {
             {/* Filter Bar with Documented Semantics */}
             <FilterBar
               options={[
-                { id: "all", label: "All Responses", count: totalSubmissions },
-                { id: "review", label: "Review Queue", count: needsReviewCount },
+                { id: "all", label: "All Submissions", count: totalSubmissions },
+                { id: "awaiting", label: "Awaiting Analysis", count: awaitingCount },
+                { id: "analyzed", label: "Analyzed", count: completedAnalyses },
+                { id: "review", label: "Needs Review", count: needsReviewCount },
                 { id: "insufficient", label: "Insufficient Evidence", count: insufficientEvidenceCount },
                 { id: "errors", label: "Procedural Errors", count: procedureErrorCount },
-                { id: "correct", label: "Correct Final Answer", count: correctCount },
               ]}
               selectedId={filter}
               onSelect={setFilter}
@@ -606,6 +702,8 @@ export default function ClassLensApp() {
                     response={resp}
                     assessmentId={asmId}
                     onInspect={(r) => setSelectedResponseId(r.id)}
+                    onAnalyzeSingle={handleAnalyzeSingle}
+                    isAnalyzingSingle={analyzingSingleId === resp.id}
                   />
                 ))}
               </div>

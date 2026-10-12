@@ -18,7 +18,7 @@ export interface AppShellProps {
 
 export function AppShell({
   children,
-  currentTab = "responses",
+  currentTab = "dashboard",
   onSelectTab,
   assessmentTitle,
   onSelectAssessment,

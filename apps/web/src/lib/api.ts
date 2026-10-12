@@ -196,6 +196,77 @@ export interface AuditEvent {
   timestamp: string;
 }
 
+export interface AssessmentSummaryItem {
+  id: string;
+  title: string;
+  subject: string;
+  topic: string;
+  class_id: string;
+  class_name: string;
+  total_submissions: number;
+  awaiting_analysis_count: number;
+  analyzed_count: number;
+  needs_review_count: number;
+  progress_percentage: number;
+  status: "ready" | "analyzed" | "analyzing" | "awaiting_analysis";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttentionItem {
+  id: string;
+  type: "needs_review" | "awaiting_analysis" | "unreadable";
+  response_id?: string;
+  assessment_id: string;
+  assessment_title: string;
+  student_label?: string;
+  count?: number;
+  title: string;
+  description: string;
+  severity: "high" | "medium" | "low";
+  action_label: string;
+}
+
+export interface LearningInsightsSnapshot {
+  has_analyzed_data: boolean;
+  analyzed_count: number;
+  total_submissions: number;
+  verified_reasoning_pct: number;
+  correct_answers_pct: number;
+  top_misconceptions: Array<{
+    taxonomy_id: string;
+    count: number;
+    percentage: number;
+  }>;
+  recommended_reteaching?: string | null;
+}
+
+export interface ActivityItem {
+  id: string;
+  event_type: "teacher_review" | "analysis_completed" | "assessment_created";
+  title: string;
+  description: string;
+  timestamp: string;
+  response_id?: string;
+  assessment_id?: string;
+}
+
+export interface DashboardSummary {
+  active_classes_count: number;
+  total_students_count: number;
+  total_assessments_count: number;
+  awaiting_analysis_count: number;
+  needing_review_count: number;
+  analyzed_count: number;
+  in_progress_count: number;
+  failed_count: number;
+  reviewed_count: number;
+  assessments: AssessmentSummaryItem[];
+  attention_items: AttentionItem[];
+  learning_insights_snapshot: LearningInsightsSnapshot;
+  recent_activity: ActivityItem[];
+}
+
 const API_BASE = "/api/v1";
 
 async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Response> {
@@ -221,6 +292,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ demo_mode: true }),
     });
+    return res.json();
+  },
+
+  async getDashboardSummary(): Promise<DashboardSummary> {
+    const res = await fetchWithCsrf(`${API_BASE}/dashboard/summary`);
+    if (!res.ok) throw new Error("Failed to load dashboard summary");
     return res.json();
   },
 
@@ -281,6 +358,14 @@ export const api = {
       }),
     });
     if (!res.ok) throw new Error("Failed to submit review");
+    return res.json();
+  },
+
+  async analyzeSingleResponse(responseId: string): Promise<StudentResponse> {
+    const res = await fetchWithCsrf(`${API_BASE}/responses/${responseId}/analyze`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Failed to analyze response");
     return res.json();
   },
 

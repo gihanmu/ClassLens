@@ -72,6 +72,25 @@ async def get_response_detail(
     return data
 
 
+@router.post("/{response_id}/analyze")
+async def analyze_single_response(
+    response_id: str,
+    user: UserDoc = Depends(get_current_user),
+    _csrf: None = Depends(require_csrf),
+):
+    """Triggers multi-agent evaluation for a single student response."""
+    from services.api.dispatch.inline_dispatcher import inline_dispatcher
+    import uuid
+
+    resp = _get_verified_response(response_id, user.organization_id)
+    await inline_dispatcher._process_single_response(
+        job_id=f"job_single_{uuid.uuid4().hex[:6]}",
+        assessment_id=resp.assessment_id,
+        resp_id=resp.id,
+    )
+    return memory_repo.get_response(resp.id)
+
+
 class TeacherReviewAction(BaseModel):
     decision: str  # approved_as_is, overridden, marked_unreadable
     override_misconception_id: Optional[str] = None
