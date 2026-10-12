@@ -39,15 +39,23 @@ class SymPyChecker:
         # Sanitize common human arithmetic artifacts (e.g. unicode minus, redundant spaces)
         cleaned = cleaned.replace("−", "-").replace("—", "-").replace("×", "*").replace("÷", "/")
 
+        # Reject potentially unsafe python identifiers
+        if any(bad in cleaned for bad in ("__", "import", "exec", "eval", "open", "system", "globals", "locals")):
+            raise MathEvaluationError(f"Unsafe expression provided: '{expr}'")
+
         try:
-            parsed = sp.sympify(cleaned, evaluate=True)
+            parsed = sp.sympify(cleaned, locals={}, evaluate=True)
             # Ensure the expression is purely numerical (no free symbols like x, y)
-            if parsed.free_symbols:
+            if hasattr(parsed, "free_symbols") and parsed.free_symbols:
                 raise MathEvaluationError(
                     f"Expression contains free algebraic symbols: {parsed.free_symbols}"
                 )
+            if isinstance(parsed, (int, float)):
+                return float(parsed)
             return float(parsed.evalf())
-        except (SympifyError, TypeError, ValueError, ZeroDivisionError) as err:
+        except MathEvaluationError:
+            raise
+        except Exception as err:
             raise MathEvaluationError(f"Failed to evaluate expression '{expr}': {err}") from err
 
     @staticmethod

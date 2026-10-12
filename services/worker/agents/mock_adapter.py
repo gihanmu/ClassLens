@@ -432,7 +432,25 @@ class MockAgentAdapter:
                 audit_verdict="audit_rejected",
             )
 
-        # 2. Contradiction check: Procedural misconception assigned despite insufficient evidence
+        # 2. Contradiction check: Hallucinated steps (more steps claimed than physically visible)
+        if len(diagnosis.verified_steps) > len(hops) and hops:
+            discrepancies.append(
+                f"Contradiction: Hallucinated steps: diagnosis verified {len(diagnosis.verified_steps)} steps but only {len(hops)} marks are physically visible."
+            )
+            return CriticAuditOutput(
+                approved=False,
+                confidence=0.85,
+                evidence_grounded=False,
+                contradiction_detected=True,
+                reinterpretation_needed=False,
+                discrepancy_notes=discrepancies,
+                requires_teacher_review=True,
+                teacher_review_reason="Contradiction: Hallucinated steps without physical evidence.",
+                critic_attempt_number=attempt_number,
+                audit_verdict="audit_rejected",
+            )
+
+        # 3. Contradiction check: Procedural misconception assigned despite insufficient evidence
         if (
             diagnosis.misconception_taxonomy_id is not None
             and diagnosis.misconception_taxonomy_id != "REASONING_INCOMPLETE"
@@ -450,6 +468,28 @@ class MockAgentAdapter:
                 discrepancy_notes=discrepancies,
                 requires_teacher_review=True,
                 teacher_review_reason="Contradiction: Misconception assigned without supported evidence.",
+                critic_attempt_number=attempt_number,
+                audit_verdict="audit_rejected",
+            )
+
+        # 4. Contradiction check: Supported correct reasoning despite mathematically invalid steps
+        if (
+            diagnosis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT
+            and diagnosis.verified_steps
+            and any(not s.is_correct for s in diagnosis.verified_steps)
+        ):
+            discrepancies.append(
+                "Contradiction: Reasoning claimed supported_correct but verified steps contain mathematical deviations."
+            )
+            return CriticAuditOutput(
+                approved=False,
+                confidence=0.90,
+                evidence_grounded=False,
+                contradiction_detected=True,
+                reinterpretation_needed=False,
+                discrepancy_notes=discrepancies,
+                requires_teacher_review=True,
+                teacher_review_reason="Contradiction: Mathematical reasoning validity contradicted by step verification.",
                 critic_attempt_number=attempt_number,
                 audit_verdict="audit_rejected",
             )
