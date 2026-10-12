@@ -23,6 +23,42 @@ from services.worker.agents.tools import eval_sympy_arithmetic, validate_number_
 from services.worker.fixtures.problem_1065658_fixtures import MOCK_FIXTURES
 
 
+BENCHMARK_FIXTURES: Dict[str, Dict[str, Any]] = {
+    "bench_sign_flip_hop2": {
+        "response_id": "bench_sign_flip_hop2",
+        "quality_status": "clear",
+        "confidence": 0.95,
+        "has_number_line": True,
+        "final_answer_marked": "-22",
+        "observations": [
+            {"kind": "number_line", "value": "Extended number line [-25, 10]", "confidence": 0.98},
+            {"kind": "arrow_jump", "value": "Jump 0 to -6", "confidence": 0.95, "start_pos": 0.0, "end_pos": -6.0, "direction": "left"},
+            {"kind": "arrow_jump", "value": "Jump -6 to -18 (directional reversal)", "confidence": 0.95, "start_pos": -6.0, "end_pos": -18.0, "direction": "left"},
+            {"kind": "arrow_jump", "value": "Jump -18 to -22", "confidence": 0.94, "start_pos": -18.0, "end_pos": -22.0, "direction": "left"},
+            {"kind": "circled_result", "value": "-22", "confidence": 0.98},
+        ],
+    },
+    "bench_faint_overlapping": {
+        "response_id": "bench_faint_overlapping",
+        "quality_status": "faint_readable",
+        "confidence": 0.55,
+        "has_number_line": True,
+        "final_answer_marked": None,
+        "observations": [
+            {"kind": "number_line", "value": "Faint horizontal line with overlapping marks", "confidence": 0.65},
+            {"kind": "arrow_jump", "value": "Faint arc 0 to -6 (missing arrowhead)", "confidence": 0.60, "start_pos": 0.0, "end_pos": -6.0, "direction": "none"},
+            {"kind": "arrow_jump", "value": "Overlapping incomplete arc near -6 (missing endpoint)", "confidence": 0.35, "start_pos": -6.0, "end_pos": None, "direction": "none"},
+        ],
+        "ambiguities": [
+            "Overlapping erased pencil marks",
+            "Missing directional arrowhead and missing terminal coordinate",
+        ],
+        "requires_teacher_review": True,
+        "teacher_review_reason": "Overlapping strokes and missing coordinate endpoints require educator review.",
+    },
+}
+
+
 class MockAgentAdapter:
     """Provides deterministic, schema-validated mock outputs for all 5 ADK agents."""
 
@@ -34,7 +70,7 @@ class MockAgentAdapter:
         confidence_override: Optional[float] = None,
     ) -> VisualEvidenceOutput:
         """Emits deterministic VisualEvidenceOutput from structured synthetic fixtures."""
-        fixture = MOCK_FIXTURES.get(response_id)
+        fixture = MOCK_FIXTURES.get(response_id) or BENCHMARK_FIXTURES.get(response_id)
         if not fixture and "_resp_" in response_id:
             base_id = "resp_" + response_id.split("_resp_")[-1]
             fixture = MOCK_FIXTURES.get(base_id)
@@ -96,6 +132,9 @@ class MockAgentAdapter:
             confidence=conf,
             provenance="synthetic_mock_fixture",
             resolution_mode="high_res_evaluation" if high_res_mode else "standard_768px",
+            ambiguities=fixture.get("ambiguities", []),
+            requires_teacher_review=bool(fixture.get("requires_teacher_review", False)),
+            teacher_review_reason=fixture.get("teacher_review_reason"),
         )
 
     @classmethod
