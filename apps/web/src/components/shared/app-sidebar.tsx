@@ -13,9 +13,10 @@ import {
   FolderOpen,
   Sparkles,
   FlaskConical,
+  LayoutDashboard,
 } from "lucide-react";
 
-export type NavItemKey = "responses" | "insights" | "recommendations" | "resources" | "assessments" | "design-system" | "gemini-test";
+export type NavItemKey = "dashboard" | "responses" | "insights" | "recommendations" | "resources" | "assessments" | "design-system" | "gemini-test";
 
 export interface NavItem {
   key: NavItemKey;
@@ -33,7 +34,7 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({
-  currentTab = "responses",
+  currentTab = "dashboard",
   onSelectTab,
   className,
   onCloseMobile,
@@ -41,7 +42,8 @@ export function AppSidebar({
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
-    { key: "responses", label: "Student Work", icon: Users, badge: "13" },
+    { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { key: "responses", label: "Student Work", icon: Users },
     { key: "insights", label: "Cohort Insights", icon: BarChart3 },
     { key: "recommendations", label: "Teaching Actions", icon: Sparkles },
     { key: "resources", label: "Exit Tickets", icon: FileText },

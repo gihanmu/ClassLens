@@ -57,13 +57,80 @@ export function getMisconceptionPlainLanguage(
 }
 
 /**
+ * Processing Status Mapping:
+ * - Not analyzed (pending)
+ * - Queued (queued)
+ * - Analyzing (running)
+ * - Analyzed (completed)
+ * - Analysis failed (failed)
+ */
+export function getProcessingStatusConfig(status?: string | null): StatusConfig {
+  const norm = (status || "").toLowerCase().trim();
+
+  if (norm === "completed" || norm === "analyzed") {
+    return {
+      label: "Analyzed",
+      code: "completed",
+      description: "AI evaluation and SymPy mathematical verification complete",
+      tone: "success",
+    };
+  }
+
+  if (norm === "running" || norm === "analyzing" || norm === "processing") {
+    return {
+      label: "Analyzing",
+      code: "running",
+      description: "Multi-agent evaluation in progress",
+      tone: "brand",
+    };
+  }
+
+  if (norm === "queued") {
+    return {
+      label: "Queued",
+      code: "queued",
+      description: "Queued for processing",
+      tone: "neutral",
+    };
+  }
+
+  if (norm === "failed") {
+    return {
+      label: "Analysis failed",
+      code: "failed",
+      description: "Analysis encountered an operational error",
+      tone: "error",
+    };
+  }
+
+  return {
+    label: "Not analyzed",
+    code: "pending",
+    description: "Submission has not been evaluated by AI",
+    tone: "neutral",
+  };
+}
+
+/**
  * Answer Correctness Status Mapping:
  * - Correct
  * - Incorrect
  * - Undetermined
  * - Not assessed
  */
-export function getAnswerStatusConfig(status?: string | null): StatusConfig {
+export function getAnswerStatusConfig(
+  status?: string | null,
+  taskStatus?: string | null
+): StatusConfig {
+  if (taskStatus && taskStatus.toUpperCase() !== "COMPLETED") {
+    return {
+      label: "Not analyzed",
+      code: "not_assessed",
+      description: "Submission has not been evaluated by AI",
+      tone: "neutral",
+    };
+  }
+
   const norm = (status || "").toLowerCase().trim();
 
   if (norm === "correct") {
@@ -84,7 +151,7 @@ export function getAnswerStatusConfig(status?: string | null): StatusConfig {
     };
   }
 
-  if (norm === "not_assessed" || norm === "not assessed") {
+  if (norm === "not_assessed" || norm === "not assessed" || norm === "pending") {
     return {
       label: "Not assessed",
       code: "not_assessed",
@@ -109,7 +176,19 @@ export function getAnswerStatusConfig(status?: string | null): StatusConfig {
  * - Unverifiable
  * - Not assessed
  */
-export function getReasoningStatusConfig(status?: string | null): StatusConfig {
+export function getReasoningStatusConfig(
+  status?: string | null,
+  taskStatus?: string | null
+): StatusConfig {
+  if (taskStatus && taskStatus.toUpperCase() !== "COMPLETED") {
+    return {
+      label: "Not analyzed",
+      code: "not_assessed",
+      description: "Reasoning has not been evaluated by AI",
+      tone: "neutral",
+    };
+  }
+
   const norm = (status || "").toLowerCase().trim();
 
   if (norm === "verified" || norm === "correct" || norm === "sound" || norm === "correct reasoning") {
@@ -144,7 +223,7 @@ export function getReasoningStatusConfig(status?: string | null): StatusConfig {
     };
   }
 
-  if (norm === "not_assessed" || norm === "not assessed") {
+  if (norm === "not_assessed" || norm === "not assessed" || norm === "pending") {
     return {
       label: "Not assessed",
       code: "not_assessed",

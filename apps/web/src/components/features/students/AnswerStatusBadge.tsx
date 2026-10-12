@@ -5,16 +5,18 @@ import { getAnswerStatusConfig } from "@/lib/terminology";
 
 export interface AnswerStatusBadgeProps {
   status: string | null | undefined;
+  taskStatus?: string | null;
   className?: string;
   size?: "sm" | "md";
 }
 
 export function AnswerStatusBadge({
   status,
+  taskStatus,
   className,
   size = "md",
 }: AnswerStatusBadgeProps) {
-  const config = getAnswerStatusConfig(status);
+  const config = getAnswerStatusConfig(status, taskStatus);
 
   if (config.tone === "success") {
     return (

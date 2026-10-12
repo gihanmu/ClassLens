@@ -12,6 +12,8 @@ export interface StudentResponseCardProps {
   response: StudentResponse;
   assessmentId: string;
   onInspect: (response: StudentResponse) => void;
+  onAnalyzeSingle?: (response: StudentResponse) => void;
+  isAnalyzingSingle?: boolean;
   className?: string;
 }
 
@@ -19,6 +21,8 @@ export function StudentResponseCard({
   response,
   assessmentId,
   onInspect,
+  onAnalyzeSingle,
+  isAnalyzingSingle = false,
   className,
 }: StudentResponseCardProps) {
   const imageUrl = `/api/v1/responses/${response.id}/image`;
@@ -28,22 +32,44 @@ export function StudentResponseCard({
     response.teacher_review_status === "overridden";
   const needsReview = response.needs_teacher_review && !isReviewed;
 
-  // Plain-language diagnostic summary
+  // Plain-language diagnostic summary strictly respecting processing lifecycle
   const summaryText = React.useMemo(() => {
+    // 1. If not yet analyzed or in progress
+    if (response.task_status !== "COMPLETED" || !response.analysis_data) {
+      if (response.task_status === "RUNNING") {
+        return "Evaluating with Gemini & SymPy...";
+      }
+      if (response.task_status === "FAILED") {
+        return "Analysis failed • Click to retry";
+      }
+      return "Awaiting analysis • Click 'Run Analysis' to evaluate";
+    }
+
+    // 2. Analyzed outcomes
     if (response.teacher_notes) {
       return response.teacher_notes;
     }
     if (response.misconception_taxonomy_id) {
       return getMisconceptionPlainLanguage(response.misconception_taxonomy_id);
     }
-    if (response.answer_status === "correct" && response.reasoning_status?.includes("correct")) {
+    if (
+      response.answer_status === "correct" &&
+      (response.reasoning_status?.includes("correct") || response.reasoning_status === "verified")
+    ) {
       return "All number-line hops accurate";
     }
-    if (response.reasoning_status?.includes("incomplete")) {
-      return "Not enough working shown";
+    if (
+      response.reasoning_status?.includes("incomplete") ||
+      response.reasoning_status === "unverifiable"
+    ) {
+      return "Reasoning unverifiable from visible marks";
     }
-    if (response.answer_status === "undetermined") {
-      return "Worksheet handwriting faint or unreadable";
+    if (
+      response.answer_status === "undetermined" ||
+      response.upload_status === "unreadable" ||
+      response.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
+    ) {
+      return "Handwriting faint or unreadable";
     }
     return "Analysis complete • Ready for teacher inspection";
   }, [response]);
@@ -114,8 +140,16 @@ export function StudentResponseCard({
         <div className="space-y-2 min-w-0">
           {/* Status Badges Row */}
           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-            <AnswerStatusBadge status={response.answer_status} size="sm" />
-            <ReasoningStatusBadge status={response.reasoning_status} size="sm" />
+            <AnswerStatusBadge
+              status={response.answer_status}
+              taskStatus={response.task_status}
+              size="sm"
+            />
+            <ReasoningStatusBadge
+              status={response.reasoning_status}
+              taskStatus={response.task_status}
+              size="sm"
+            />
           </div>
 
           {/* Plain-Language Diagnostic Summary */}
@@ -127,17 +161,30 @@ export function StudentResponseCard({
           </p>
         </div>
 
-        {/* 5. Footer: One clear Inspect action with guaranteed horizontal icon alignment */}
-        <div className="pt-2 border-t border-border-subtle mt-auto">
+        {/* 5. Footer: Inspection and on-demand analysis action */}
+        <div className="pt-2 border-t border-border-subtle mt-auto flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onInspect(response)}
             icon={<Eye className="w-4 h-4 text-brand-primary" />}
-            className="w-full font-semibold border-border-default group-hover:border-brand-primary group-hover:text-brand-primary group-hover:bg-brand-light/20 transition-colors"
+            className="flex-1 font-semibold border-border-default group-hover:border-brand-primary group-hover:text-brand-primary group-hover:bg-brand-light/20 transition-colors"
           >
             Inspect Work
           </Button>
+
+          {response.task_status !== "COMPLETED" && onAnalyzeSingle && (
+            <Button
+              variant="coral"
+              size="sm"
+              onClick={() => onAnalyzeSingle(response)}
+              isLoading={isAnalyzingSingle || response.task_status === "RUNNING"}
+              disabled={isAnalyzingSingle || response.task_status === "RUNNING"}
+              className="text-xs shrink-0 px-2.5 font-semibold"
+            >
+              Analyze
+            </Button>
+          )}
         </div>
       </div>
     </article>

@@ -167,16 +167,16 @@ export function CriticAuditCard({ criticAudit, className }: CriticAuditCardProps
           </span>
         </div>
 
-        {/* Calibrated Confidence Tier */}
+        {/* Confidence Tier (Heuristic Indicator) */}
         <div className="p-2 rounded-lg bg-surface-subtle border border-border-default space-y-0.5 col-span-2 sm:col-span-1">
           <span className="text-[10px] uppercase font-bold text-ink-muted block">
-            Calibrated Confidence
+            Confidence Indicator
           </span>
           <span className="font-semibold text-ink-primary block truncate">
             {qualitativeConfidence}
           </span>
           <span className="text-[9px] text-ink-muted block font-mono">
-            Score: {Math.round(confidenceScore * 100)}% (internal indicator)
+            Score: {Math.round(confidenceScore * 100)}% (heuristic indicator)
           </span>
         </div>
       </div>
