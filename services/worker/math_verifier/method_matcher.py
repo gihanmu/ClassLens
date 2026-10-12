@@ -78,12 +78,25 @@ class MethodMatcher:
                     if perm_list != addends:
                         candidates.append(("commutative", 0.0, perm_list))
 
-        # Check for an exact match first
+        if all(h.evidence_status == "insufficient_evidence" for h in hops):
+            return MatchedMethod(
+                method_name="unrecognized",
+                expected_start=None,
+                expected_displacements=list(addends),
+                is_exact_match=False,
+                matching_step_count=0,
+            )
+
+        # Check for an exact match first (only over supported hops)
         for method_name, exp_start, exp_disps in candidates:
-            if abs(student_start - exp_start) <= tolerance and len(student_displacements) == len(exp_disps):
+            if (
+                hops[0].evidence_status != "insufficient_evidence"
+                and abs(student_start - exp_start) <= tolerance
+                and len(student_displacements) == len(exp_disps)
+            ):
                 all_steps_match = True
-                for obs_d, exp_d in zip(student_displacements, exp_disps):
-                    if abs(obs_d - exp_d) > tolerance:
+                for idx, (obs_d, exp_d) in enumerate(zip(student_displacements, exp_disps)):
+                    if hops[idx].evidence_status == "insufficient_evidence" or abs(obs_d - exp_d) > tolerance:
                         all_steps_match = False
                         break
                 if all_steps_match:
@@ -101,17 +114,23 @@ class MethodMatcher:
         best_match_count = 0
 
         for method_name, exp_start, exp_disps in candidates:
-            start_matches = abs(student_start - exp_start) <= tolerance
+            start_matches = (
+                hops[0].evidence_status != "insufficient_evidence"
+                and abs(student_start - exp_start) <= tolerance
+            )
             count_matches = num_hops == len(exp_disps)
 
             matching_steps = 0
             min_len = min(num_hops, len(exp_disps))
             for i in range(min_len):
-                if abs(student_displacements[i] - exp_disps[i]) <= tolerance:
+                if (
+                    hops[i].evidence_status != "insufficient_evidence"
+                    and abs(student_displacements[i] - exp_disps[i]) <= tolerance
+                ):
                     matching_steps += 1
 
             # Scoring heuristic:
-            # - matching start point: +10 points
+            # - matching start point: +10 points (only if start is supported)
             # - matching step count: +5 points
             # - each matching step: +4 points
             score = (10.0 if start_matches else 0.0) + (5.0 if count_matches else 0.0) + (matching_steps * 4.0)
@@ -126,7 +145,7 @@ class MethodMatcher:
                 best_match_count = matching_steps
 
         # Threshold: if student start matched or at least one step matched, accept candidate
-        if best_candidate and best_score >= 10.0:
+        if best_candidate and best_score >= 10.0 and (best_match_count > 0 or hops[0].evidence_status != "insufficient_evidence"):
             m_name, exp_s, exp_d = best_candidate
             return MatchedMethod(
                 method_name=m_name,  # type: ignore[arg-type]
@@ -136,8 +155,8 @@ class MethodMatcher:
                 matching_step_count=best_match_count,
             )
 
-        # Fallback to hop_from_zero template if start is close to zero
-        if abs(student_start - 0.0) <= 2.0:
+        # Fallback to hop_from_zero template only if start is supported and close to zero
+        if hops[0].evidence_status != "insufficient_evidence" and abs(student_start - 0.0) <= 2.0:
             return MatchedMethod(
                 method_name="hop_from_zero",
                 expected_start=0.0,

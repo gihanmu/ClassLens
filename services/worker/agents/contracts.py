@@ -127,6 +127,10 @@ class CandidateHypothesesOutput(BaseModel):
         description="Whether steps account for the full expression"
     )
     confidence: float = Field(ge=0.0, le=1.0)
+    evidence_support: Literal["supported", "partially_supported", "insufficient_evidence"] = Field(
+        default="supported",
+        description="Grounding level of visual marks supporting the candidate hypotheses",
+    )
 
 
 class VerifiedStep(BaseModel):
@@ -138,6 +142,14 @@ class VerifiedStep(BaseModel):
     observed_result: Optional[float]
     is_correct: bool
     evidence_citation: str
+    evidence_status: Literal["supported", "partially_supported", "insufficient_evidence"] = Field(
+        default="supported",
+        description="Grounding level of visual marks supporting this specific step",
+    )
+    verification_status: Literal["verified_valid", "verified_error", "unverifiable"] = Field(
+        default="verified_valid",
+        description="Evaluation status: valid calculation, verified error, or unverifiable due to insufficient evidence",
+    )
 
 
 class FirstSupportedError(BaseModel):
@@ -164,6 +176,14 @@ class DiagnosticOutput(BaseModel):
     taxonomy_title: Optional[str] = None
     is_compensatory_error: bool = False
     confidence: float = Field(ge=0.0, le=1.0)
+    evidence_sufficiency: Literal["sufficient", "partial", "insufficient"] = Field(
+        default="sufficient",
+        description="Overall evidence sufficiency grounding the diagnostic outcome",
+    )
+    diagnostic_explanation: Optional[str] = Field(
+        default=None,
+        description="Pedagogical rationale explaining diagnosis or why evidence was insufficient to diagnose",
+    )
 
 
 class CriticAuditOutput(BaseModel):
@@ -178,6 +198,10 @@ class CriticAuditOutput(BaseModel):
     requires_teacher_review: bool
     teacher_review_reason: Optional[str] = None
     critic_attempt_number: int = Field(default=1, le=2)
+    audit_verdict: Literal["audit_passed", "review_required", "audit_rejected"] = Field(
+        default="audit_passed",
+        description="Formal audit outcome distinguishing clean passes from cases requiring human review",
+    )
 
 
 class DifferentiatedAction(BaseModel):

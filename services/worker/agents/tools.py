@@ -83,6 +83,7 @@ def validate_number_line_moves(
                 end=float(m.get("end", start)),
                 direction=direction,  # type: ignore[arg-type]
                 stated_magnitude=m.get("stated_magnitude"),
+                evidence_status=m.get("evidence_status", "supported"),
             )
         )
 

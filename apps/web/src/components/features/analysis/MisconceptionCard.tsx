@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AlertCircle, Lightbulb, Zap } from "lucide-react";
+import { AlertCircle, Lightbulb, Zap, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FirstSupportedError } from "@/lib/api";
 import { getMisconceptionPlainLanguage } from "@/lib/terminology";
@@ -8,6 +8,8 @@ export interface MisconceptionCardProps {
   error?: FirstSupportedError | null;
   misconceptionTitle?: string;
   isCompensatoryError?: boolean;
+  evidenceSufficiency?: string;
+  reasoningStatus?: string;
   className?: string;
 }
 
@@ -15,9 +17,32 @@ export function MisconceptionCard({
   error,
   misconceptionTitle,
   isCompensatoryError,
+  evidenceSufficiency,
+  reasoningStatus,
   className,
 }: MisconceptionCardProps) {
   if (!error && !misconceptionTitle) {
+    if (evidenceSufficiency === "insufficient" || reasoningStatus === "incomplete") {
+      return (
+        <div
+          className={cn(
+            "p-4 rounded-xl bg-amber-50/50 border border-amber-300 text-amber-950 flex items-start gap-3",
+            className
+          )}
+        >
+          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <HelpCircle className="w-4 h-4 text-amber-800" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold">No Misconception Assigned (Insufficient Visual Evidence)</h4>
+            <p className="text-xs text-amber-900/90 mt-0.5 leading-relaxed">
+              Visual evidence is incomplete or ambiguous. Procedural misconceptions are withheld to prevent ungrounded inferences until an educator reviews the handwritten work.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(

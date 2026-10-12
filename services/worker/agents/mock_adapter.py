@@ -47,13 +47,32 @@ class MockAgentAdapter:
             elif "case_03" in r_lower or "ambiguous" in r_lower or "incomplete" in r_lower:
                 fixture = {
                     "quality_status": "faint_readable",
-                    "confidence": 0.65,
+                    "confidence": 0.60,
                     "has_number_line": True,
                     "final_answer_marked": None,
                     "observations": [
-                        {"kind": "number_line", "value": "Faint horizontal line -8 to 8", "confidence": 0.70},
+                        {"kind": "number_line", "value": "Faint horizontal line [-8, 8]", "confidence": 0.70},
+                        {
+                            "kind": "arrow_jump",
+                            "value": "Faint arc 0 to -6 (missing arrowhead)",
+                            "confidence": 0.65,
+                            "start_pos": 0.0,
+                            "end_pos": -6.0,
+                            "direction": "none",
+                        },
+                        {
+                            "kind": "arrow_jump",
+                            "value": "Incomplete arc near -6 (missing endpoint)",
+                            "confidence": 0.40,
+                            "start_pos": -6.0,
+                            "end_pos": None,
+                            "direction": "none",
+                        },
                     ],
-                    "ambiguities": ["Faint pencil strokes without directional arrowheads", "Incomplete steps"],
+                    "ambiguities": [
+                        "Faint pencil strokes without directional arrowheads",
+                        "Hop #2 terminates ambiguously near 1-2 without clear endpoint",
+                    ],
                     "requires_teacher_review": True,
                     "teacher_review_reason": "Visual ambiguities and incomplete student work require teacher review.",
                 }
@@ -85,14 +104,31 @@ class MockAgentAdapter:
         visual: VisualEvidenceOutput,
     ) -> CandidateHypothesesOutput:
         """Generates candidate hypotheses from visual evidence."""
+        from services.worker.agents.evidence_sufficiency import EvidenceSufficiencyEvaluator
+
+        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual)
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
 
-        if not visual.has_number_line or not hops:
+        if not visual.has_number_line or not hops or sufficiency.overall_sufficiency == "insufficient":
+            hypotheses_list: List[CandidateHypothesis] = []
+            if hops:
+                hypotheses_list.append(
+                    CandidateHypothesis(
+                        hypothesis_id="hyp_insufficient",
+                        starting_point=hops[0].start_pos if hops[0].start_pos is not None else 0.0,
+                        strategy_description="Insufficient or ambiguous visual evidence: cannot reliably infer mathematical strategy.",
+                        step_sequence=[f"Observed mark {i+1}: {h.value}" for i, h in enumerate(hops)],
+                        is_valid_alternative_path=False,
+                        confidence=min(visual.confidence, 0.60),
+                    )
+                )
+
             return CandidateHypothesesOutput(
-                hypotheses=[],
-                detected_strategy="unrecognized",
+                hypotheses=hypotheses_list,
+                detected_strategy="insufficient_evidence" if hops else "unrecognized",
                 reasoning_completeness="incomplete",
-                confidence=visual.confidence,
+                confidence=min(visual.confidence, 0.60) if sufficiency.overall_sufficiency == "insufficient" else visual.confidence,
+                evidence_support="insufficient_evidence",
             )
 
         start_pt = hops[0].start_pos if hops[0].start_pos is not None else 0.0
@@ -121,11 +157,15 @@ class MockAgentAdapter:
             confidence=visual.confidence,
         )
 
+        ev_support = "partially_supported" if sufficiency.overall_sufficiency == "partial" else "supported"
+        completeness = "partial" if sufficiency.overall_sufficiency == "partial" else ("complete" if len(hops) >= 2 else "partial")
+
         return CandidateHypothesesOutput(
             hypotheses=[hypothesis],
             detected_strategy=strat,
-            reasoning_completeness="complete" if len(hops) >= 2 else "partial",
+            reasoning_completeness=completeness,
             confidence=visual.confidence,
+            evidence_support=ev_support,
         )
 
     @classmethod
@@ -137,8 +177,11 @@ class MockAgentAdapter:
         target_value: float = 2.0,
     ) -> DiagnosticOutput:
         """Executes real deterministic tools to evaluate reasoning and localize errors."""
+        from services.worker.agents.evidence_sufficiency import EvidenceSufficiencyEvaluator
+
         visual = visual_evidence
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
+        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual)
 
         # Case 1: Unreadable or empty response
         if visual.quality_status == QualityStatus.UNREADABLE:
@@ -152,6 +195,8 @@ class MockAgentAdapter:
                 taxonomy_title=None,
                 is_compensatory_error=False,
                 confidence=0.5,
+                evidence_sufficiency="insufficient",
+                diagnostic_explanation="Student worksheet handwriting is unreadable. Manual teacher inspection is required.",
             )
 
         # Parse final answer
@@ -162,15 +207,24 @@ class MockAgentAdapter:
             except ValueError:
                 final_ans_val = None
 
-        # Execute real deterministic geometry tool
+        # Execute real deterministic geometry tool passing evidence_status
         moves_payload = []
         for i, h in enumerate(hops):
+            step_eval = (
+                sufficiency.step_evaluations[i]
+                if i < len(sufficiency.step_evaluations)
+                else None
+            )
+            ev_status = step_eval.evidence_status if step_eval else "supported"
+            start_coord = h.start_pos if h.start_pos is not None else 0.0
+            end_coord = h.end_pos if h.end_pos is not None else start_coord
             moves_payload.append({
                 "step_number": i + 1,
-                "start": h.start_pos if h.start_pos is not None else 0.0,
-                "end": h.end_pos if h.end_pos is not None else 0.0,
+                "start": start_coord,
+                "end": end_coord,
                 "direction": h.direction or "none",
                 "stated_magnitude": h.stated_magnitude,
+                "evidence_status": ev_status,
             })
 
         verdict = validate_number_line_moves(
@@ -184,24 +238,42 @@ class MockAgentAdapter:
         # Build VerifiedStep records
         verified_steps: List[VerifiedStep] = []
         for st in verdict.get("verified_steps", []):
+            is_unverifiable = (
+                st.get("verification_status") == "unverifiable"
+                or st.get("evidence_status") == "insufficient_evidence"
+            )
+            st_ev_status = st.get("evidence_status", "supported")
+            st_verif_status = st.get("verification_status", "verified_valid")
+
+            start_val = st["start_pos"]
+            end_val = st["end_pos"]
+            step_idx = st["step_number"] - 1
+            if is_unverifiable and step_idx < len(hops) and hops[step_idx].end_pos is None:
+                op_label = f"Incomplete jump starting at {start_val:g}"
+            else:
+                op_label = f"Jump {start_val:g} to {end_val:g}"
+
             verified_steps.append(
                 VerifiedStep(
                     step_number=st["step_number"],
-                    operation=f"Jump {st['start_pos']:g} to {st['end_pos']:g}",
+                    operation=op_label,
                     expected_result=st["expected_displacement"],
-                    observed_result=st["observed_displacement"],
+                    observed_result=st["observed_displacement"] if not is_unverifiable else None,
                     is_correct=st["is_correct"],
                     evidence_citation=st["evidence_notes"],
+                    evidence_status=st_ev_status,
+                    verification_status=st_verif_status,
                 )
             )
 
-        # Build FirstSupportedError if present
+        # Build FirstSupportedError if present AND evidence permits diagnosing misconception
         first_err: Optional[FirstSupportedError] = None
         err_step = verdict.get("first_error_step")
         err_tax = verdict.get("first_error_taxonomy")
 
-        if err_step is not None and err_tax is not None:
-            err_type = "magnitude_miscount" if "OFF-BY-ONE" in err_tax else (
+        # GATE 4A.2 CORE PRINCIPLE: Never infer misconception when evidence is insufficient
+        if sufficiency.can_diagnose_misconception and err_step is not None and err_tax is not None:
+            err_type = "magnitude_miscount" if ("OFF-BY-ONE" in err_tax or "MISLABEL" in err_tax) else (
                 "directional_sign" if "DIR-REVERSE" in err_tax else "arithmetic_slip"
             )
             first_err = FirstSupportedError(
@@ -211,32 +283,65 @@ class MockAgentAdapter:
                 expected_behavior="Expected correct addend displacement",
                 explanation=f"Taxonomy classified as {err_tax}",
             )
+        elif not hops and visual.final_answer_marked is not None:
+            err_tax = "REASONING_INCOMPLETE"
+        else:
+            err_tax = None
 
         # Determine AnswerStatus & ReasoningStatus
         if verdict["is_final_answer_valid"]:
             ans_status = AnswerStatus.CORRECT
         elif final_ans_val is not None:
             ans_status = AnswerStatus.INCORRECT
+        elif sufficiency.overall_sufficiency == "insufficient" or not verdict["is_reasoning_valid"]:
+            ans_status = AnswerStatus.UNDETERMINED
         else:
-            ans_status = AnswerStatus.CORRECT if verdict["is_reasoning_valid"] else AnswerStatus.UNDETERMINED
+            ans_status = AnswerStatus.CORRECT
 
         if not hops:
+            reasoning_status = ReasoningStatus.INCOMPLETE
+        elif sufficiency.overall_sufficiency == "insufficient":
             reasoning_status = ReasoningStatus.INCOMPLETE
         elif verdict["is_reasoning_valid"]:
             reasoning_status = ReasoningStatus.SUPPORTED_CORRECT
         else:
             reasoning_status = ReasoningStatus.SUPPORTED_ERROR
 
+        # Generate diagnostic explanation
+        if sufficiency.overall_sufficiency == "insufficient":
+            diag_expl = (
+                "Mathematical reasoning cannot be definitively diagnosed: visual evidence is incomplete or ambiguous "
+                "(faint strokes, missing arrowheads, or missing endpoints). Educator review is required to interpret student work."
+            )
+        elif verdict["is_reasoning_valid"]:
+            diag_expl = "All observed number-line steps were deterministically verified as mathematically valid."
+        elif err_tax:
+            diag_expl = f"Procedural deviation identified on Step {err_step}: classified as {err_tax}."
+        else:
+            diag_expl = "Reasoning contains unverified or inconsistent steps requiring educator review."
+
+        inferred_ans = None
+        if visual.final_answer_marked:
+            inferred_ans = visual.final_answer_marked
+        elif (
+            verdict["is_reasoning_valid"]
+            and sufficiency.overall_sufficiency != "insufficient"
+            and verdict["terminal_position"] is not None
+        ):
+            inferred_ans = str(int(verdict["terminal_position"]))
+
         return DiagnosticOutput(
             answer_status=ans_status,
             reasoning_status=reasoning_status,
-            inferred_final_answer=visual.final_answer_marked or (str(int(verdict["terminal_position"])) if verdict["terminal_position"] is not None else None),
+            inferred_final_answer=inferred_ans,
             verified_steps=verified_steps,
             first_supported_error=first_err,
             misconception_taxonomy_id=err_tax,
             taxonomy_title=err_tax,
             is_compensatory_error=bool(verdict.get("is_compensatory_error", False)),
             confidence=float(verdict.get("confidence", 0.95)),
+            evidence_sufficiency=sufficiency.overall_sufficiency,
+            diagnostic_explanation=diag_expl,
         )
 
     @classmethod
@@ -253,6 +358,7 @@ class MockAgentAdapter:
         if vis is None or diagnosis is None:
             raise ValueError("Both visual evidence and diagnosis must be provided to CriticAudit.")
         visual = vis
+
         # Simulated bounded retry test case
         if force_contradiction and attempt_number == 1:
             return CriticAuditOutput(
@@ -265,49 +371,95 @@ class MockAgentAdapter:
                 requires_teacher_review=False,
                 teacher_review_reason=None,
                 critic_attempt_number=1,
+                audit_verdict="audit_rejected",
             )
 
-        # Contradiction check: claimed supported_correct reasoning without visible number line hops
+        discrepancies: List[str] = []
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
+
+        # 1. Contradiction check: claimed supported_correct reasoning without visible number line hops
         if diagnosis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT and not hops:
+            discrepancies.append("Diagnosis claims supported_correct reasoning, but no arrows or jumps are physically visible.")
             return CriticAuditOutput(
                 approved=False,
                 confidence=0.90,
                 evidence_grounded=False,
                 contradiction_detected=True,
                 reinterpretation_needed=False,
-                discrepancy_notes=["Diagnosis claims supported_correct reasoning, but no arrows or jumps are physically visible."],
+                discrepancy_notes=discrepancies,
                 requires_teacher_review=True,
                 teacher_review_reason="Contradiction: reasoning claimed correct without physical evidence.",
                 critic_attempt_number=attempt_number,
+                audit_verdict="audit_rejected",
             )
 
-        # Low confidence or compensatory error escalation
+        # 2. Contradiction check: Procedural misconception assigned despite insufficient evidence
+        if (
+            diagnosis.misconception_taxonomy_id is not None
+            and diagnosis.misconception_taxonomy_id != "REASONING_INCOMPLETE"
+            and diagnosis.evidence_sufficiency == "insufficient"
+        ):
+            discrepancies.append(
+                f"Contradiction: Misconception '{diagnosis.misconception_taxonomy_id}' assigned on insufficient visual evidence."
+            )
+            return CriticAuditOutput(
+                approved=False,
+                confidence=0.55,
+                evidence_grounded=False,
+                contradiction_detected=True,
+                reinterpretation_needed=False,
+                discrepancy_notes=discrepancies,
+                requires_teacher_review=True,
+                teacher_review_reason="Contradiction: Misconception assigned without supported evidence.",
+                critic_attempt_number=attempt_number,
+                audit_verdict="audit_rejected",
+            )
+
+        # 3. Grounding audit & teacher review requirement
         needs_review = False
-        review_reason = None
+        review_reasons: List[str] = []
+
+        if visual.requires_teacher_review:
+            needs_review = True
+            review_reasons.append(visual.teacher_review_reason or "Visual extraction flagged perceptual ambiguities.")
+        if diagnosis.evidence_sufficiency == "insufficient":
+            needs_review = True
+            review_reasons.append("Visual evidence is incomplete or ambiguous; educator review required.")
+        elif diagnosis.evidence_sufficiency == "partial":
+            needs_review = True
+            review_reasons.append("Partial evidence only; some student steps are unverifiable.")
         if visual.confidence < 0.70 or diagnosis.confidence < 0.75:
             needs_review = True
-            review_reason = "Low confidence perception/diagnosis requiring educator verification."
-        elif diagnosis.is_compensatory_error:
+            review_reasons.append("Low confidence perception or diagnosis requiring educator verification.")
+        if diagnosis.is_compensatory_error:
             needs_review = True
-            review_reason = "Compensatory error detected: correct final answer reached via flawed intermediate steps."
-        elif diagnosis.reasoning_status == ReasoningStatus.INCOMPLETE:
+            review_reasons.append("Compensatory error detected: correct final answer reached via flawed intermediate steps.")
+        if diagnosis.reasoning_status == ReasoningStatus.INCOMPLETE:
             needs_review = True
-            review_reason = "Incomplete reasoning: final answer marked without showing working."
-        elif visual.quality_status == QualityStatus.UNREADABLE:
+            review_reasons.append("Incomplete reasoning: student work does not show full step sequence.")
+        if visual.quality_status == QualityStatus.UNREADABLE:
             needs_review = True
-            review_reason = "Unreadable student submission."
+            review_reasons.append("Unreadable student submission.")
+
+        # Critic confidence: calibrated according to evidence certainty
+        if needs_review:
+            critic_conf = min(visual.confidence, diagnosis.confidence, 0.65)
+            audit_verdict: Literal["audit_passed", "review_required", "audit_rejected"] = "review_required"
+        else:
+            critic_conf = 0.95
+            audit_verdict = "audit_passed"
 
         return CriticAuditOutput(
             approved=True,
-            confidence=0.95,
-            evidence_grounded=True,
+            confidence=critic_conf,
+            evidence_grounded=(diagnosis.evidence_sufficiency != "insufficient"),
             contradiction_detected=False,
             reinterpretation_needed=False,
-            discrepancy_notes=[],
+            discrepancy_notes=discrepancies,
             requires_teacher_review=needs_review,
-            teacher_review_reason=review_reason,
+            teacher_review_reason="; ".join(review_reasons) if review_reasons else None,
             critic_attempt_number=attempt_number,
+            audit_verdict=audit_verdict,
         )
 
     @classmethod

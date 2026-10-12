@@ -521,9 +521,18 @@ export default function GeminiTestLabPage() {
                     <span className="text-[10px] uppercase font-semibold text-ink-muted block mb-1">
                       Visual Confidence
                     </span>
-                    <span className="font-bold text-ink-primary font-mono">
-                      {((analysisResult.analysis.visual_evidence?.confidence || 0) * 100).toFixed(1)}%
-                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-bold text-ink-primary font-mono">
+                        {((analysisResult.analysis.visual_evidence?.confidence || 0) * 100).toFixed(1)}%
+                      </span>
+                      <span className="text-[10px] text-ink-muted">
+                        {(analysisResult.analysis.visual_evidence?.confidence || 0) >= 0.85
+                          ? "(High)"
+                          : (analysisResult.analysis.visual_evidence?.confidence || 0) >= 0.70
+                          ? "(Moderate)"
+                          : "(Low / Insufficient)"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -652,6 +661,8 @@ export default function GeminiTestLabPage() {
                     error={analysisResult.analysis.diagnosis?.first_supported_error}
                     misconceptionTitle={analysisResult.analysis.diagnosis?.misconception_taxonomy_id}
                     isCompensatoryError={analysisResult.analysis.is_compensatory_error}
+                    evidenceSufficiency={analysisResult.analysis.diagnosis?.evidence_sufficiency}
+                    reasoningStatus={analysisResult.analysis.reasoning_status}
                   />
                 </div>
               </Card>
@@ -675,7 +686,12 @@ export default function GeminiTestLabPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {analysisResult.analysis.critic_audit?.approved ? (
+                  {analysisResult.analysis.critic_audit?.audit_verdict === "review_required" ||
+                  analysisResult.analysis.critic_audit?.requires_teacher_review ? (
+                    <Badge variant="warm" size="sm">Review Required</Badge>
+                  ) : analysisResult.analysis.critic_audit?.audit_verdict === "audit_rejected" ? (
+                    <Badge variant="accent" size="sm">Audit Rejected</Badge>
+                  ) : analysisResult.analysis.critic_audit?.approved ? (
                     <Badge variant="mint" size="sm">Audit Passed</Badge>
                   ) : (
                     <Badge variant="accent" size="sm">Discrepancy Flagged</Badge>

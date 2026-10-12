@@ -25,6 +25,10 @@ class NumberLineHop(BaseModel):
     stated_magnitude: Optional[float] = Field(
         default=None, description="Explicit magnitude label written by student if present"
     )
+    evidence_status: Literal["supported", "partially_supported", "insufficient_evidence"] = Field(
+        default="supported",
+        description="Visual evidence grounding supporting this hop",
+    )
 
     @property
     def displacement(self) -> float:
@@ -79,6 +83,14 @@ class StepVerificationResult(BaseModel):
         default=None, description="Classified misconception taxonomy code if step is erroneous"
     )
     evidence_notes: str = Field(description="Human-readable explanation of the step check")
+    evidence_status: Literal["supported", "partially_supported", "insufficient_evidence"] = Field(
+        default="supported",
+        description="Grounding level of visual marks supporting this step",
+    )
+    verification_status: Literal["verified_valid", "verified_error", "unverifiable"] = Field(
+        default="verified_valid",
+        description="Verification state: valid calculation, verified error, or unverifiable due to insufficient evidence",
+    )
 
 
 class MathVerificationVerdict(BaseModel):
@@ -90,7 +102,7 @@ class MathVerificationVerdict(BaseModel):
     is_final_answer_valid: bool = Field(
         description="True if student's final indicated answer matches target value"
     )
-    detected_method: Literal["hop_from_zero", "direct_start", "commutative", "unrecognized"] = Field(
+    detected_method: Literal["hop_from_zero", "direct_start", "commutative", "unrecognized", "insufficient_evidence"] = Field(
         description="Identified pedagogical number line strategy"
     )
     starting_point: Optional[float] = Field(
@@ -98,6 +110,10 @@ class MathVerificationVerdict(BaseModel):
     )
     terminal_position: Optional[float] = Field(
         default=None, description="Final endpoint coordinate reached on the number line"
+    )
+    evidence_sufficiency: Literal["sufficient", "partial", "insufficient"] = Field(
+        default="sufficient",
+        description="Assessment of overall visual evidence grounding",
     )
     verified_steps: List[StepVerificationResult] = Field(
         default_factory=list, description="Step-by-step verification results"

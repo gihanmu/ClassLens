@@ -47,6 +47,8 @@ export interface VerifiedStep {
   observed_result?: number;
   is_correct: boolean;
   evidence_citation: string;
+  evidence_status?: "supported" | "partially_supported" | "insufficient_evidence";
+  verification_status?: "verified_valid" | "verified_error" | "unverifiable";
 }
 
 export interface FirstSupportedError {
@@ -73,6 +75,9 @@ export interface StudentAnalysisDetail {
     confidence: number;
     has_number_line: boolean;
     final_answer_marked?: string;
+    ambiguities?: string[];
+    requires_teacher_review?: boolean;
+    teacher_review_reason?: string;
     observations: Array<{
       kind: string;
       value: string;
@@ -80,17 +85,20 @@ export interface StudentAnalysisDetail {
       start_pos?: number;
       end_pos?: number;
       direction?: string;
+      stated_magnitude?: number;
     }>;
   };
   candidate_hypotheses: {
     detected_strategy: string;
     reasoning_completeness: string;
+    evidence_support?: "supported" | "partially_supported" | "insufficient_evidence";
     hypotheses: Array<{
       hypothesis_id: string;
       starting_point: number;
       strategy_description: string;
       step_sequence: string[];
       is_valid_alternative_path: boolean;
+      confidence?: number;
     }>;
   };
   diagnosis: {
@@ -101,22 +109,21 @@ export interface StudentAnalysisDetail {
     taxonomy_title?: string;
     is_compensatory_error: boolean;
     confidence: number;
-    verified_steps: Array<{
-      step_number: number;
-      operation: string;
-      expected_result: number;
-      observed_result?: number;
-      is_correct: boolean;
-      evidence_citation: string;
-    }>;
+    evidence_sufficiency?: "sufficient" | "partial" | "insufficient";
+    diagnostic_explanation?: string;
+    verified_steps: Array<VerifiedStep>;
     first_supported_error?: FirstSupportedError;
   };
   critic_audit: {
     approved: boolean;
+    confidence?: number;
+    evidence_grounded?: boolean;
+    contradiction_detected?: boolean;
     reinterpretation_needed: boolean;
     discrepancy_notes: string[];
     requires_teacher_review: boolean;
     teacher_review_reason?: string;
+    audit_verdict?: "audit_passed" | "review_required" | "audit_rejected";
   };
   is_mock: boolean;
   model_version: string;
