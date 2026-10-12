@@ -256,3 +256,41 @@ def test_gemini_vision_error_returns_502_bad_gateway(client):
         )
         assert resp.status_code == 502
         assert "Google Vertex AI Gemini inference error" in resp.json()["detail"]
+
+
+def test_get_latest_evaluation_report(client):
+    """Verifies GET /api/v1/dev/evaluation/latest returns valid benchmark report."""
+    resp = client.get("/api/v1/dev/evaluation/latest")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "run_id" in data
+    assert "metrics" in data
+    assert data["total_cases"] == 18
+    assert data["overall_status"] == "PASS"
+    assert data["metrics"]["answer_status_accuracy"]["percentage"] == 100.0
+
+
+def test_trigger_evaluation_run(client):
+    """Verifies POST /api/v1/dev/evaluation/run executes benchmark and returns report."""
+    resp = client.post("/api/v1/dev/evaluation/run")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_cases"] == 18
+    assert data["overall_status"] == "PASS"
+
+
+def test_get_latest_evaluation_markdown(client):
+    """Verifies GET /api/v1/dev/evaluation/markdown returns markdown text."""
+    resp = client.get("/api/v1/dev/evaluation/markdown")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "markdown" in data
+    assert "# ClassLens AI Assessment Reliability Benchmark Report" in data["markdown"]
+
+
+def test_evaluation_endpoints_forbidden_in_production(client):
+    """Verifies dev evaluation endpoints return 403 when ENVIRONMENT != development."""
+    with patch.object(settings, "environment", "production"):
+        resp = client.get("/api/v1/dev/evaluation/latest")
+        assert resp.status_code == 403
+

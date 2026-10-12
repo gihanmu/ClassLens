@@ -12,7 +12,9 @@ STRICT SECURITY CONTROLS:
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
@@ -271,3 +273,68 @@ async def analyze_synthetic_fixture(req: SyntheticAnalysisRequest):
         calls_remaining=calls_remaining,
         analysis=analysis.model_dump(),
     )
+
+
+# ==============================================================================
+# Gate 4C: AI Reliability & Benchmark Evaluation Endpoints
+# ==============================================================================
+
+@router.get("/evaluation/latest")
+async def get_latest_evaluation_report() -> Dict[str, Any]:
+    """Returns the latest serialized Gate 4C reliability benchmark evaluation report."""
+    _assert_development_mode()
+
+    report_path = Path("evaluation/reports/latest_benchmark_report.json")
+    if not report_path.is_file():
+        # Generate report on demand if not present
+        from evaluation.runner import run_benchmark
+        report = run_benchmark()
+        return report.model_dump()
+
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as exc:
+        logger.exception(f"Failed to read latest benchmark report: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load latest benchmark report: {exc}",
+        )
+
+
+@router.post("/evaluation/run")
+async def trigger_evaluation_run() -> Dict[str, Any]:
+    """Triggers an offline benchmark evaluation run against the versioned dataset."""
+    _assert_development_mode()
+
+    try:
+        from evaluation.runner import run_benchmark
+        report = run_benchmark(dataset_path="evaluation/datasets/benchmark_v1.json")
+        return report.model_dump()
+    except Exception as exc:
+        logger.exception(f"Failed to execute benchmark evaluation: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Benchmark evaluation execution failed: {exc}",
+        )
+
+
+@router.get("/evaluation/markdown")
+async def get_latest_evaluation_markdown() -> Dict[str, str]:
+    """Returns the rendered markdown text of the latest benchmark report."""
+    _assert_development_mode()
+
+    md_path = Path("evaluation/reports/latest_benchmark_report.md")
+    if not md_path.is_file():
+        from evaluation.runner import run_benchmark
+        run_benchmark()
+
+    try:
+        content = md_path.read_text(encoding="utf-8")
+        return {"markdown": content}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to read markdown report: {exc}",
+        )
+

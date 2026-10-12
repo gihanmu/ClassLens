@@ -38,6 +38,7 @@ import { StudentInspectionModal } from "@/components/inspection/StudentInspectio
 import { TeachingRecommendationCard } from "@/components/features/cohort/TeachingRecommendationCard";
 import { ClassroomResourcesView } from "@/components/features/cohort/ClassroomResourcesView";
 import { ClassroomHeroIllustration } from "@/components/shared/classroom-illustration";
+import { AiEvaluationView } from "@/components/features/evaluation/AiEvaluationView";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Typography } from "@/components/ui/typography";
@@ -128,7 +129,7 @@ export default function ClassLensApp() {
       if (respParam) setSelectedResponseId(respParam);
       if (
         tabParam &&
-        ["dashboard", "responses", "insights", "recommendations", "resources", "assessments"].includes(tabParam)
+        ["dashboard", "responses", "insights", "recommendations", "resources", "assessments", "evaluation"].includes(tabParam)
       ) {
         setCurrentTab(tabParam as NavItemKey);
       }
@@ -1011,6 +1012,13 @@ export default function ClassLensApp() {
               </Card>
             </div>
           </div>
+        )}
+
+        {/* =========================================================================
+            SCREEN F: AI RELIABILITY & BENCHMARK EVALUATION (GATE 4C)
+           ========================================================================= */}
+        {currentTab === "evaluation" && (
+          <AiEvaluationView />
         )}
       </div>
 

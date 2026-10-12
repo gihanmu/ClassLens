@@ -420,6 +420,33 @@ export const api = {
     }
     return res.json();
   },
+
+  async getLatestEvaluationReport(): Promise<BenchmarkReport> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/latest`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch evaluation report: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async runBenchmarkEvaluation(): Promise<BenchmarkReport> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/run`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to run benchmark: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async getEvaluationMarkdown(): Promise<string> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/markdown`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch evaluation markdown: ${res.status}`);
+    }
+    const data = await res.json();
+    return data.markdown || "";
+  },
 };
 
 export interface DevStatusResponse {
@@ -458,3 +485,83 @@ export interface SyntheticAnalysisResponse {
   calls_remaining: number;
   analysis: any;
 }
+
+export interface MetricFraction {
+  name: string;
+  numerator: number;
+  denominator: number;
+  percentage?: number | null;
+  display_value: string;
+  description: string;
+  target_threshold_pct?: number | null;
+  status: "PASS" | "FAIL" | "N/A";
+}
+
+export interface EvaluationMetricsSummary {
+  answer_status_accuracy: MetricFraction;
+  final_answer_agreement: MetricFraction;
+  reasoning_status_accuracy: MetricFraction;
+  procedural_error_detection_recall: MetricFraction;
+  error_step_localization_accuracy: MetricFraction;
+  misconception_precision: MetricFraction;
+  misconception_recall: MetricFraction;
+  exact_taxonomy_match_rate: MetricFraction;
+  false_positive_misconception_rate: MetricFraction;
+  evidence_sufficiency_accuracy: MetricFraction;
+  appropriate_abstention_rate: MetricFraction;
+  unsupported_claim_rate: MetricFraction;
+  contradiction_rate: MetricFraction;
+  review_routing_precision: MetricFraction;
+  review_routing_recall: MetricFraction;
+  missed_critical_review_count: number;
+  critic_verdict_accuracy: MetricFraction;
+  critic_challenge_precision: MetricFraction;
+  avg_latency_ms: number;
+  total_eval_duration_sec: number;
+}
+
+export interface CategoryBreakdownItem {
+  category: string;
+  total_cases: number;
+  passed_cases: number;
+  failed_cases: number;
+  pass_rate_pct: number;
+}
+
+export interface CaseEvaluationResult {
+  case_id: string;
+  category: string;
+  passed: boolean;
+  answer_status_match: boolean;
+  final_answer_match: boolean;
+  reasoning_status_match: boolean;
+  error_step_match: boolean;
+  misconception_match: boolean;
+  evidence_sufficiency_match: boolean;
+  teacher_review_match: boolean;
+  critic_verdict_match: boolean;
+  false_positive_misconception: boolean;
+  unsupported_claim_detected: boolean;
+  contradiction_detected: boolean;
+  expected_values: Record<string, any>;
+  actual_values: Record<string, any>;
+  failure_reasons: string[];
+  latency_ms: number;
+}
+
+export interface BenchmarkReport {
+  run_id: string;
+  dataset_version: string;
+  timestamp: string;
+  git_commit: string;
+  pipeline_mode: string;
+  total_cases: number;
+  passed_cases: number;
+  failed_cases: number;
+  overall_pass_rate_pct: number;
+  overall_status: "PASS" | "FAIL";
+  metrics: EvaluationMetricsSummary;
+  category_breakdown: CategoryBreakdownItem[];
+  case_results: CaseEvaluationResult[];
+}
+

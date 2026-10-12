@@ -14,9 +14,19 @@ import {
   Sparkles,
   FlaskConical,
   LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react";
 
-export type NavItemKey = "dashboard" | "responses" | "insights" | "recommendations" | "resources" | "assessments" | "design-system" | "gemini-test";
+export type NavItemKey =
+  | "dashboard"
+  | "responses"
+  | "insights"
+  | "recommendations"
+  | "resources"
+  | "assessments"
+  | "design-system"
+  | "gemini-test"
+  | "evaluation";
 
 export interface NavItem {
   key: NavItemKey;
@@ -52,6 +62,7 @@ export function AppSidebar({
 
   const isDesignSystemRoute = pathname === "/design-system";
   const isGeminiTestRoute = pathname === "/dev/gemini-test";
+  const isEvaluationRoute = pathname === "/dev/evaluation";
 
   return (
     <aside
@@ -163,6 +174,33 @@ export function AppSidebar({
             )}
           >
             Gate 4A
+          </span>
+        </Link>
+
+        <Link
+          href="/dev/evaluation"
+          onClick={onCloseMobile}
+          className={cn(
+            "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary mt-1",
+            isEvaluationRoute
+              ? "bg-brand-primary text-white shadow-xs font-semibold"
+              : "text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck
+              className={cn("w-4 h-4", isEvaluationRoute ? "text-white" : "text-ink-muted")}
+              aria-hidden="true"
+            />
+            <span>AI Reliability Lab</span>
+          </div>
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-mono",
+              isEvaluationRoute ? "bg-white/20 text-white" : "bg-brand-light text-brand-primary font-semibold"
+            )}
+          >
+            Gate 4C
           </span>
         </Link>
       </nav>
