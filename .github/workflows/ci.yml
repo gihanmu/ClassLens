@@ -85,6 +85,7 @@ jobs:
       - name: Setup Mock Environment (.env)
         run: |
           cp .env.example .env
+          sed -i 's/your-gcp-project-id-here/precise-equator-511303-m1/g' .env
 
       - name: Run Backend Unit & Integration Tests (Offline Mock Mode)
         env:
