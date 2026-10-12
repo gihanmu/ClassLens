@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   api,
   Assessment,
@@ -45,6 +46,8 @@ const STORAGE_KEY_WELCOME = "classlens_welcome_dismissed";
 
 export default function ClassLensApp() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [assessmentsList, setAssessmentsList] = useState<Assessment[]>([]);
+  const [currentAssessmentId, setCurrentAssessmentId] = useState<string>("asm_1065658");
   const [responses, setResponses] = useState<StudentResponse[]>([]);
   const [insights, setInsights] = useState<CohortInsights | null>(null);
   const [currentTab, setCurrentTab] = useState<NavItemKey>("responses");
@@ -56,21 +59,29 @@ export default function ClassLensApp() {
   const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
   const [showHeroBanner, setShowHeroBanner] = useState<boolean>(false);
 
-  const asmId = "asm_1065658";
+  const asmId = currentAssessmentId;
 
-  const loadData = async () => {
+  const loadData = async (targetAsmId = currentAssessmentId) => {
     try {
       setLoading(true);
       await api.ensureDemoSession();
-      const asm = await api.getAssessment(asmId);
+
+      try {
+        const asms = await api.listAssessments();
+        setAssessmentsList(asms);
+      } catch (e) {
+        console.warn("Could not list assessments:", e);
+      }
+
+      const asm = await api.getAssessment(targetAsmId);
       setAssessment(asm);
 
-      const resps = await api.listResponses(asmId);
+      const resps = await api.listResponses(targetAsmId);
       setResponses(resps);
 
       if (resps.some((r) => r.task_status === "COMPLETED")) {
         try {
-          const ins = await api.getCohortInsights(asmId);
+          const ins = await api.getCohortInsights(targetAsmId);
           setInsights(ins);
         } catch (e) {
           console.warn("Cohort insights not ready yet:", e);
@@ -83,8 +94,14 @@ export default function ClassLensApp() {
     }
   };
 
+  const handleSelectAssessment = async (newAsmId: string) => {
+    setCurrentAssessmentId(newAsmId);
+    setShowAssessmentModal(false);
+    await loadData(newAsmId);
+  };
+
   useEffect(() => {
-    loadData();
+    loadData(currentAssessmentId);
 
     // Check client-side welcome preference safely
     try {
@@ -101,6 +118,10 @@ export default function ClassLensApp() {
       const params = new URLSearchParams(window.location.search);
       const respParam = params.get("response");
       const tabParam = params.get("tab");
+      const asmParam = params.get("asm");
+      if (asmParam && (asmParam === "asm_1065658" || asmParam === "asm_synthetic_cases")) {
+        setCurrentAssessmentId(asmParam);
+      }
       if (respParam) setSelectedResponseId(respParam);
       if (
         tabParam &&
@@ -135,8 +156,8 @@ export default function ClassLensApp() {
   const handleImport = async () => {
     try {
       setLoading(true);
-      await api.importDemoResponses(asmId);
-      await loadData();
+      await api.importDemoResponses(currentAssessmentId);
+      await loadData(currentAssessmentId);
     } catch (err) {
       console.error("Failed to import demo responses:", err);
       alert("Failed to import demo responses.");
@@ -148,9 +169,9 @@ export default function ClassLensApp() {
   const handleAnalyze = async () => {
     try {
       setIsAnalyzing(true);
-      await api.triggerAnalysis(asmId, `job_run_${Date.now()}`);
+      await api.triggerAnalysis(currentAssessmentId, `job_run_${Date.now()}`);
       setTimeout(async () => {
-        await loadData();
+        await loadData(currentAssessmentId);
         setIsAnalyzing(false);
       }, 1200);
     } catch (err) {
@@ -171,6 +192,15 @@ export default function ClassLensApp() {
   // Strict semantics: only students flagged who are not yet confirmed/overridden
   const needsReviewCount = responses.filter(
     (r) => r.needs_teacher_review && r.teacher_review_status === "unreviewed"
+  ).length;
+
+  // Insufficient evidence count
+  const insufficientEvidenceCount = responses.filter(
+    (r) =>
+      r.reasoning_status === "incomplete" ||
+      r.answer_status === "undetermined" ||
+      r.upload_status === "unreadable" ||
+      r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
   ).length;
 
   // Procedural errors in reasoning or final answer incorrect
@@ -200,6 +230,14 @@ export default function ClassLensApp() {
 
     if (filter === "review") {
       return r.needs_teacher_review && r.teacher_review_status === "unreviewed";
+    }
+    if (filter === "insufficient") {
+      return (
+        r.reasoning_status === "incomplete" ||
+        r.answer_status === "undetermined" ||
+        r.upload_status === "unreadable" ||
+        r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
+      );
     }
     if (filter === "errors") {
       return r.reasoning_status?.includes("error") || r.answer_status === "incorrect";
@@ -353,12 +391,12 @@ export default function ClassLensApp() {
               }
             />
 
-            {/* 4 Metric Summary Cards */}
-            <section aria-label="Assessment Metrics Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 5 Metric Summary Cards */}
+            <section aria-label="Assessment Metrics Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               <MetricCard
                 title="Submissions"
                 value={totalSubmissions}
-                subtext="Curated classroom cohort"
+                subtext={currentAssessmentId === "asm_synthetic_cases" ? "Synthetic Test Cases" : "Curated Cohort"}
                 accent="brand"
                 icon={<Layers className="w-5 h-5" />}
               />
@@ -375,24 +413,28 @@ export default function ClassLensApp() {
                 icon={<Check className="w-5 h-5" />}
               />
               <MetricCard
-                title="Correct Final Answers"
-                value={correctCount}
+                title="Awaiting Review"
+                value={needsReviewCount}
                 denominator={totalSubmissions}
-                subtext={
-                  totalSubmissions > 0
-                    ? `${Math.round((correctCount / totalSubmissions) * 100)}% accuracy rate`
-                    : "Pending"
-                }
-                accent="coral"
-                icon={<Sparkles className="w-5 h-5" />}
-              />
-              <MetricCard
-                title="Teacher Reviews"
-                value={reviewedCount}
-                denominator={totalSubmissions}
-                subtext={`${needsReviewCount} flagged for review`}
+                subtext={`${reviewedCount} reviewed`}
                 accent="yellow"
                 icon={<ShieldCheck className="w-5 h-5" />}
+              />
+              <MetricCard
+                title="Insufficient Evidence"
+                value={insufficientEvidenceCount}
+                denominator={totalSubmissions}
+                subtext="Ambiguous / incomplete"
+                accent="yellow"
+                icon={<HelpCircle className="w-5 h-5" />}
+              />
+              <MetricCard
+                title="Supported Errors"
+                value={procedureErrorCount}
+                denominator={totalSubmissions}
+                subtext="Procedural mistakes"
+                accent="coral"
+                icon={<AlertTriangle className="w-5 h-5" />}
               />
             </section>
 
@@ -400,7 +442,8 @@ export default function ClassLensApp() {
             <FilterBar
               options={[
                 { id: "all", label: "All Responses", count: totalSubmissions },
-                { id: "review", label: "Needs Review", count: needsReviewCount },
+                { id: "review", label: "Review Queue", count: needsReviewCount },
+                { id: "insufficient", label: "Insufficient Evidence", count: insufficientEvidenceCount },
                 { id: "errors", label: "Procedural Errors", count: procedureErrorCount },
                 { id: "correct", label: "Correct Final Answer", count: correctCount },
               ]}
@@ -410,6 +453,102 @@ export default function ClassLensApp() {
               onSearchChange={setSearchQuery}
               searchPlaceholder="Filter student ID, note, or error..."
             />
+
+            {/* Dedicated Review Queue Section when filter === 'review' */}
+            {filter === "review" && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/40 p-4 sm:p-5 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
+                      <ShieldCheck className="w-4 h-4 text-amber-800" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-ink-primary">
+                        Teacher Review Queue ({needsReviewCount} Awaiting Review)
+                      </h3>
+                      <p className="text-xs text-ink-muted">
+                        Responses flagged for educator review due to visual ambiguities, incomplete markings, or adversarial discrepancies.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-amber-200 bg-white">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-amber-100/50 text-ink-secondary font-semibold border-b border-amber-200">
+                      <tr>
+                        <th className="px-3 py-2.5">Student</th>
+                        <th className="px-3 py-2.5">Evidence Status</th>
+                        <th className="px-3 py-2.5">Escalation Reason</th>
+                        <th className="px-3 py-2.5">Review Status</th>
+                        <th className="px-3 py-2.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-100">
+                      {filteredResponses.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-3 py-6 text-center text-ink-muted">
+                            No student responses currently awaiting review.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredResponses.map((r) => {
+                          const isInsufficient =
+                            r.reasoning_status === "incomplete" ||
+                            r.answer_status === "undetermined" ||
+                            r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient";
+                          const reviewReason =
+                            r.analysis_data?.critic_audit?.teacher_review_reason ||
+                            r.analysis_data?.teacher_review_reason ||
+                            "Ambiguous marks require educator review";
+
+                          return (
+                            <tr key={r.id} className="hover:bg-amber-50/30 transition-colors">
+                              <td className="px-3 py-3 font-semibold text-ink-primary">
+                                {r.pseudonym_label || r.id}
+                                <span className="block font-mono text-[10px] text-ink-muted">
+                                  {r.id}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3">
+                                <span
+                                  className={cn(
+                                    "px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                                    isInsufficient
+                                      ? "bg-amber-100 text-amber-900"
+                                      : "bg-emerald-100 text-emerald-900"
+                                  )}
+                                >
+                                  {isInsufficient ? "Insufficient / Ambiguous" : "Sufficient"}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3 text-ink-secondary max-w-xs truncate">
+                                {reviewReason}
+                              </td>
+                              <td className="px-3 py-3">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-subtle border border-border-default text-ink-muted uppercase">
+                                  {r.teacher_review_status}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3 text-right">
+                                <Button
+                                  variant="coral"
+                                  size="sm"
+                                  onClick={() => setSelectedResponseId(r.id)}
+                                  className="text-xs h-7 px-3 font-semibold"
+                                >
+                                  Inspect &amp; Review
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Responsive Grid of Student Response Cards: 1 col (mobile), 2 cols (tablet), 3 cols (desktop), 4 cols (wide desktop) */}
             {loading ? (
@@ -759,7 +898,7 @@ export default function ClassLensApp() {
           assessmentId={asmId}
           isOpen={!!selectedResponseId}
           onClose={() => setSelectedResponseId(null)}
-          onReviewChanged={loadData}
+          onReviewChanged={() => loadData(currentAssessmentId)}
           onNavigatePrev={() => {
             if (selectedIndex > 0) {
               setSelectedResponseId(responses[selectedIndex - 1].id);
@@ -779,18 +918,56 @@ export default function ClassLensApp() {
       <Dialog
         isOpen={showAssessmentModal}
         onClose={() => setShowAssessmentModal(false)}
-        title="Active Assessment Checkpoint"
-        description="Select or inspect mathematics diagnostic curriculum checkpoints."
+        title="Select Assessment Checkpoint"
+        description="Switch between curricular checkpoints and evaluation benchmarks."
       >
         <div className="space-y-3 text-xs">
-          <div className="p-3 rounded-lg border border-brand-primary bg-brand-light/30 flex items-center justify-between">
+          <div
+            onClick={() => handleSelectAssessment("asm_1065658")}
+            className={cn(
+              "p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
+              currentAssessmentId === "asm_1065658"
+                ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
+                : "border-border-default bg-surface-base hover:bg-surface-subtle"
+            )}
+          >
             <div>
-              <p className="font-bold text-ink-primary">Checkpoint 1 — Integers &amp; Number Lines</p>
-              <p className="text-[11px] text-ink-muted">13 student responses • Sec 1 Math</p>
+              <p className="font-bold text-ink-primary text-sm">
+                Checkpoint 1 — Integers &amp; Number Lines
+              </p>
+              <p className="text-[11px] text-ink-muted mt-0.5">
+                Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)
+              </p>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-brand-primary text-white">
-              Current
-            </span>
+            {currentAssessmentId === "asm_1065658" && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                Active
+              </span>
+            )}
+          </div>
+
+          <div
+            onClick={() => handleSelectAssessment("asm_synthetic_cases")}
+            className={cn(
+              "p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
+              currentAssessmentId === "asm_synthetic_cases"
+                ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
+                : "border-border-default bg-surface-base hover:bg-surface-subtle"
+            )}
+          >
+            <div>
+              <p className="font-bold text-ink-primary text-sm">
+                Synthetic Feasibility Benchmark: Cases 1–3
+              </p>
+              <p className="text-[11px] text-ink-muted mt-0.5">
+                3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous &amp; Incomplete
+              </p>
+            </div>
+            {currentAssessmentId === "asm_synthetic_cases" && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                Active
+              </span>
+            )}
           </div>
 
           <div className="pt-2 flex justify-end">
