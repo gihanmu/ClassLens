@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from services.api.config import settings
-from services.api.routers import assessments, auth, cohort, responses
+from services.api.routers import assessments, auth, cohort, dev, responses
 
 app = FastAPI(
     title=settings.app_name,
@@ -31,6 +31,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(assessments.router, prefix="/api/v1")
 app.include_router(cohort.router, prefix="/api/v1")
 app.include_router(responses.router, prefix="/api/v1")
+app.include_router(dev.router, prefix="/api/v1")
 
 
 @app.get("/health")

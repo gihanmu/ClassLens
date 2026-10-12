@@ -12,9 +12,10 @@ import {
   LogOut,
   FolderOpen,
   Sparkles,
+  FlaskConical,
 } from "lucide-react";
 
-export type NavItemKey = "responses" | "insights" | "recommendations" | "resources" | "assessments" | "design-system";
+export type NavItemKey = "responses" | "insights" | "recommendations" | "resources" | "assessments" | "design-system" | "gemini-test";
 
 export interface NavItem {
   key: NavItemKey;
@@ -48,6 +49,7 @@ export function AppSidebar({
   ];
 
   const isDesignSystemRoute = pathname === "/design-system";
+  const isGeminiTestRoute = pathname === "/dev/gemini-test";
 
   return (
     <aside
@@ -68,7 +70,7 @@ export function AppSidebar({
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = !isDesignSystemRoute && currentTab === item.key;
+          const isActive = !isDesignSystemRoute && !isGeminiTestRoute && currentTab === item.key;
           return (
             <button
               key={item.key}
@@ -106,7 +108,7 @@ export function AppSidebar({
         })}
 
         <div className="pt-6 px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-          Design & Tools
+          Design & Testing
         </div>
         <Link
           href="/design-system"
@@ -127,11 +129,38 @@ export function AppSidebar({
           </div>
           <span
             className={cn(
-              "px-1.5 py-0.2 rounded text-[10px] font-mono",
+              "px-1.5 py-0.5 rounded text-[10px] font-mono",
               isDesignSystemRoute ? "bg-white/20 text-white" : "bg-brand-light text-brand-primary font-semibold"
             )}
           >
             Live
+          </span>
+        </Link>
+
+        <Link
+          href="/dev/gemini-test"
+          onClick={onCloseMobile}
+          className={cn(
+            "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary mt-1",
+            isGeminiTestRoute
+              ? "bg-brand-primary text-white shadow-xs font-semibold"
+              : "text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <FlaskConical
+              className={cn("w-4 h-4", isGeminiTestRoute ? "text-white" : "text-ink-muted")}
+              aria-hidden="true"
+            />
+            <span>Gemini Test Lab</span>
+          </div>
+          <span
+            className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-mono",
+              isGeminiTestRoute ? "bg-white/20 text-white" : "bg-semantic-warning-bg text-semantic-warning-text font-semibold"
+            )}
+          >
+            Gate 4A
           </span>
         </Link>
       </nav>

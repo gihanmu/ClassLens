@@ -279,4 +279,74 @@ export const api = {
     if (!res.ok) throw new Error("Failed to fetch cohort insights");
     return res.json();
   },
+
+  // --------------------------------------------------------------------------
+  // Development-Only Gemini Test Lab Methods
+  // --------------------------------------------------------------------------
+  async getDevStatus(): Promise<DevStatusResponse> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/status`);
+    if (!res.ok) throw new Error("Failed to fetch development status");
+    return res.json();
+  },
+
+  getSyntheticFixtureImageUrl(fixtureId: string): string {
+    return `${API_BASE}/dev/synthetic-fixtures/${encodeURIComponent(fixtureId)}/image`;
+  },
+
+  async analyzeSynthetic(
+    fixtureId: string,
+    ruleExpr: string = "-6 + 12 - 4",
+    targetValue: number = 2.0
+  ): Promise<SyntheticAnalysisResponse> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/analyze-synthetic`, {
+      method: "POST",
+      body: JSON.stringify({
+        fixture_id: fixtureId,
+        rule_expr: ruleExpr,
+        target_value: targetValue,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Analysis failed with status ${res.status}`);
+    }
+    return res.json();
+  },
 };
+
+export interface DevStatusResponse {
+  environment: string;
+  ai_mode: string;
+  live_inference_enabled: boolean;
+  is_live_mode: boolean;
+  model: string;
+  project: string;
+  location: string;
+  use_vertexai: boolean;
+  max_calls: number;
+  calls_used: number;
+  calls_remaining: number;
+  authorized_fixtures: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    expected_answer?: string | null;
+    expected_reasoning: string;
+    filename: string;
+  }>;
+}
+
+export interface SyntheticAnalysisResponse {
+  fixture_id: string;
+  mode: "mock" | "live";
+  model_version: string;
+  is_mock: boolean;
+  execution_latency_ms: number;
+  tokens_consumed: number;
+  cost_estimate_usd?: number | null;
+  live_telemetry?: Record<string, any> | null;
+  calls_used: number;
+  calls_remaining: number;
+  analysis: any;
+}

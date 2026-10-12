@@ -39,8 +39,27 @@ class MockAgentAdapter:
             base_id = "resp_" + response_id.split("_resp_")[-1]
             fixture = MOCK_FIXTURES.get(base_id)
         if not fixture:
-            # Fallback for arbitrary response IDs: clean hop fixture
-            fixture = MOCK_FIXTURES["resp_04255753"]
+            r_lower = response_id.lower()
+            if "case_01" in r_lower or "canonical" in r_lower:
+                fixture = MOCK_FIXTURES["resp_04255753"]
+            elif "case_02" in r_lower or "off_by_one" in r_lower or "procedural" in r_lower:
+                fixture = MOCK_FIXTURES["resp_a5c95313"]
+            elif "case_03" in r_lower or "ambiguous" in r_lower or "incomplete" in r_lower:
+                fixture = {
+                    "quality_status": "faint_readable",
+                    "confidence": 0.65,
+                    "has_number_line": True,
+                    "final_answer_marked": None,
+                    "observations": [
+                        {"kind": "number_line", "value": "Faint horizontal line -8 to 8", "confidence": 0.70},
+                    ],
+                    "ambiguities": ["Faint pencil strokes without directional arrowheads", "Incomplete steps"],
+                    "requires_teacher_review": True,
+                    "teacher_review_reason": "Visual ambiguities and incomplete student work require teacher review.",
+                }
+            else:
+                # Fallback for arbitrary response IDs: clean hop fixture
+                fixture = MOCK_FIXTURES["resp_04255753"]
 
         conf = confidence_override if confidence_override is not None else float(fixture.get("confidence", 0.95))
         observations: List[VisualObservation] = []
