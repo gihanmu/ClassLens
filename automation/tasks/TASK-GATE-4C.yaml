@@ -1,0 +1,68 @@
+task_id: "TASK-GATE-4C"
+title: "ClassLens Gate 4C: Pipeline Reliability, Benchmark Suite & Evaluation Harness"
+objective: >
+  Establish a comprehensive automated evaluation harness and regression benchmark suite
+  measuring handwriting extraction accuracy, mathematical verifier precision, and misconception
+  diagnosis reliability across synthetic benchmark datasets.
+
+scope:
+  included:
+    - "Automated evaluation harness running synthetic student response benchmarks"
+    - "Standardized scoring metrics: Grounding Precision, Step Accuracy, Misconception F1"
+    - "Confidence score calibration and uncertainty threshold validation"
+    - "Adversarial regression test cases for degraded or ambiguous student handwriting"
+    - "Automated benchmark report generator emitting markdown and JSON metrics"
+    - "Offline execution baseline ensuring $0.00 external spend during CI evaluation"
+  excluded:
+    - "Live cloud evaluation services requiring recurring billing"
+    - "Real student personally identifiable information (PII)"
+    - "Production infrastructure modifications"
+
+acceptance_criteria:
+  - "Evaluation harness executes against synthetic benchmark dataset with zero network dependencies"
+  - "Grounding Precision metric correctly evaluates spatial bounding boxes vs synthetic ground truth"
+  - "Misconception classification achieves >=90% F1 score on synthetic benchmark cases"
+  - "Uncertainty calibration flags 100% of ambiguous/insufficient cases (e.g. Synthetic Case 3)"
+  - "Benchmark report outputs formatted metrics table to docs/benchmarks/gate-4c-results.md"
+  - "Full backend test suite and evaluation runner pass with exit code 0"
+
+dependencies:
+  - "TASK-GATE-4B"
+
+allowed_file_changes:
+  - "services/worker/evaluation/*"
+  - "tests/evaluation/*"
+  - "docs/benchmarks/*"
+  - "docs/architecture/gate-4c-evaluation-plan.md"
+
+test_commands:
+  - name: "Evaluation Harness Unit Tests"
+    command: ".venv/bin/pytest tests/evaluation/"
+    working_directory: "."
+    timeout_seconds: 90
+  - name: "Full Backend Test Suite"
+    command: ".venv/bin/pytest tests/"
+    working_directory: "."
+    timeout_seconds: 120
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns:
+    - "api_key"
+    - "service_account"
+
+git_branch_requirements:
+  base_branch: "feature/gate-4b-teacher-dashboard"
+  target_branch_pattern: "feature/gate-4c-reliability-evaluation"
+
+completion_criteria:
+  - "All test commands succeed with exit code 0"
+  - "Benchmark evaluation report generated"
+  - "Zero external cost incurred"

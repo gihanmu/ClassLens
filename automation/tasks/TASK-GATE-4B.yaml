@@ -7,39 +7,51 @@ objective: >
 
 scope:
   included:
-    - "5 Overview metrics in teacher dashboard"
-    - "Review queue banner and direct table view"
-    - "Multi-assessment switcher supporting Problem 1065658 and Synthetic Cases"
-    - "Evidence-first dual-pane student inspection modal with zoom and fit controls"
-    - "3-Way separation of concerns: physical marks vs interpreted strategy vs SymPy verification"
-    - "CriticAuditCard showing adversarial audit verdicts and qualitative confidence tiers"
-    - "Ungrounded misconception suppression on ambiguous or incomplete evidence"
-    - "Human-in-the-loop teacher review & override panel with immutable audit trail"
-    - "Evidence-aware cohort intelligence excluding insufficient cases from confirmed clusters"
-    - "Deterministic demo data for Synthetic Cases 1, 2, and 3"
+    - "Teacher dashboard: 5 overview metrics (Class Accuracy, Process vs Product Divergence, Top Misconception, Evidence Grounding Rate, Review Queue count)"
+    - "Review queue banner and sortable student response table"
+    - "Original handwritten evidence display: high-resolution canvas with pan, zoom, and fit controls"
+    - "Distinction between correctness of final answers versus underlying reasoning steps"
+    - "SymPy-verified mathematical step validation and arithmetic consistency breakdown"
+    - "Evidence-supported misconception identification mapped to specific student marks"
+    - "Ambiguity and incomplete evidence handling: suppress ungrounded claims when evidence is insufficient"
+    - "Teacher review and override panel: confirm, override, or mark unreadable with reason notes"
+    - "Persistent review history and immutable audit trail for teacher modifications"
+    - "Cohort insights and actionable reteaching recommendations based on verified misconception clusters"
+    - "Responsive UI supporting desktop, tablet, and mobile viewports with adaptive layouts"
+    - "Deterministic synthetic demonstration datasets for Problem 1065658 and Synthetic Cases 1, 2, and 3"
+    - "Full offline regression test suite with zero live ClassLens Gemini inference"
   excluded:
     - "Live external Gemini API calls in default runs"
     - "Modifications to existing offline math verifier logic outside statistics calculator"
     - "Production database provisioning or cloud infrastructure mutation"
+    - "External paid API dependencies"
 
 acceptance_criteria:
-  - "Teacher dashboard displays 5 core overview metrics and review queue"
-  - "Assessment switcher toggles between asm_1065658 and asm_synthetic_cases"
-  - "Inspection modal renders zoomable canvas, 3-way separation of concerns, and CriticAuditCard"
-  - "Teacher review panel supports confirm, override, and unreadable with persistent audit history"
-  - "Responses with insufficient evidence (Case 3) are excluded from confirmed misconception clusters"
-  - "All 206 backend tests pass offline without external network or LLM dependencies"
-  - "Next.js production build in apps/web succeeds with zero TypeScript or build errors"
+  - "Teacher dashboard displays 5 core overview metrics and prominent review queue banner"
+  - "Multi-assessment switcher toggles between asm_1065658 and asm_synthetic_cases cleanly"
+  - "Student inspection modal renders zoomable handwritten canvas, 3-way separation of concerns, and CriticAuditCard"
+  - "Final answer correctness is explicitly distinguished from step-by-step reasoning validity"
+  - "SymPy verification displays arithmetic checks and algebraic consistency for each extracted step"
+  - "Misconceptions are only asserted when backed by sufficient visual and mathematical evidence"
+  - "Responses with ambiguous or incomplete evidence (e.g. Synthetic Case 3) trigger uncertainty warnings"
+  - "Teacher review panel enables confirm, override, and unreadable actions with persistent audit logging"
+  - "Cohort intelligence computes class misconception distributions and suggests targeted reteaching strategies"
+  - "UI layout adapts responsively to desktop (>=1024px), tablet (768px-1023px), and mobile (<768px)"
+  - "All unit and integration tests pass offline without external network or LLM dependencies"
+  - "Next.js production build in apps/web succeeds with zero TypeScript or compilation errors"
 
 dependencies:
   - "Gate 4A multi-agent pipeline and evidence sufficiency contracts"
   - "Gate 4A.2 evidence grounding and uncertainty handling fix"
+  - "Gate AUTO-1 secure autonomous development execution verification"
 
 allowed_file_changes:
   - "apps/web/src/app/page.tsx"
   - "apps/web/src/components/features/teacher-review/TeacherReviewPanel.tsx"
   - "apps/web/src/components/inspection/CriticAuditCard.tsx"
   - "apps/web/src/components/inspection/StudentInspectionModal.tsx"
+  - "apps/web/src/components/dashboard/OverviewMetrics.tsx"
+  - "apps/web/src/components/dashboard/CohortInsights.tsx"
   - "apps/web/src/lib/api.ts"
   - "services/api/repository/memory_repo.py"
   - "services/api/routers/assessments.py"
@@ -62,7 +74,7 @@ test_commands:
   - name: "Next.js Frontend Production Build"
     command: "npm run build"
     working_directory: "apps/web"
-    timeout_seconds: 120
+    timeout_seconds: 180
 
 cost_restrictions:
   max_cost_usd: 0.00

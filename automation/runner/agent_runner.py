@@ -69,17 +69,26 @@ class DeterministicAgentRunner(BaseAgentRunner):
         )
 
 
+from automation.runner.isolation import WorkerIsolation
+
+
 class AgyCliAgentRunner(BaseAgentRunner):
     """Headless Antigravity CLI (`agy`) runner.
 
     Executes non-interactive sessions via `agy --print`.
-    Strictly gated by SafetyEnforcer: will NOT execute unless explicit
-    unexpired approval token and authorization are confirmed.
+    Strictly gated by SafetyEnforcer and executed inside macOS Seatbelt WorkerIsolation:
+    will NOT execute unless explicit unexpired approval token and authorization are confirmed.
     """
 
-    def __init__(self, safety_enforcer: Optional[SafetyEnforcer] = None, agy_binary: str = "agy") -> None:
+    def __init__(
+        self,
+        safety_enforcer: Optional[SafetyEnforcer] = None,
+        agy_binary: str = "agy",
+        isolation: Optional[WorkerIsolation] = None,
+    ) -> None:
         self.safety = safety_enforcer or SafetyEnforcer()
         self.agy_binary = agy_binary
+        self.isolation = isolation or WorkerIsolation()
 
     def execute(self, task: TaskSpec, context: Dict[str, Any]) -> AgentExecutionResult:
         # Agy CLI is an external LLM interface requiring network connectivity and metered quota.
@@ -132,24 +141,25 @@ class AgyCliAgentRunner(BaseAgentRunner):
             "text",
             "--mode",
             "accept-edits",
+            "--sandbox",
         ]
 
         try:
-            res = subprocess.run(
+            returncode, stdout, stderr = self.isolation.run_isolated_command(
                 cmd,
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                timeout=600,
+                cwd=REPO_ROOT,
+                timeout_seconds=600,
+                allow_network=True,
+                protect_orchestrator=True,
             )
-            success = res.returncode == 0
+            success = returncode == 0
             return AgentExecutionResult(
                 success=success,
-                summary=f"agy CLI execution completed with return code {res.returncode}.",
-                output_log=res.stdout + ("\n" + res.stderr if res.stderr else ""),
+                summary=f"agy CLI execution completed with return code {returncode}.",
+                output_log=stdout + ("\n" + stderr if stderr else ""),
                 external_calls_count=1 if success else 0,
-                estimated_cost_usd=0.01,  # Estimated per-turn cost
-                error_message=res.stderr if not success else None,
+                estimated_cost_usd=0.01,  # Included subscription turn
+                error_message=stderr if not success else None,
             )
         except Exception as e:
             return AgentExecutionResult(

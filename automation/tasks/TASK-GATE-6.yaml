@@ -1,0 +1,73 @@
+task_id: "TASK-GATE-6"
+title: "ClassLens Gate 6: Security Hardening, Scalability & Cloud Deployment Readiness"
+objective: >
+  Harden platform security, implement production containerization manifests, configure
+  least-privilege IAM policies, and establish observability metrics for Google Cloud Run deployment.
+
+scope:
+  included:
+    - "Multi-stage Dockerfile optimization for FastAPI backend and Next.js frontend"
+    - "Security hardening: Content Security Policy (CSP), CORS, rate limiting, and input sanitization"
+    - "Terraform infrastructure-as-code manifests for Cloud Run and Cloud Storage (dry-run review only)"
+    - "Least-privilege IAM policy definitions restricting service account roles"
+    - "Prometheus metrics instrumentation and structured JSON audit logging"
+    - "Local container build and dry-run linting tests"
+  excluded:
+    - "Live execution of terraform apply or cloud resource provisioning"
+    - "Live container deployment to Google Cloud Artifact Registry"
+    - "Live production traffic ingestion"
+
+acceptance_criteria:
+  - "Multi-stage Dockerfiles build minimal, non-root container images"
+  - "Security middleware enforces strict CSP, CORS origin whitelisting, and rate limits"
+  - "Terraform manifests validate cleanly with terraform validate (no apply)"
+  - "IAM definitions strictly restrict runtime service account to minimal permissions"
+  - "Prometheus /metrics endpoint exposes request counts, latency histograms, and verification rates"
+  - "All unit and security tests pass offline"
+
+dependencies:
+  - "TASK-GATE-5"
+
+allowed_file_changes:
+  - "deploy/*"
+  - "infra/terraform/*"
+  - "services/api/middleware/*"
+  - "services/common/observability/*"
+  - "tests/security/*"
+  - "Dockerfile.api"
+  - "Dockerfile.web"
+  - "docs/architecture/gate-6-security-deployment-plan.md"
+
+test_commands:
+  - name: "Security Hardening Unit Tests"
+    command: ".venv/bin/pytest tests/security/"
+    working_directory: "."
+    timeout_seconds: 60
+  - name: "Full Backend Test Suite"
+    command: ".venv/bin/pytest tests/"
+    working_directory: "."
+    timeout_seconds: 120
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns:
+    - "terraform apply"
+    - "gcloud run deploy"
+    - "api_key"
+
+git_branch_requirements:
+  base_branch: "feature/gate-5-teacher-workflow"
+  target_branch_pattern: "feature/gate-6-security-scalability"
+
+completion_criteria:
+  - "All specified test commands succeed with exit code 0"
+  - "Terraform and Dockerfile lint checks pass"
+  - "Zero external cost incurred"
+  - "Structured implementation report generated in automation/reports/"
