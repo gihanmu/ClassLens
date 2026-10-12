@@ -29,6 +29,7 @@ import {
   Check,
   ChevronRight,
   HelpCircle,
+  UploadCloud,
 } from "lucide-react";
 
 export interface TeacherDashboardViewProps {
@@ -139,6 +140,52 @@ export function TeacherDashboardView({
 
         {/* Decorative background gradient */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none" />
+      </section>
+
+      {/* =========================================================================
+          COMPETITION MVP DEMO PATHWAYS BANNER
+          ========================================================================= */}
+      <section
+        aria-label="Competition Demo Experience"
+        className="rounded-2xl border border-brand-primary/20 bg-gradient-to-r from-brand-light/40 via-surface-base to-emerald-500/10 p-5 shadow-xs"
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white uppercase tracking-wider">
+                AI Builder Cup 2026
+              </span>
+              <span className="text-xs font-semibold text-brand-primary">Competition MVP Guided Workflow</span>
+            </div>
+            <h3 className="text-base font-bold text-ink-primary">
+              Experience ClassLens End-to-End: Two Demonstration Pathways
+            </h3>
+            <p className="text-xs text-ink-secondary max-w-3xl leading-relaxed">
+              Explore the 13-student curated Singapore Sec 1 cohort with SymPy mathematical verification, or create a custom checkpoint and upload your own student worksheets with cryptographic privacy checks and truthful offline intake.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigateToStudentWork("asm_1065658")}
+              className="text-xs font-semibold border-brand-primary/30 text-brand-primary hover:bg-brand-light/30"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-brand-primary" />
+              Explore Synthetic Demo (13)
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onOpenAssessmentsModal}
+              className="text-xs font-semibold shadow-xs"
+            >
+              <UploadCloud className="w-3.5 h-3.5 mr-1" />
+              Create &amp; Upload Worksheets
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* =========================================================================

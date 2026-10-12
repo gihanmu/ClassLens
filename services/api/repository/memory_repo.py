@@ -357,6 +357,10 @@ class MemoryRepository:
                         file_map[prefix] = f
 
             imported: List[ResponseDoc] = []
+            # Reset responses for this assessment to cleanly import the canonical 13 demo worksheets
+            for k in list(self.responses.keys()):
+                if self.responses[k].assessment_id == assessment_id:
+                    del self.responses[k]
             for idx, resp_id in enumerate(MOCK_FIXTURES.keys(), start=1):
                 label = f"Student-{idx:02d}"
                 prefix = resp_id.replace("resp_", "")
