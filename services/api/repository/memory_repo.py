@@ -42,6 +42,8 @@ class AssessmentDoc(BaseModel):
     class_id: str = "cls_sec1_math"
     organization_id: str = "org_cedar_sec"
     title: str = "Integers on Number Line: Checkpoint 1"
+    math_topic: str = "Integer operations on number lines"
+    grade_level: str = "Secondary 1"
     status: str = "ready"  # draft, ready, processing, review, completed
     question: QuestionConfig = Field(default_factory=QuestionConfig)
     total_responses: int = 0
@@ -175,6 +177,14 @@ class MemoryRepository:
                 except Exception:
                     pass
 
+            # Recalculate response and review counts for consistency
+            for asm in self.assessments.values():
+                resps = [r for r in self.responses.values() if r.assessment_id == asm.id]
+                asm.total_responses = len(resps)
+                asm.reviewed_responses = sum(
+                    1 for r in resps if r.teacher_review_status and r.teacher_review_status != "unreviewed"
+                )
+
     def _seed_default_data(self):
         sarah = UserDoc(
             id="usr_sarah_lim",
@@ -288,7 +298,38 @@ class MemoryRepository:
     def create_assessment(self, doc: AssessmentDoc) -> AssessmentDoc:
         with self._lock:
             self.assessments[doc.id] = doc
+            self._save_persisted_state(doc.organization_id)
             return doc
+
+    def create_response(self, doc: ResponseDoc) -> ResponseDoc:
+        with self._lock:
+            self.responses[doc.id] = doc
+            asm = self.assessments.get(doc.assessment_id)
+            if asm:
+                asm.total_responses = len(self.list_responses(doc.assessment_id))
+                asm.updated_at = utc_now()
+                self._save_persisted_state(asm.organization_id)
+            else:
+                self._save_persisted_state("org_cedar_sec")
+            return doc
+
+    def delete_response(self, response_id: str, assessment_id: str) -> bool:
+        with self._lock:
+            found = False
+            for k in list(self.responses.keys()):
+                r = self.responses[k]
+                if (r.id == response_id or k == response_id) and r.assessment_id == assessment_id:
+                    del self.responses[k]
+                    found = True
+                    break
+            if found:
+                asm = self.assessments.get(assessment_id)
+                if asm:
+                    asm.total_responses = len(self.list_responses(assessment_id))
+                    asm.updated_at = utc_now()
+                    self._save_persisted_state(asm.organization_id)
+                return True
+            return False
 
     def get_assessment(self, assessment_id: str, org_id: Optional[str] = None) -> Optional[AssessmentDoc]:
         with self._lock:

@@ -27,6 +27,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Plus,
+  UploadCloud,
 } from "lucide-react";
 import { AppShell } from "@/components/shared/app-shell";
 import { NavItemKey } from "@/components/shared/app-sidebar";
@@ -39,6 +41,8 @@ import { TeachingRecommendationCard } from "@/components/features/cohort/Teachin
 import { ClassroomResourcesView } from "@/components/features/cohort/ClassroomResourcesView";
 import { ClassroomHeroIllustration } from "@/components/shared/classroom-illustration";
 import { AiEvaluationView } from "@/components/features/evaluation/AiEvaluationView";
+import { CreateAssessmentModal } from "@/components/features/assessments/CreateAssessmentModal";
+import { WorksheetUploadModal } from "@/components/features/assessments/WorksheetUploadModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Typography } from "@/components/ui/typography";
@@ -64,6 +68,8 @@ export default function ClassLensApp() {
   const [loading, setLoading] = useState<boolean>(true);
   const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
   const [showHeroBanner, setShowHeroBanner] = useState<boolean>(false);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
   const asmId = currentAssessmentId;
 
@@ -478,11 +484,20 @@ export default function ClassLensApp() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setShowUploadModal(true)}
+                    className="border-brand-primary/30 text-brand-primary hover:bg-brand-light/30 font-semibold"
+                  >
+                    <UploadCloud className="w-4 h-4 mr-1 text-brand-primary" />
+                    Upload Worksheets
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleImport}
                     disabled={loading || responses.length > 0}
                   >
-                    <DownloadCloud className="w-4 h-4 text-ink-muted" />
-                    {responses.length > 0 ? "Dataset Loaded (13)" : "Import 13 Responses"}
+                    <DownloadCloud className="w-4 h-4 text-ink-muted mr-1" />
+                    {responses.length > 0 ? `Loaded (${responses.length})` : "Import 13 Demo Worksheets"}
                   </Button>
                   <Button
                     variant="coral"
@@ -976,40 +991,114 @@ export default function ClassLensApp() {
           <div className="space-y-6">
             <PageHeader
               title="Assessment Management"
-              subtitle="Review and configure mathematics diagnostic checkpoints."
+              subtitle="Review, create, and configure mathematics diagnostic checkpoints."
+              actions={
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUploadModal(true)}
+                    className="border-brand-primary/30 text-brand-primary hover:bg-brand-light/30 font-semibold"
+                  >
+                    <UploadCloud className="w-4 h-4 mr-1 text-brand-primary" />
+                    Upload Worksheets
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Assessment
+                  </Button>
+                </div>
+              }
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card variant="highlighted">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-light text-brand-primary">
-                      Active Demonstration
-                    </span>
-                    <span className="text-xs font-mono text-ink-muted">asm_1065658</span>
-                  </div>
-                  <CardTitle className="text-lg mt-2">
-                    {assessment?.title || "Integers on Number Line: Checkpoint 1"}
-                  </CardTitle>
-                  <CardDescription>
-                    Singapore Secondary 1 Math • Question: Evaluate -6 + 12 - 4
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-xs text-ink-secondary">
-                  <div className="flex justify-between py-1 border-b border-border-default">
-                    <span>Total Submissions:</span>
-                    <strong className="text-ink-primary font-mono">{responses.length} Worksheets</strong>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border-default">
-                    <span>Expected Solution:</span>
-                    <strong className="text-emerald-700 font-mono">+2 (Exact SymPy Verified)</strong>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span>Status:</span>
-                    <strong className="text-ink-primary font-mono">100% Mock Ready</strong>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {(assessmentsList.length > 0 ? assessmentsList : assessment ? [assessment] : []).map((asm) => {
+                const isActive = asm.id === currentAssessmentId;
+                return (
+                  <Card
+                    key={asm.id}
+                    variant={isActive ? "highlighted" : "default"}
+                    className={cn(
+                      "transition-all flex flex-col justify-between",
+                      isActive ? "ring-2 ring-brand-primary/40 shadow-sm" : "hover:border-brand-primary/40"
+                    )}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
+                            isActive
+                              ? "bg-brand-light text-brand-primary font-bold"
+                              : "bg-surface-subtle text-ink-secondary border border-border-default"
+                          )}
+                        >
+                          {isActive ? "Active Assessment" : asm.grade_level || "Secondary 1"}
+                        </span>
+                        <span className="text-[11px] font-mono text-ink-muted">{asm.id}</span>
+                      </div>
+                      <CardTitle className="text-base mt-2 line-clamp-1">{asm.title}</CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {asm.math_topic || "Integer operations on number lines"}
+                        {asm.question?.question_text ? ` • ${asm.question.question_text}` : ""}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 pt-0">
+                      <div className="space-y-1.5 text-xs text-ink-secondary bg-surface-subtle/50 p-2.5 rounded-lg border border-border-default">
+                        <div className="flex justify-between py-0.5">
+                          <span>Total Submissions:</span>
+                          <strong className="text-ink-primary font-mono">
+                            {isActive ? responses.length : (asm.total_responses ?? 0)} Worksheets
+                          </strong>
+                        </div>
+                        <div className="flex justify-between py-0.5">
+                          <span>Expected Solution:</span>
+                          <strong className="text-emerald-700 font-mono">
+                            {asm.question?.expected_answer || "+2"} (SymPy Verified)
+                          </strong>
+                        </div>
+                        <div className="flex justify-between py-0.5">
+                          <span>Status:</span>
+                          <strong className="text-ink-primary font-mono capitalize">
+                            {asm.status || "ready"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          variant={isActive ? "secondary" : "outline"}
+                          size="sm"
+                          className="flex-1 text-xs"
+                          onClick={() => {
+                            if (!isActive) handleSelectAssessment(asm.id);
+                            setCurrentTab("responses");
+                          }}
+                        >
+                          {isActive ? "View Submissions" : "Select Checkpoint"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-brand-primary hover:bg-brand-light/30"
+                          onClick={() => {
+                            if (!isActive) handleSelectAssessment(asm.id);
+                            setShowUploadModal(true);
+                          }}
+                          title="Upload new worksheets to this assessment"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5 mr-1" />
+                          Upload
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1052,64 +1141,96 @@ export default function ClassLensApp() {
         isOpen={showAssessmentModal}
         onClose={() => setShowAssessmentModal(false)}
         title="Select Assessment Checkpoint"
-        description="Switch between curricular checkpoints and evaluation benchmarks."
+        description="Switch between curricular checkpoints or create a new assessment."
       >
         <div className="space-y-3 text-xs">
-          <div
-            onClick={() => handleSelectAssessment("asm_1065658")}
-            className={cn(
-              "p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
-              currentAssessmentId === "asm_1065658"
-                ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
-                : "border-border-default bg-surface-base hover:bg-surface-subtle"
-            )}
-          >
-            <div>
-              <p className="font-bold text-ink-primary text-sm">
-                Checkpoint 1 — Integers &amp; Number Lines
-              </p>
-              <p className="text-[11px] text-ink-muted mt-0.5">
-                Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)
-              </p>
-            </div>
-            {currentAssessmentId === "asm_1065658" && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
-                Active
-              </span>
-            )}
+          <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+            {(assessmentsList.length > 0
+              ? assessmentsList
+              : [
+                  {
+                    id: "asm_1065658",
+                    title: "Checkpoint 1 — Integers & Number Lines",
+                    math_topic: "Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)",
+                  },
+                  {
+                    id: "asm_synthetic_cases",
+                    title: "Synthetic Feasibility Benchmark: Cases 1–3",
+                    math_topic: "3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous & Incomplete",
+                  },
+                ]
+            ).map((asm) => {
+              const isSelected = currentAssessmentId === asm.id;
+              return (
+                <div
+                  key={asm.id}
+                  onClick={() => handleSelectAssessment(asm.id)}
+                  className={cn(
+                    "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
+                    isSelected
+                      ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
+                      : "border-border-default bg-surface-base hover:bg-surface-subtle"
+                  )}
+                >
+                  <div className="pr-2">
+                    <p className="font-bold text-ink-primary text-sm">{asm.title}</p>
+                    <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-1">
+                      {asm.math_topic || ("question" in asm ? asm.question?.question_text : undefined) || asm.id}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                      Active
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          <div
-            onClick={() => handleSelectAssessment("asm_synthetic_cases")}
-            className={cn(
-              "p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
-              currentAssessmentId === "asm_synthetic_cases"
-                ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
-                : "border-border-default bg-surface-base hover:bg-surface-subtle"
-            )}
-          >
-            <div>
-              <p className="font-bold text-ink-primary text-sm">
-                Synthetic Feasibility Benchmark: Cases 1–3
-              </p>
-              <p className="text-[11px] text-ink-muted mt-0.5">
-                3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous &amp; Incomplete
-              </p>
-            </div>
-            {currentAssessmentId === "asm_synthetic_cases" && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
-                Active
-              </span>
-            )}
-          </div>
-
-          <div className="pt-2 flex justify-end">
+          <div className="pt-2 border-t border-border-default flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowAssessmentModal(false);
+                setShowCreateModal(true);
+              }}
+              className="text-xs border-dashed"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              New Assessment
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => setShowAssessmentModal(false)}>
               Close
             </Button>
           </div>
         </div>
       </Dialog>
+
+      {/* Create Assessment Modal */}
+      <CreateAssessmentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onAssessmentCreated={async (newAsm) => {
+          await loadData(newAsm.id);
+          setCurrentAssessmentId(newAsm.id);
+          setCurrentTab("responses");
+        }}
+      />
+
+      {/* Worksheet Upload Modal */}
+      <WorksheetUploadModal
+        isOpen={showUploadModal}
+        assessmentId={currentAssessmentId}
+        assessmentTitle={assessment?.title || currentAssessmentId}
+        existingCount={responses.length}
+        onClose={() => setShowUploadModal(false)}
+        onUploadSuccess={async () => {
+          await loadData(currentAssessmentId);
+          setCurrentTab("responses");
+        }}
+      />
     </AppShell>
   );
 }

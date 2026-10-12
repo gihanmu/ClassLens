@@ -190,6 +190,22 @@ async def get_response_image(
 
     from services.worker.security.provenance_guard import TRUSTED_SYNTHETIC_DIR
 
+    # Check local uploads directory first
+    uploads_dir = os.path.realpath(os.path.join(os.getcwd(), "local-data", "uploads"))
+    upload_candidates = [
+        os.path.join(uploads_dir, user.organization_id, resp.assessment_id, resp.source_filename),
+        os.path.join(uploads_dir, user.organization_id, resp.source_filename),
+        os.path.join(uploads_dir, resp.source_filename),
+    ]
+    for cand in upload_candidates:
+        real_cand = os.path.realpath(cand)
+        if real_cand.startswith(uploads_dir) and os.path.isfile(real_cand):
+            return FileResponse(
+                path=real_cand,
+                media_type=resp.image_mime_type,
+                filename=os.path.basename(real_cand),
+            )
+
     dataset_dir = os.path.join(os.getcwd(), "dataset", "problem_1065658")
     file_path = os.path.join(dataset_dir, resp.source_filename)
 

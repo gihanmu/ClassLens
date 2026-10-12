@@ -7,6 +7,8 @@ export interface Assessment {
   class_id: string;
   organization_id: string;
   title: string;
+  math_topic?: string;
+  grade_level?: string;
   status: string;
   question: {
     problem_reference_id: string;
@@ -18,6 +20,16 @@ export interface Assessment {
   total_responses: number;
   reviewed_responses: number;
   created_at: string;
+}
+
+export interface CreateAssessmentInput {
+  title: string;
+  class_id?: string;
+  math_topic?: string;
+  grade_level?: string;
+  question_text?: string;
+  latex_formula?: string;
+  expected_answer?: string;
 }
 
 export interface StudentResponse {
@@ -318,6 +330,72 @@ export const api = {
     const res = await fetchWithCsrf(`${API_BASE}/assessments/${id}`);
     if (!res.ok) throw new Error("Failed to load assessment");
     return res.json();
+  },
+
+  async createAssessment(input: CreateAssessmentInput): Promise<Assessment> {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to create assessment");
+    }
+    return res.json();
+  },
+
+  async uploadWorksheet(
+    assessmentId: string,
+    file: File,
+    studentId?: string,
+    studentName?: string
+  ): Promise<StudentResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (studentId) formData.append("student_id", studentId);
+    if (studentName) formData.append("student_name", studentName);
+
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to upload worksheet");
+    }
+    return res.json();
+  },
+
+  async uploadWorksheetBatch(
+    assessmentId: string,
+    files: File[],
+    mappings?: Record<string, { student_id?: string; student_name?: string }>
+  ): Promise<StudentResponse[]> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    if (mappings) {
+      formData.append("mappings_json", JSON.stringify(mappings));
+    }
+
+    const res = await fetchWithCsrf(`${API_BASE}/assessments/${assessmentId}/upload-batch`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to upload worksheets");
+    }
+    return res.json();
+  },
+
+  async deleteResponse(assessmentId: string, responseId: string): Promise<void> {
+    const res = await fetchWithCsrf(
+      `${API_BASE}/assessments/${assessmentId}/responses/${responseId}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) {
+      throw new Error("Failed to delete response");
+    }
   },
 
   async importDemoResponses(id: string) {
