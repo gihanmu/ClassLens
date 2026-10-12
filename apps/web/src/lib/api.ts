@@ -63,6 +63,7 @@ export interface StudentAnalysisDetail {
   response_id: string;
   pseudonym_label?: string;
   quality_status: string;
+  upload_status?: string;
   answer_status: string;
   reasoning_status: string;
   is_compensatory_error: boolean;

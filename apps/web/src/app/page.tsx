@@ -16,6 +16,7 @@ import {
   FolderOpen,
   DownloadCloud,
   Check,
+  CheckCheck,
   AlertTriangle,
   Lightbulb,
   ShieldCheck,
@@ -185,6 +186,16 @@ export default function ClassLensApp() {
   const totalSubmissions = responses.length;
   const completedAnalyses = responses.filter((r) => r.task_status === "COMPLETED").length;
   const correctCount = responses.filter((r) => r.answer_status === "correct").length;
+  const reasoningVerifiedCount = responses.filter(
+    (r) =>
+      r.reasoning_status === "verified" ||
+      r.reasoning_status === "sound" ||
+      r.reasoning_status === "valid" ||
+      r.reasoning_status === "correct"
+  ).length;
+  const misconceptionCount = responses.filter(
+    (r) => Boolean(r.misconception_taxonomy_id || r.analysis_data?.diagnosis?.diagnosed_misconception_id)
+  ).length;
   const reviewedCount = responses.filter(
     (r) => r.teacher_review_status && r.teacher_review_status !== "unreviewed"
   ).length;
@@ -198,6 +209,7 @@ export default function ClassLensApp() {
   const insufficientEvidenceCount = responses.filter(
     (r) =>
       r.reasoning_status === "incomplete" ||
+      r.reasoning_status === "unverifiable" ||
       r.answer_status === "undetermined" ||
       r.upload_status === "unreadable" ||
       r.analysis_data?.diagnosis?.evidence_sufficiency === "insufficient"
@@ -394,47 +406,59 @@ export default function ClassLensApp() {
             {/* 5 Metric Summary Cards */}
             <section aria-label="Assessment Metrics Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               <MetricCard
-                title="Submissions"
+                title="Students Assessed"
                 value={totalSubmissions}
                 subtext={currentAssessmentId === "asm_synthetic_cases" ? "Synthetic Test Cases" : "Curated Cohort"}
                 accent="brand"
                 icon={<Layers className="w-5 h-5" />}
               />
               <MetricCard
-                title="Analyses Completed"
-                value={completedAnalyses}
+                title="Correct Final Answers"
+                value={correctCount}
                 denominator={totalSubmissions}
                 subtext={
                   totalSubmissions > 0
-                    ? `${Math.round((completedAnalyses / totalSubmissions) * 100)}% analyzed`
+                    ? `${Math.round((correctCount / totalSubmissions) * 100)}% of students`
                     : "Pending"
                 }
                 accent="mint"
                 icon={<Check className="w-5 h-5" />}
               />
               <MetricCard
-                title="Awaiting Review"
-                value={needsReviewCount}
+                title="Reasoning Verified"
+                value={reasoningVerifiedCount}
                 denominator={totalSubmissions}
-                subtext={`${reviewedCount} reviewed`}
-                accent="yellow"
-                icon={<ShieldCheck className="w-5 h-5" />}
+                subtext={
+                  totalSubmissions > 0
+                    ? `${Math.round((reasoningVerifiedCount / totalSubmissions) * 100)}% completely sound`
+                    : "Pending"
+                }
+                accent="brand"
+                icon={<CheckCheck className="w-5 h-5" />}
               />
               <MetricCard
-                title="Insufficient Evidence"
-                value={insufficientEvidenceCount}
+                title="Misconceptions Identified"
+                value={misconceptionCount}
                 denominator={totalSubmissions}
-                subtext="Ambiguous / incomplete"
-                accent="yellow"
-                icon={<HelpCircle className="w-5 h-5" />}
-              />
-              <MetricCard
-                title="Supported Errors"
-                value={procedureErrorCount}
-                denominator={totalSubmissions}
-                subtext="Procedural mistakes"
+                subtext={
+                  totalSubmissions > 0
+                    ? `${Math.round((misconceptionCount / totalSubmissions) * 100)}% supported patterns`
+                    : "Pending"
+                }
                 accent="coral"
                 icon={<AlertTriangle className="w-5 h-5" />}
+              />
+              <MetricCard
+                title="Needs Teacher Review"
+                value={needsReviewCount}
+                denominator={totalSubmissions}
+                subtext={
+                  totalSubmissions > 0
+                    ? `${Math.round((needsReviewCount / totalSubmissions) * 100)}% flagged (${reviewedCount} reviewed)`
+                    : "0 flagged"
+                }
+                accent="yellow"
+                icon={<ShieldCheck className="w-5 h-5" />}
               />
             </section>
 

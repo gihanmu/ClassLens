@@ -60,7 +60,8 @@ export function getMisconceptionPlainLanguage(
  * Answer Correctness Status Mapping:
  * - Correct
  * - Incorrect
- * - Cannot determine
+ * - Undetermined
+ * - Not assessed
  */
 export function getAnswerStatusConfig(status?: string | null): StatusConfig {
   const norm = (status || "").toLowerCase().trim();
@@ -83,8 +84,17 @@ export function getAnswerStatusConfig(status?: string | null): StatusConfig {
     };
   }
 
+  if (norm === "not_assessed" || norm === "not assessed") {
+    return {
+      label: "Not assessed",
+      code: "not_assessed",
+      description: "Final answer has not been evaluated",
+      tone: "neutral",
+    };
+  }
+
   return {
-    label: "Cannot determine",
+    label: "Undetermined",
     code: "undetermined",
     description: "Final answer is unwritten, missing, or obscured",
     tone: "neutral",
@@ -93,45 +103,60 @@ export function getAnswerStatusConfig(status?: string | null): StatusConfig {
 
 /**
  * Reasoning Status Mapping:
- * - Correct reasoning
- * - Reasoning error
- * - Incomplete working
- * - Unclear working
+ * - Verified
+ * - Contains verified error
+ * - Partially verified
+ * - Unverifiable
+ * - Not assessed
  */
 export function getReasoningStatusConfig(status?: string | null): StatusConfig {
   const norm = (status || "").toLowerCase().trim();
 
-  if (norm.includes("correct") || norm === "valid") {
+  if (norm === "verified" || norm === "correct" || norm === "sound" || norm === "correct reasoning") {
     return {
-      label: "Correct reasoning",
-      code: "correct",
-      description: "All number-line hops follow valid mathematical rules",
+      label: "Verified",
+      code: "verified",
+      description: "All mathematical reasoning steps mathematically sound and verified",
       tone: "success",
     };
   }
 
-  if (norm.includes("error") || norm.includes("procedure")) {
+  if (
+    norm.includes("verified error") ||
+    norm.includes("contains_error") ||
+    norm.includes("error") ||
+    norm.includes("procedure")
+  ) {
     return {
-      label: "Reasoning error",
-      code: "error",
-      description: "Observed number-line hops contain procedural errors",
+      label: "Contains verified error",
+      code: "contains_verified_error",
+      description: "Mathematical verification confirmed a step calculation or coordinate discrepancy",
       tone: "error",
     };
   }
 
-  if (norm.includes("incomplete")) {
+  if (norm.includes("partial")) {
     return {
-      label: "Incomplete working",
-      code: "incomplete",
-      description: "Only partial working or final answer provided without full hops",
+      label: "Partially verified",
+      code: "partially_verified",
+      description: "Some steps verified, but subsequent steps are missing or unsupported",
       tone: "warning",
     };
   }
 
+  if (norm === "not_assessed" || norm === "not assessed") {
+    return {
+      label: "Not assessed",
+      code: "not_assessed",
+      description: "Reasoning has not yet been evaluated",
+      tone: "neutral",
+    };
+  }
+
   return {
-    label: "Unclear working",
-    code: "unclear",
-    description: "Handwriting or number line steps cannot be conclusively evaluated",
+    label: "Unverifiable",
+    code: "unverifiable",
+    description: "Handwriting or steps cannot be conclusively verified from visible evidence",
     tone: "neutral",
   };
 }

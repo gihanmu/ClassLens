@@ -262,6 +262,12 @@ export function StudentInspectionModal({
                 imageUrl={imageUrl}
                 studentLabel={detail?.pseudonym_label || responseId}
                 hops={hopsData}
+                isUnreadable={
+                  detail?.quality_status === "unreadable" ||
+                  detail?.upload_status === "unreadable" ||
+                  detail?.teacher_review_status === "marked_unreadable"
+                }
+                evidenceSufficiency={detail?.diagnosis?.evidence_sufficiency}
                 className="h-full"
               />
             </div>
