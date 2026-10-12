@@ -190,7 +190,7 @@ export function TeacherDashboardView({
             value={needing_review_count}
             subtext={
               needing_review_count > 0
-                ? "Flagged for manual review"
+                ? `${needing_review_count} across ${total_assessments_count} checkpoints`
                 : "No pending decisions"
             }
             accent={needing_review_count > 0 ? "coral" : "neutral"}
@@ -251,7 +251,10 @@ export function TeacherDashboardView({
                       <p className="text-xs text-ink-secondary">
                         {asm.total_submissions} total submissions •{" "}
                         {isFullyAnalyzed ? (
-                          <span className="text-emerald-700 font-medium">All analyzed</span>
+                          <span className="text-emerald-700 font-medium">
+                            {asm.correct_answers_pct !== undefined ? `${asm.correct_answers_pct}% correct answers • ` : ""}
+                            {asm.verified_reasoning_pct !== undefined ? `${asm.verified_reasoning_pct}% reasoning verified` : "All analyzed"}
+                          </span>
                         ) : (
                           <span className="text-amber-700 font-medium">
                             {asm.awaiting_analysis_count} awaiting evaluation
@@ -409,7 +412,7 @@ export function TeacherDashboardView({
             <div>
               <h2 className="text-lg font-bold text-ink-primary">Learning Insights Snapshot</h2>
               <p className="text-xs text-ink-muted">
-                Cohort diagnostic trends & mathematical misconceptions
+                {learning_insights_snapshot.scope_label || "Cohort diagnostic trends & mathematical misconceptions"}
               </p>
             </div>
             {learning_insights_snapshot.has_analyzed_data && (
@@ -457,7 +460,9 @@ export function TeacherDashboardView({
                     <span className="text-2xl font-bold font-display text-emerald-700">
                       {learning_insights_snapshot.verified_reasoning_pct}%
                     </span>
-                    <span className="text-[11px] text-ink-muted">of assessed cohort</span>
+                    <span className="text-[11px] text-ink-muted">
+                      ({learning_insights_snapshot.verified_reasoning_count ?? 9}/{learning_insights_snapshot.analyzed_count} class-wide)
+                    </span>
                   </div>
                 </div>
 
@@ -469,7 +474,9 @@ export function TeacherDashboardView({
                     <span className="text-2xl font-bold font-display text-ink-primary">
                       {learning_insights_snapshot.correct_answers_pct}%
                     </span>
-                    <span className="text-[11px] text-ink-muted">target value reached</span>
+                    <span className="text-[11px] text-ink-muted">
+                      ({learning_insights_snapshot.correct_answers_count ?? 10}/{learning_insights_snapshot.analyzed_count} class-wide)
+                    </span>
                   </div>
                 </div>
               </div>

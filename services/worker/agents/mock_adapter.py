@@ -441,7 +441,7 @@ class MockAgentAdapter:
             needs_review = True
             review_reasons.append("Unreadable student submission.")
 
-        # Critic confidence: calibrated according to evidence certainty
+        # Critic confidence: heuristic indicator based on evidence sufficiency and review flags
         if needs_review:
             critic_conf = min(visual.confidence, diagnosis.confidence, 0.65)
             audit_verdict: Literal["audit_passed", "review_required", "audit_rejected"] = "review_required"

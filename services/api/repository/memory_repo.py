@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from services.worker.fixtures.problem_1065658_fixtures import MOCK_FIXTURES
+from services.api.repository.local_persistence import LocalStatePersistence
 
 
 def utc_now() -> datetime:
@@ -109,9 +110,70 @@ class MemoryRepository:
         self.audit_events: List[AuditEventDoc] = []
         self.analysis_jobs: Dict[str, AnalysisJobDoc] = {}
         self.idempotency_keys: Dict[str, str] = {}  # idempotency_key -> job_id
+        self.persistence = LocalStatePersistence()
 
         # Preload Demo Teacher & Assessment
         self._seed_default_data()
+
+        # Restore any locally persisted state across backend restarts
+        self._restore_persisted_state("org_cedar_sec")
+
+    def _save_persisted_state(self, org_id: str) -> None:
+        """Saves current state for tenant to disk atomically."""
+        with self._lock:
+            org_asms = [
+                a.model_dump(mode="json")
+                for a in self.assessments.values()
+                if a.organization_id == org_id
+            ]
+            asm_ids = {a.id for a in self.assessments.values() if a.organization_id == org_id}
+            org_resps = [
+                r.model_dump(mode="json")
+                for r in self.responses.values()
+                if r.assessment_id in asm_ids
+            ]
+            org_evts = [
+                e.model_dump(mode="json")
+                for e in self.audit_events
+                if (
+                    e.assessment_id in asm_ids
+                    or (
+                        e.response_id in self.responses
+                        and self.responses[e.response_id].assessment_id in asm_ids
+                    )
+                )
+            ]
+            self.persistence.save_tenant_state(org_id, org_asms, org_resps, org_evts)
+
+    def _restore_persisted_state(self, org_id: str) -> None:
+        """Restores persisted modifications (reviews, overrides, audits) on top of seeded state."""
+        with self._lock:
+            saved = self.persistence.load_tenant_state(org_id)
+            if not saved:
+                return
+
+            for asm_dict in saved.get("assessments", []):
+                try:
+                    asm_doc = AssessmentDoc.model_validate(asm_dict)
+                    self.assessments[asm_doc.id] = asm_doc
+                except Exception:
+                    pass
+
+            for resp_dict in saved.get("responses", []):
+                try:
+                    resp_doc = ResponseDoc.model_validate(resp_dict)
+                    # Persist overrides and teacher state over seeded defaults
+                    self.responses[resp_doc.id] = resp_doc
+                except Exception:
+                    pass
+
+            for evt_dict in saved.get("audit_events", []):
+                try:
+                    evt_doc = AuditEventDoc.model_validate(evt_dict)
+                    if not any(e.id == evt_doc.id for e in self.audit_events):
+                        self.audit_events.append(evt_doc)
+                except Exception:
+                    pass
 
     def _seed_default_data(self):
         sarah = UserDoc(
@@ -333,6 +395,9 @@ class MemoryRepository:
         with self._lock:
             response.updated_at = utc_now()
             self.responses[response.id] = response
+            asm = self.assessments.get(response.assessment_id)
+            org_id = asm.organization_id if asm else "org_cedar_sec"
+            self._save_persisted_state(org_id)
             return response
 
     def create_or_get_analysis_job(
@@ -429,6 +494,7 @@ class MemoryRepository:
 
             # Update assessment reviewed count
             asm = self.assessments.get(assessment_id)
+            org_id = asm.organization_id if asm else "org_cedar_sec"
             if asm:
                 reviewed_count = sum(
                     1 for r in self.responses.values()
@@ -437,6 +503,7 @@ class MemoryRepository:
                 asm.reviewed_responses = reviewed_count
                 asm.updated_at = utc_now()
 
+            self._save_persisted_state(org_id)
             return resp
 
     def get_audit_events_for_response(self, response_id: str) -> List[AuditEventDoc]:
@@ -482,6 +549,15 @@ class MemoryRepository:
                     if a_resps else 0
                 )
 
+                a_verified_count = sum(
+                    1 for r in a_analyzed
+                    if r.reasoning_status in ("verified", "supported_correct", "sound", "valid")
+                )
+                a_correct_count = sum(
+                    1 for r in a_analyzed
+                    if r.answer_status == "correct"
+                )
+
                 status_label = "ready"
                 if any(r.task_status == "RUNNING" for r in a_resps):
                     status_label = "analyzing"
@@ -502,6 +578,10 @@ class MemoryRepository:
                     "analyzed_count": len(a_analyzed),
                     "needs_review_count": len(a_needs_review),
                     "progress_percentage": progress_pct,
+                    "verified_reasoning_count": a_verified_count,
+                    "verified_reasoning_pct": round((a_verified_count / len(a_analyzed)) * 100) if a_analyzed else 0,
+                    "correct_answers_count": a_correct_count,
+                    "correct_answers_pct": round((a_correct_count / len(a_analyzed)) * 100) if a_analyzed else 0,
                     "status": status_label,
                     "created_at": a.created_at.isoformat(),
                     "updated_at": a.updated_at.isoformat(),
@@ -561,7 +641,10 @@ class MemoryRepository:
                 "analyzed_count": len(analyzed),
                 "total_submissions": len(org_responses),
                 "verified_reasoning_pct": 0,
+                "verified_reasoning_count": 0,
                 "correct_answers_pct": 0,
+                "correct_answers_count": 0,
+                "scope_label": f"Class-wide aggregate across {len(org_assessments)} checkpoints ({len(analyzed)} of {len(org_responses)} analyzed)",
                 "top_misconceptions": [],
                 "recommended_reteaching": None,
             }
@@ -574,7 +657,10 @@ class MemoryRepository:
                 correct_count = sum(1 for r in analyzed if r.answer_status == "correct")
 
                 insights_snapshot["verified_reasoning_pct"] = round((verified_count / len(analyzed)) * 100)
+                insights_snapshot["verified_reasoning_count"] = verified_count
                 insights_snapshot["correct_answers_pct"] = round((correct_count / len(analyzed)) * 100)
+                insights_snapshot["correct_answers_count"] = correct_count
+                insights_snapshot["scope_label"] = f"Class-wide aggregate across {len(org_assessments)} checkpoints ({len(analyzed)} analyzed submissions)"
 
                 misc_counts: Dict[str, int] = {}
                 for r in analyzed:

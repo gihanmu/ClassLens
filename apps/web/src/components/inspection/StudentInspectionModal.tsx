@@ -279,7 +279,7 @@ export function StudentInspectionModal({
                 activeMobileTab === "diagnosis" ? "block" : "hidden md:block"
               )}
             >
-              {/* Top Status & Calibrated Confidence Overview */}
+              {/* Top Status & Confidence Overview */}
               <div className="p-3 rounded-xl bg-surface-base border border-border-default space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted">
@@ -294,7 +294,7 @@ export function StudentInspectionModal({
                         ? "bg-amber-50 text-amber-900 border-amber-200"
                         : "bg-red-50 text-red-800 border-red-200"
                     )}
-                    title="Internal model extraction confidence (heuristic score, not a calibrated probability)"
+                    title="Internal model extraction confidence (heuristic score indicator, not a statistically calibrated probability)"
                   >
                     Confidence: {qualitativeConfidence}
                   </span>

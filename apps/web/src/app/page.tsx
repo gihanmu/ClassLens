@@ -115,7 +115,26 @@ export default function ClassLensApp() {
   };
 
   useEffect(() => {
-    loadData(currentAssessmentId);
+    let targetAsm = currentAssessmentId;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const respParam = params.get("response");
+      const tabParam = params.get("tab");
+      const asmParam = params.get("asm");
+      if (asmParam && (asmParam === "asm_1065658" || asmParam === "asm_synthetic_cases")) {
+        targetAsm = asmParam;
+        setCurrentAssessmentId(asmParam);
+      }
+      if (respParam) setSelectedResponseId(respParam);
+      if (
+        tabParam &&
+        ["dashboard", "responses", "insights", "recommendations", "resources", "assessments"].includes(tabParam)
+      ) {
+        setCurrentTab(tabParam as NavItemKey);
+      }
+    }
+
+    loadData(targetAsm);
 
     // Check client-side welcome preference safely
     try {
@@ -126,23 +145,6 @@ export default function ClassLensApp() {
     } catch (e) {
       // Safe fallback if localStorage unavailable
       setShowHeroBanner(false);
-    }
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const respParam = params.get("response");
-      const tabParam = params.get("tab");
-      const asmParam = params.get("asm");
-      if (asmParam && (asmParam === "asm_1065658" || asmParam === "asm_synthetic_cases")) {
-        setCurrentAssessmentId(asmParam);
-      }
-      if (respParam) setSelectedResponseId(respParam);
-      if (
-        tabParam &&
-        ["dashboard", "responses", "insights", "recommendations", "resources", "assessments"].includes(tabParam)
-      ) {
-        setCurrentTab(tabParam as NavItemKey);
-      }
     }
   }, []);
 
@@ -218,7 +220,8 @@ export default function ClassLensApp() {
   const reasoningVerifiedCount = responses.filter(
     (r) =>
       r.task_status === "COMPLETED" &&
-      (r.reasoning_status === "verified" ||
+      (r.reasoning_status === "supported_correct" ||
+        r.reasoning_status === "verified" ||
         r.reasoning_status === "sound" ||
         r.reasoning_status === "valid" ||
         r.reasoning_status === "correct")
@@ -514,7 +517,7 @@ export default function ClassLensApp() {
                 subtext={
                   completedAnalyses === 0
                     ? "Pending batch analysis"
-                    : `${Math.round((correctCount / Math.max(completedAnalyses, 1)) * 100)}% of analyzed`
+                    : `${Math.round((correctCount / Math.max(completedAnalyses, 1)) * 100)}% of this checkpoint`
                 }
                 accent="mint"
                 icon={<Check className="w-5 h-5" />}
@@ -526,7 +529,7 @@ export default function ClassLensApp() {
                 subtext={
                   completedAnalyses === 0
                     ? "Pending verification"
-                    : `${Math.round((reasoningVerifiedCount / Math.max(completedAnalyses, 1)) * 100)}% sound steps`
+                    : `${Math.round((reasoningVerifiedCount / Math.max(completedAnalyses, 1)) * 100)}% sound in this checkpoint`
                 }
                 accent="brand"
                 icon={<CheckCheck className="w-5 h-5" />}
@@ -550,7 +553,7 @@ export default function ClassLensApp() {
                 subtext={
                   completedAnalyses === 0
                     ? "0 flagged prior to analysis"
-                    : `${Math.round((needsReviewCount / Math.max(completedAnalyses, 1)) * 100)}% flagged (${reviewedCount} reviewed)`
+                    : `${needsReviewCount} flagged in this checkpoint (${reviewedCount} reviewed)`
                 }
                 accent="yellow"
                 icon={<ShieldCheck className="w-5 h-5" />}

@@ -208,6 +208,10 @@ export interface AssessmentSummaryItem {
   analyzed_count: number;
   needs_review_count: number;
   progress_percentage: number;
+  verified_reasoning_count?: number;
+  verified_reasoning_pct?: number;
+  correct_answers_count?: number;
+  correct_answers_pct?: number;
   status: "ready" | "analyzed" | "analyzing" | "awaiting_analysis";
   created_at: string;
   updated_at: string;
@@ -232,7 +236,10 @@ export interface LearningInsightsSnapshot {
   analyzed_count: number;
   total_submissions: number;
   verified_reasoning_pct: number;
+  verified_reasoning_count?: number;
   correct_answers_pct: number;
+  correct_answers_count?: number;
+  scope_label?: string;
   top_misconceptions: Array<{
     taxonomy_id: string;
     count: number;
