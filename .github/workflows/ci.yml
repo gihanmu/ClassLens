@@ -82,6 +82,10 @@ jobs:
           uv pip install -r requirements.txt
           uv pip install pytest pytest-asyncio jsonschema pyyaml pydantic httpx
 
+      - name: Setup Mock Environment (.env)
+        run: |
+          cp .env.example .env
+
       - name: Run Backend Unit & Integration Tests (Offline Mock Mode)
         env:
           CLASSLENS_AI_MODE: mock
