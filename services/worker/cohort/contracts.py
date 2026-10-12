@@ -32,4 +32,6 @@ class CohortStatistics(BaseModel):
     unreadable_percentage: float
     compensatory_errors_count: int = 0
     needs_teacher_review_count: int = 0
+    insufficient_evidence_count: int = 0
+    insufficient_evidence_percentage: float = 0.0
     misconception_clusters: List[MisconceptionCluster] = Field(default_factory=list)

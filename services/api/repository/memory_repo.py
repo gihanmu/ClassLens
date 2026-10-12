@@ -134,6 +134,91 @@ class MemoryRepository:
         self.assessments[default_asm.id] = default_asm
         self.import_demo_responses(default_asm.id, default_asm.organization_id)
 
+        # Seed Synthetic Benchmark Checkpoint for Gate 4B Evaluation (Cases 1, 2, and 3)
+        synthetic_asm = AssessmentDoc(
+            id="asm_synthetic_cases",
+            class_id="cls_sec1_math",
+            organization_id="org_cedar_sec",
+            title="Synthetic Feasibility Benchmark: Cases 1–3",
+            status="ready",
+            question=QuestionConfig(
+                problem_reference_id="synthetic_benchmark",
+                question_text="Evaluate -6 + 12 - 4 on the number line (Evaluation Benchmark).",
+                latex_formula="-6 + 12 - 4",
+                expected_answer="2",
+            ),
+        )
+        self.assessments[synthetic_asm.id] = synthetic_asm
+        self.import_synthetic_demo_cases(synthetic_asm.id, synthetic_asm.organization_id)
+
+    def import_synthetic_demo_cases(self, assessment_id: str, org_id: str) -> List[ResponseDoc]:
+        """Imports and deterministically analyzes the 3 authorized synthetic cases."""
+        with self._lock:
+            asm = self.get_assessment(assessment_id, org_id)
+            if not asm:
+                raise ValueError("Assessment not found or access denied")
+
+            from services.worker.agents.pipeline import MultiAgentPipeline
+
+            cases = [
+                (
+                    "case_01_canonical_correct",
+                    "Student-01 (Canonical Correct)",
+                    "case_01_canonical_correct.png",
+                ),
+                (
+                    "case_02_off_by_one_error",
+                    "Student-02 (Off-by-One Error)",
+                    "case_02_off_by_one_error.png",
+                ),
+                (
+                    "case_03_ambiguous_incomplete",
+                    "Student-03 (Ambiguous & Incomplete)",
+                    "case_03_ambiguous_incomplete.png",
+                ),
+            ]
+
+            imported: List[ResponseDoc] = []
+            for cid, label, filename in cases:
+                doc_id = cid if assessment_id == "asm_synthetic_cases" else f"{assessment_id}_{cid}"
+                analysis = MultiAgentPipeline.analyze_response(response_id=cid)
+                doc = ResponseDoc(
+                    id=doc_id,
+                    assessment_id=assessment_id,
+                    pseudonymous_student_id=f"stu_{cid}",
+                    pseudonym_label=label,
+                    source_filename=filename,
+                    image_mime_type="image/png",
+                    sha256_hash=f"hash_{cid}",
+                    upload_status="validated",
+                    task_status="COMPLETED",
+                    answer_status=(
+                        analysis.answer_status.value
+                        if hasattr(analysis.answer_status, "value")
+                        else str(analysis.answer_status)
+                    ),
+                    reasoning_status=(
+                        analysis.reasoning_status.value
+                        if hasattr(analysis.reasoning_status, "value")
+                        else str(analysis.reasoning_status)
+                    ),
+                    teacher_review_status="unreviewed",
+                    is_compensatory_error=analysis.is_compensatory_error,
+                    needs_teacher_review=analysis.needs_teacher_review,
+                    misconception_taxonomy_id=analysis.diagnosis.misconception_taxonomy_id,
+                    analysis_data=analysis.model_dump(),
+                    is_mock=True,
+                    model_version=analysis.model_version,
+                    cost_estimate_usd=analysis.cost_estimate_usd,
+                )
+                self.responses[doc_id] = doc
+                imported.append(doc)
+
+            asm.total_responses = len(imported)
+            asm.status = "ready"
+            asm.updated_at = utc_now()
+            return imported
+
     def get_user(self, user_id: str) -> Optional[UserDoc]:
         with self._lock:
             return self.users.get(user_id)
@@ -212,7 +297,12 @@ class MemoryRepository:
                 if response_id in self.responses and self.responses[response_id].assessment_id == assessment_id:
                     return self.responses[response_id]
                 for r in self.responses.values():
-                    if r.assessment_id == assessment_id and (r.id == response_id or r.id.endswith(f"_{response_id}")):
+                    if r.assessment_id == assessment_id and (
+                        r.id == response_id
+                        or r.id.endswith(f"_{response_id}")
+                        or response_id in r.id
+                        or r.id.replace("resp_", "") == response_id.replace("resp_", "")
+                    ):
                         return r
                 return None
 
@@ -223,8 +313,12 @@ class MemoryRepository:
                     return r
 
             matches = [
-                r for r in self.responses.values()
-                if r.id == response_id or r.id.endswith(f"_{response_id}")
+                r
+                for r in self.responses.values()
+                if r.id == response_id
+                or r.id.endswith(f"_{response_id}")
+                or response_id in r.id
+                or r.id.replace("resp_", "") == response_id.replace("resp_", "")
             ]
             if matches:
                 completed = [m for m in matches if m.task_status == "COMPLETED"]

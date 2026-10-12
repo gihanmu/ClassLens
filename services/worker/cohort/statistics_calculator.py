@@ -13,6 +13,12 @@ TAXONOMY_TITLES: Dict[str, str] = {
     "MISC-DIR-INV": "Directional Vector Inversion",
     "MISC-MAG-COUNT": "Magnitude Miscount on Number Line",
     "MISC-SIGN-CONFUSION": "Signed Arithmetic Sign Confusion",
+    "MISC-LINE-INTERVAL-MISLABEL": "Number-Line Interval Mislabel",
+    "START_POINT_ZERO_MISUNDERSTANDING": "Origin Coordinate Confusion (Did not start at 0)",
+    "INCORRECT_INTERVAL_MAGNITUDE": "Interval Magnitude Counting Slip (+6 instead of +12)",
+    "COMPENSATORY_ARITHMETIC_ERROR": "Compensatory Arithmetic Error (Masked Slip)",
+    "DIRECTION_SIGN_CONFUSION": "Signed Vector Direction Confusion",
+    "REASONING_INCOMPLETE": "Incomplete Reasoning (Answer Only)",
 }
 
 
@@ -39,6 +45,8 @@ class CohortStatisticsCalculator:
                 unreadable_percentage=0.0,
                 compensatory_errors_count=0,
                 needs_teacher_review_count=0,
+                insufficient_evidence_count=0,
+                insufficient_evidence_percentage=0.0,
                 misconception_clusters=[],
             )
 
@@ -48,6 +56,7 @@ class CohortStatisticsCalculator:
         unreadable_count = 0
         compensatory_count = 0
         needs_review_count = 0
+        insufficient_evidence_count = 0
 
         cluster_counts: Counter[str] = Counter()
         cluster_confirmed: Counter[str] = Counter()
@@ -84,6 +93,20 @@ class CohortStatisticsCalculator:
             if needs_review:
                 needs_review_count += 1
 
+            # Extract diagnosis object for evidence sufficiency
+            diag = data.get("diagnosis", {})
+            evidence_sufficiency = diag.get("evidence_sufficiency") if isinstance(diag, dict) else None
+            if not evidence_sufficiency:
+                evidence_sufficiency = data.get("evidence_sufficiency")
+
+            is_insufficient = (
+                evidence_sufficiency == "insufficient"
+                or quality in ("corrupt", "unreadable")
+                or (ans_status == "undetermined" and reasoning_status in ("incomplete", "undetermined"))
+            )
+            if is_insufficient:
+                insufficient_evidence_count += 1
+
             # Categorize mutually exclusive student states
             if quality in ("corrupt", "unreadable") or ans_status == "undetermined":
                 unreadable_count += 1
@@ -101,18 +124,25 @@ class CohortStatisticsCalculator:
                     error_count += 1
 
             # Extract taxonomy ID
-            diag = data.get("diagnosis", {})
             tax_id = diag.get("misconception_taxonomy_id") if isinstance(diag, dict) else None
             if not tax_id:
                 tax_id = data.get("misconception_taxonomy_id")
-            if not tax_id:
-                tax_id = data.get("teacher_override_taxonomy_id")
 
-            if tax_id:
+            # Check teacher override
+            teacher_override_tax = data.get("teacher_override_taxonomy_id")
+            review_status = data.get("teacher_review_status", "unreviewed")
+            if review_status == "overridden" and teacher_override_tax:
+                tax_id = teacher_override_tax
+            elif review_status in ("marked_unreadable", "insufficient_evidence"):
+                tax_id = None
+
+            # Evidence-aware aggregation: only include supported diagnoses or specific taxonomy
+            # in misconception clusters. Ambiguous/incomplete cases without taxonomy (e.g. Case 3)
+            # must NEVER be counted as identified misconceptions.
+            if tax_id and tax_id != "UNVERIFIABLE":
                 cluster_counts[tax_id] += 1
                 cluster_students[tax_id].append(resp_id)
 
-                review_status = data.get("teacher_review_status", "unreviewed")
                 if review_status in ("approved_as_is", "overridden"):
                     cluster_confirmed[tax_id] += 1
                 else:
@@ -147,5 +177,7 @@ class CohortStatisticsCalculator:
             unreadable_percentage=round((unreadable_count / total) * 100.0, 1),
             compensatory_errors_count=compensatory_count,
             needs_teacher_review_count=needs_review_count,
+            insufficient_evidence_count=insufficient_evidence_count,
+            insufficient_evidence_percentage=round((insufficient_evidence_count / total) * 100.0, 1),
             misconception_clusters=clusters,
         )

@@ -88,9 +88,12 @@ async def import_demo_responses(
     user: UserDoc = Depends(get_current_user),
     _csrf: None = Depends(require_csrf),
 ):
-    """Imports the 13 curated DrawEduMath Problem #1065658 student responses."""
+    """Imports student responses for the assessment."""
     try:
-        imported = memory_repo.import_demo_responses(assessment_id, user.organization_id)
+        if assessment_id == "asm_synthetic_cases":
+            imported = memory_repo.import_synthetic_demo_cases(assessment_id, user.organization_id)
+        else:
+            imported = memory_repo.import_demo_responses(assessment_id, user.organization_id)
         return {
             "assessment_id": assessment_id,
             "imported_count": len(imported),

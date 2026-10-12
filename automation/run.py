@@ -5,8 +5,15 @@ import argparse
 import sys
 from pathlib import Path
 
-# Ensure repository root is on sys.path
+import os
+
+# Auto-switch to repository virtualenv if available and not already running in it
 REPO_ROOT = Path(__file__).resolve().parent.parent
+VENV_PYTHON = REPO_ROOT / ".venv" / "bin" / "python"
+if VENV_PYTHON.exists() and Path(sys.executable).resolve() != VENV_PYTHON.resolve():
+    os.execve(str(VENV_PYTHON), [str(VENV_PYTHON)] + sys.argv, os.environ)
+
+# Ensure repository root is on sys.path
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 

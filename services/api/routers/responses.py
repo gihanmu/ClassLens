@@ -95,12 +95,25 @@ async def submit_teacher_review(
     """Submits a teacher review decision, updating review status and logging audit event."""
     resp = _get_verified_response(response_id, user.organization_id)
 
+    # Normalize review decision
+    raw_action = req.decision.strip().lower()
+    if raw_action in ("confirm", "approved_as_is"):
+        norm_action = "approved_as_is"
+    elif raw_action in ("override", "overridden"):
+        norm_action = "overridden"
+    elif raw_action in ("marked_unreadable", "unreadable"):
+        norm_action = "marked_unreadable"
+    elif raw_action in ("insufficient_evidence", "insufficient"):
+        norm_action = "insufficient_evidence"
+    else:
+        norm_action = req.decision
+
     try:
         updated = memory_repo.record_teacher_override(
             assessment_id=resp.assessment_id,
             response_id=response_id,
             teacher_id=user.id,
-            action=req.decision,
+            action=norm_action,
             override_taxonomy=req.override_misconception_id,
             notes=req.notes,
         )
@@ -156,24 +169,36 @@ async def get_response_image(
     """Serves the student response handwritten image file read-only."""
     resp = _get_verified_response(response_id, user.organization_id)
 
+    from services.worker.security.provenance_guard import TRUSTED_SYNTHETIC_DIR
+
     dataset_dir = os.path.join(os.getcwd(), "dataset", "problem_1065658")
     file_path = os.path.join(dataset_dir, resp.source_filename)
 
     if not os.path.isfile(file_path):
-        # Try searching by prefix if source_filename was fallback
-        prefix = response_id.replace("resp_", "")
-        found = False
-        if os.path.isdir(dataset_dir):
-            for f in os.listdir(dataset_dir):
-                if f.startswith(prefix):
-                    file_path = os.path.join(dataset_dir, f)
-                    found = True
-                    break
-        if not found:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Image file for {response_id} not found on disk",
-            )
+        synthetic_path = TRUSTED_SYNTHETIC_DIR / resp.source_filename
+        if synthetic_path.is_file():
+            file_path = str(synthetic_path)
+        else:
+            # Try searching by prefix if source_filename was fallback
+            prefix = response_id.replace("resp_", "")
+            found = False
+            if os.path.isdir(dataset_dir):
+                for f in os.listdir(dataset_dir):
+                    if f.startswith(prefix):
+                        file_path = os.path.join(dataset_dir, f)
+                        found = True
+                        break
+            if not found and TRUSTED_SYNTHETIC_DIR.is_dir():
+                for f in os.listdir(TRUSTED_SYNTHETIC_DIR):
+                    if prefix in f or f.startswith(prefix):
+                        file_path = str(TRUSTED_SYNTHETIC_DIR / f)
+                        found = True
+                        break
+            if not found:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Image file for {response_id} not found on disk",
+                )
 
     return FileResponse(
         path=file_path,

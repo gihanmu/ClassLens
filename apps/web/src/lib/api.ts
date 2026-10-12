@@ -63,6 +63,7 @@ export interface StudentAnalysisDetail {
   response_id: string;
   pseudonym_label?: string;
   quality_status: string;
+  upload_status?: string;
   answer_status: string;
   reasoning_status: string;
   is_compensatory_error: boolean;
@@ -151,6 +152,8 @@ export interface CohortStatistics {
   unreadable_percentage: number;
   compensatory_errors_count: number;
   needs_teacher_review_count: number;
+  insufficient_evidence_count?: number;
+  insufficient_evidence_percentage?: number;
   misconception_clusters: MisconceptionCluster[];
 }
 
@@ -218,6 +221,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ demo_mode: true }),
     });
+    return res.json();
+  },
+
+  async listAssessments(): Promise<Assessment[]> {
+    const res = await fetchWithCsrf(`${API_BASE}/assessments`);
+    if (!res.ok) throw new Error("Failed to load assessments");
     return res.json();
   },
 
