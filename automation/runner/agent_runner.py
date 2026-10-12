@@ -82,8 +82,18 @@ class AgyCliAgentRunner(BaseAgentRunner):
         self.agy_binary = agy_binary
 
     def execute(self, task: TaskSpec, context: Dict[str, Any]) -> AgentExecutionResult:
+        # Agy CLI is an external LLM interface requiring network connectivity and metered quota.
+        # It can NEVER run without explicit approval and external inference authorization.
+        if not task.cost_restrictions.allow_external_inference or not task.cost_restrictions.approval_token:
+            raise SafetyViolationError(
+                f"AgyCliAgentRunner for task '{task.task_id}' requires external network access "
+                f"and metered cloud LLM calls. Operation BLOCKED under mandatory safety policy "
+                f"(DEFAULT_EXTERNAL_SPENDING_LIMIT_USD=$0.00). "
+                f"An unexpired approval token in automation/approvals/ is strictly required."
+            )
+
         # Pre-execution safety gate
-        self.safety.validate_cost_authorization(task.cost_restrictions.__dict__)
+        self.safety.validate_cost_authorization(task.cost_restrictions.__dict__, task_id=task.task_id)
 
         prompt = (
             f"You are executing ClassLens Task {task.task_id}: {task.title}\n\n"
@@ -96,8 +106,13 @@ class AgyCliAgentRunner(BaseAgentRunner):
         return self._run_agy(prompt, task)
 
     def repair(self, task: TaskSpec, failure_context: Dict[str, Any], attempt: int) -> AgentExecutionResult:
+        if not task.cost_restrictions.allow_external_inference or not task.cost_restrictions.approval_token:
+            raise SafetyViolationError(
+                f"AgyCliAgentRunner repair for task '{task.task_id}' is BLOCKED without approval token."
+            )
+
         # Pre-repair safety gate
-        self.safety.validate_cost_authorization(task.cost_restrictions.__dict__)
+        self.safety.validate_cost_authorization(task.cost_restrictions.__dict__, task_id=task.task_id)
 
         failures = failure_context.get("failures", [])
         prompt = (

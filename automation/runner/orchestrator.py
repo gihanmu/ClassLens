@@ -46,7 +46,7 @@ class AutonomousOrchestrator:
 
         # 2. Safety Pre-Flight Check (Cost & Financial Controls)
         try:
-            self.safety.validate_cost_authorization(task.cost_restrictions.__dict__)
+            self.safety.validate_cost_authorization(task.cost_restrictions.__dict__, task_id=task.task_id)
         except SafetyViolationError as e:
             logger.error("Safety violation during pre-flight check: %s", e)
             report = ExecutionReportData(
@@ -80,7 +80,31 @@ class AutonomousOrchestrator:
         # 4. Agent Execution (Implementation Phase)
         context = {"dry_run": self.dry_run, "repo_root": str(REPO_ROOT)}
         initial_files = set(self.git.get_modified_files())
-        agent_res = self.agent.execute(task, context)
+        try:
+            agent_res = self.agent.execute(task, context)
+        except SafetyViolationError as e:
+            logger.warning("Agent execution blocked by safety policy: %s", e)
+            report = ExecutionReportData(
+                task_id=task.task_id,
+                task_title=task.title,
+                status="BLOCKED",
+                branch=target_branch,
+                base_branch=task.git_branch_requirements.base_branch,
+                commit_sha=None,
+                pull_request_url=None,
+                summary_of_changes=f"Agent execution blocked: {e}",
+                files_modified=[],
+                test_results=[],
+                build_results=[],
+                security_findings=[str(e)],
+                external_api_calls_made=0,
+                estimated_external_cost_usd=0.0,
+                repair_attempts_used=0,
+                blockers=[str(e)],
+                next_recommended_task="Real coding-agent requires approval token for external metered usage.",
+            )
+            self.reporter.write_reports(report)
+            return report
 
         # Inspect modified files produced by this task
         current_dirty = self.git.get_modified_files()

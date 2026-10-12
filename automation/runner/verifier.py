@@ -56,9 +56,17 @@ class QualityVerifier:
             env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
             env["VIRTUAL_ENV"] = str(self.repo_root / ".venv")
 
+        # Validate command against prohibited operations before execution
+        self.safety.validate_command(cmd.command)
+
         # Enforce mock mode in verification environment
         env["CLASSLENS_AI_MODE"] = "mock"
         env["CLASSLENS_LIVE_INFERENCE_ENABLED"] = "false"
+
+        # Neutralize cloud credentials in child subprocess
+        env["GOOGLE_APPLICATION_CREDENTIALS"] = "/dev/null"
+        env.pop("CLOUDSDK_AUTH_ACCESS_TOKEN", None)
+        env.pop("GOOGLE_CLOUD_PROJECT", None)
 
         try:
             res = subprocess.run(

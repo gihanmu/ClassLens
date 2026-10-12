@@ -20,25 +20,31 @@ DEFAULT_COMMAND_TIMEOUT_SECONDS: int = 120
 
 # Protected Files and Patterns (The coding agent or runner may NEVER modify these)
 PROTECTED_FILE_PATTERNS = [
-    ".env",
-    ".env.*",
+    ".env*",
     "*.key",
     "*.pem",
     "*credentials*.json",
     "*service-account*.json",
-    "automation/runner/config.py",
-    "automation/runner/safety.py",
+    "automation/runner/*",
+    "automation/approvals/*.json",
+    ".github/workflows/*",
     ".git/*",
 ]
 
-# Prohibited Operations
+# Prohibited Operations (Commands that could mutate infrastructure, deploy, or exfiltrate)
 PROHIBITED_COMMAND_PATTERNS = [
     "gcloud run deploy",
     "gcloud container",
+    "gcloud compute",
+    "gcloud auth",
     "terraform apply",
     "terraform destroy",
     "rm -rf /",
     "git push --force",
     "git push -f",
     "git reset --hard origin/main",
+    "curl .*https?://",
+    "wget .*https?://",
+    "nc -",
+    "CLASSLENS_AI_MODE=live",
 ]

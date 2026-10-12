@@ -28,13 +28,40 @@ class SafetyViolationError(Exception):
     pass
 
 
+import hashlib
+import hmac
+
 class SafetyEnforcer:
     """Independent policy enforcement engine for autonomous tasks."""
 
     def __init__(self, approvals_dir: Path = APPROVALS_DIR) -> None:
         self.approvals_dir = approvals_dir
+        self._consumed_tokens: Dict[str, int] = {}  # Tracks token call counts
 
-    def validate_cost_authorization(self, cost_restrictions: Dict[str, Any]) -> None:
+    @staticmethod
+    def compute_token_signature(data: Dict[str, Any], secret: str) -> str:
+        """Compute HMAC-SHA256 signature for approval token data."""
+        canonical_str = (
+            f"{data.get('token_id', '')}:"
+            f"{data.get('provider', '')}:"
+            f"{data.get('purpose', '')}:"
+            f"{data.get('max_authorized_calls', 0)}:"
+            f"{float(data.get('authorized_cost_usd', 0.0)):.4f}:"
+            f"{data.get('expires_at', '')}:"
+            f"{data.get('scoped_task_id', '*')}"
+        )
+        return hmac.new(secret.encode("utf-8"), canonical_str.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    def validate_command(self, command: str) -> None:
+        """Validate shell command against prohibited patterns."""
+        from automation.runner.config import PROHIBITED_COMMAND_PATTERNS
+        for pattern in PROHIBITED_COMMAND_PATTERNS:
+            if re.search(pattern, command, re.IGNORECASE):
+                raise SafetyViolationError(
+                    f"Command '{command}' matches prohibited pattern '{pattern}'. Operation denied."
+                )
+
+    def validate_cost_authorization(self, cost_restrictions: Dict[str, Any], task_id: Optional[str] = None) -> None:
         """Validate whether the task's cost profile is authorized.
 
         Policy rules:
@@ -67,10 +94,10 @@ class SafetyEnforcer:
                 "Explicit approval file in automation/approvals/ is required."
             )
 
-        self._verify_approval_token(approval_token, max_cost)
+        self._verify_approval_token(approval_token, max_cost, task_id)
 
-    def _verify_approval_token(self, token_id: str, requested_cost: float) -> None:
-        """Verify an approval token on disk."""
+    def _verify_approval_token(self, token_id: str, requested_cost: float, task_id: Optional[str] = None) -> None:
+        """Verify an approval token on disk with HMAC, expiration, scope, and replay checks."""
         token_file = self.approvals_dir / f"{token_id}.json"
         if not token_file.exists():
             raise SafetyViolationError(
@@ -89,7 +116,27 @@ class SafetyEnforcer:
             if field not in data:
                 raise SafetyViolationError(f"Approval token missing required field '{field}'.")
 
-        # Check expiration
+        # 1. Cryptographic HMAC Anti-Forgery Check (if secret is configured or signature is provided)
+        auth_secret = os.environ.get("CLASSLENS_APPROVAL_SECRET")
+        if auth_secret or "hmac_signature" in data:
+            if not auth_secret:
+                raise SafetyViolationError("Approval token has HMAC signature but CLASSLENS_APPROVAL_SECRET is not configured.")
+            expected_sig = self.compute_token_signature(data, auth_secret)
+            if not hmac.compare_digest(data.get("hmac_signature", ""), expected_sig):
+                raise SafetyViolationError(
+                    f"Approval token '{token_id}' failed cryptographic HMAC verification. "
+                    "Self-issued or forged tokens are prohibited."
+                )
+
+        # 2. Task-Scoping Check
+        scoped_task = data.get("scoped_task_id")
+        if scoped_task and scoped_task != "*" and task_id and scoped_task != task_id:
+            raise SafetyViolationError(
+                f"Approval token '{token_id}' is scoped to task '{scoped_task}', "
+                f"cannot be used for task '{task_id}'."
+            )
+
+        # 3. Check expiration
         expires_at_str = data["expires_at"]
         try:
             expires_at = datetime.datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
@@ -101,12 +148,23 @@ class SafetyEnforcer:
         except ValueError as e:
             raise SafetyViolationError(f"Invalid expires_at timestamp in approval token: {e}") from e
 
+        # 4. Check cost cap
         authorized_cost = float(data["authorized_cost_usd"])
         if requested_cost > authorized_cost:
             raise SafetyViolationError(
                 f"Requested cost (${requested_cost:.2f}) exceeds authorized cost (${authorized_cost:.2f}) "
                 f"in token '{token_id}'."
             )
+
+        # 5. Call count and replay prevention
+        max_calls = int(data.get("max_authorized_calls", 1))
+        calls_used = self._consumed_tokens.get(token_id, 0)
+        if calls_used >= max_calls:
+            raise SafetyViolationError(
+                f"Approval token '{token_id}' has exhausted its authorized calls ({calls_used}/{max_calls}). "
+                "Token replay is prohibited."
+            )
+        self._consumed_tokens[token_id] = calls_used + 1
 
     def validate_file_changes(self, modified_files: List[str], allowed_patterns: List[str]) -> None:
         """Ensure modified files strictly adhere to allowed patterns and never touch protected files."""

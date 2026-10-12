@@ -1,0 +1,49 @@
+task_id: "TASK-002-HARMLESS-CODING"
+title: "Harmless Noncritical Code Modification & Test Verification"
+objective: >
+  Demonstrate autonomous runner execution on a real coding task modifying a small
+  noncritical helper file and adding a verification unit test.
+
+scope:
+  included:
+    - "Add sanitize_classroom_label helper function"
+    - "Add unit test verifying string sanitization"
+  excluded:
+    - "Live API calls"
+    - "Database or production modifications"
+    - "Cloud deployments"
+
+acceptance_criteria:
+  - "sanitize_classroom_label trims whitespace and limits string length"
+  - "Unit test test_sanitize_classroom_label passes"
+
+dependencies: []
+
+allowed_file_changes:
+  - "services/common/text_helpers.py"
+  - "tests/unit/test_text_helpers.py"
+
+test_commands:
+  - name: "Run Text Helpers Unit Test"
+    command: "pytest tests/unit/test_text_helpers.py"
+    working_directory: "."
+    timeout_seconds: 30
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns: []
+
+git_branch_requirements:
+  base_branch: "main"
+  target_branch_pattern: "test/auto-harmless-coding-*"
+
+completion_criteria:
+  - "Test passes with exit code 0"
+  - "Report generated in automation/reports/"
