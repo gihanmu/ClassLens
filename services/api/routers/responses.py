@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -82,10 +82,19 @@ async def analyze_single_response(
     response_id: str,
     user: UserDoc = Depends(get_current_user),
     _csrf: None = Depends(require_csrf),
+    x_live_auth: Optional[str] = Header(None, alias="X-ClassLens-Live-Auth"),
 ):
     """Triggers multi-agent evaluation for a single student response."""
+    from services.api.config import settings
     from services.api.dispatch.inline_dispatcher import inline_dispatcher
     import uuid
+
+    # Fail-closed check: if client provides live auth header, validate against owner key
+    if x_live_auth is not None and not settings.is_live_authorized(x_live_auth):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Gate 6 Fail-Closed Safeguard: Invalid or unauthorized owner live token.",
+        )
 
     resp = _get_verified_response(response_id, user.organization_id)
     await inline_dispatcher._process_single_response(

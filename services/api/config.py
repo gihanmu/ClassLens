@@ -95,6 +95,20 @@ class Settings(BaseModel):
         default_factory=lambda: int(os.getenv("CLASSLENS_MAX_LIVE_CALLS", "3"))
     )
 
+    # Fail-closed owner authorization key (Gate 6)
+    live_auth_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("CLASSLENS_LIVE_AUTH_KEY")
+    )
+    gemini_timeout_seconds: float = Field(
+        default_factory=lambda: float(os.getenv("CLASSLENS_GEMINI_TIMEOUT_SECONDS", "30.0"))
+    )
+    max_image_size_bytes: int = Field(
+        default_factory=lambda: int(os.getenv("CLASSLENS_MAX_IMAGE_SIZE_BYTES", str(10 * 1024 * 1024)))
+    )
+    gemini_max_output_tokens: int = Field(
+        default_factory=lambda: int(os.getenv("CLASSLENS_GEMINI_MAX_OUTPUT_TOKENS", "4096"))
+    )
+
     # Legacy compatibility flag
     mock_llm: bool = Field(
         default_factory=lambda: os.getenv("MOCK_LLM", "true").lower() in ("true", "1", "yes")
@@ -111,10 +125,33 @@ class Settings(BaseModel):
             return False
         return (self.ai_mode == "live") and (self.live_inference_enabled is True)
 
-    def validate_live_configuration(self) -> None:
+    def is_live_authorized(self, provided_key: Optional[str] = None) -> bool:
+        """Determines if live Gemini inference is fully authorized by the owner.
+
+        Fail-closed requirements (both must be satisfied):
+        1. is_live_mode() is True (ai_mode == 'live' AND live_inference_enabled == True)
+        2. A non-empty CLASSLENS_LIVE_AUTH_KEY is configured in the environment.
+        3. If provided_key is passed, it must match live_auth_key using constant-time comparison.
+        """
+        import secrets
+
+        if not self.is_live_mode():
+            return False
+        if not self.live_auth_key or not self.live_auth_key.strip():
+            return False
+        if provided_key is not None:
+            return secrets.compare_digest(provided_key.strip(), self.live_auth_key.strip())
+        return True
+
+    def validate_live_configuration(
+        self,
+        provided_key: Optional[str] = None,
+        require_owner_key: bool = False,
+    ) -> None:
         """Validates configuration when live mode is active.
 
-        Raises ConfigurationError if prerequisites are missing.
+        Enforces fail-closed authorization:
+        Raises ConfigurationError if prerequisites, credentials, or owner authorization key are missing.
         """
         if not self.is_live_mode():
             return
@@ -137,6 +174,32 @@ class Settings(BaseModel):
                 f"Configured model '{self.gemini_model}' is not in the verified Vertex AI model catalog. "
                 f"Supported models: {sorted(verified_models)}"
             )
+
+        if require_owner_key or provided_key is not None:
+            self.validate_live_authorization(provided_key=provided_key)
+
+    def validate_live_authorization(self, provided_key: Optional[str] = None) -> None:
+        """Enforces that explicit owner authorization is present before invoking live inference.
+
+        Raises ConfigurationError if live mode is disabled, owner authorization key is missing,
+        or provided key does not match.
+        """
+        import secrets
+
+        if not self.is_live_mode():
+            raise ConfigurationError("Live Gemini mode is not enabled.")
+
+        if not self.live_auth_key or not self.live_auth_key.strip():
+            raise ConfigurationError(
+                "Gate 6 Fail-Closed Safeguard: Live Gemini execution requires explicit owner authorization. "
+                "Set CLASSLENS_LIVE_AUTH_KEY in the environment before enabling live inference."
+            )
+
+        if provided_key is not None:
+            if not secrets.compare_digest(provided_key.strip(), self.live_auth_key.strip()):
+                raise ConfigurationError(
+                    "Gate 6 Fail-Closed Safeguard: Invalid owner authorization key provided."
+                )
 
 
 settings = Settings()

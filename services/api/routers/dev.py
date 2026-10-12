@@ -140,6 +140,7 @@ async def get_dev_status():
     _assert_development_mode()
 
     is_live = settings.is_live_mode()
+    is_live_auth = settings.is_live_authorized()
     calls_used = dev_session_tracker.get_count()
     calls_remaining = max(0, settings.max_live_calls - calls_used)
 
@@ -148,10 +149,14 @@ async def get_dev_status():
         "ai_mode": settings.ai_mode,
         "live_inference_enabled": settings.live_inference_enabled,
         "is_live_mode": is_live,
+        "is_live_authorized": is_live_auth,
+        "owner_auth_configured": bool(settings.live_auth_key and settings.live_auth_key.strip()),
         "model": settings.gemini_model,
         "project": settings.google_cloud_project,
         "location": settings.google_cloud_location,
         "use_vertexai": settings.google_genai_use_vertexai,
+        "timeout_seconds": settings.gemini_timeout_seconds,
+        "max_output_tokens": settings.gemini_max_output_tokens,
         "max_calls": settings.max_live_calls,
         "calls_used": calls_used,
         "calls_remaining": calls_remaining,

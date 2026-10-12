@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import List
 
 from services.api.config import settings
@@ -34,19 +35,40 @@ class InlineDispatcher(BaseDispatcher):
             await asyncio.sleep(0.001)
 
             # Check if this is a known synthetic fixture vs an unseen uploaded worksheet
+            base_id = ("resp_" + resp_id.split("_resp_")[-1]) if "_resp_" in resp_id else resp_id
             is_known_fixture = (
-                resp_id in MOCK_FIXTURES
+                base_id in MOCK_FIXTURES
+                or resp_id in MOCK_FIXTURES
+                or base_id in BENCHMARK_FIXTURES
                 or resp_id in BENCHMARK_FIXTURES
                 or resp_id.startswith("case_")
                 or resp_id.startswith("bench_")
+                or base_id.startswith("case_")
                 or (bool(resp.source_filename) and "fixture" in resp.source_filename.lower())
             )
 
-            is_offline = not settings.is_live_mode()
+            is_live_auth = settings.is_live_authorized()
 
-            if not is_known_fixture and is_offline:
-                # Truthfulness Principle (Gate 5):
-                # Do NOT fabricate an AI diagnosis for an unseen upload in offline mode.
+            # Locate source image if available
+            image_source = None
+            if resp.source_filename:
+                uploads_dir = (Path.cwd() / "local-data" / "uploads").resolve()
+                asm = memory_repo.get_assessment(resp.assessment_id)
+                org_id = asm.organization_id if asm else None
+                candidates = []
+                if org_id:
+                    candidates.append(uploads_dir / org_id / resp.assessment_id / resp.source_filename)
+                    candidates.append(uploads_dir / org_id / resp.source_filename)
+                candidates.append(uploads_dir / resp.assessment_id / resp.source_filename)
+                candidates.append(uploads_dir / resp.source_filename)
+                for cand in candidates:
+                    if cand.is_file():
+                        image_source = cand
+                        break
+
+            if not is_known_fixture and not is_live_auth:
+                # Truthfulness Principle (Gate 5 & 6):
+                # Do NOT fabricate an AI diagnosis for an unseen upload without authorized live inference.
                 existing_quality = (resp.analysis_data or {}).get("intake_quality", {})
                 resp.task_status = "AWAITING_LIVE_ANALYSIS"
                 resp.answer_status = "not_assessed"
@@ -59,7 +81,8 @@ class InlineDispatcher(BaseDispatcher):
                         "evidence_sufficiency": "unassessed",
                         "offline_truthfulness_message": (
                             "Image intake and image quality validation completed successfully. "
-                            "Live multimodal vision model analysis is required to transcribe and assess this new handwritten worksheet."
+                            "Live multimodal vision model analysis is required to transcribe and assess this new handwritten worksheet. "
+                            "Live inference is currently disabled (default USD $0.00 spend)."
                         ),
                         "diagnosed_misconception_id": None,
                         "confidence": 0.0,
@@ -71,14 +94,17 @@ class InlineDispatcher(BaseDispatcher):
                         "final_answer_marked": None,
                         "quality_status": resp.upload_status or "clear",
                         "provenance": "unseen_upload",
-                        "offline_note": "Awaiting live vision model analysis",
+                        "offline_note": "Awaiting authorized live vision model analysis",
                     },
                 }
                 memory_repo.update_response(resp)
                 memory_repo.increment_job_progress(job_id, success=True)
                 return
 
-            analysis = MultiAgentPipeline.analyze_response(response_id=resp_id)
+            analysis = MultiAgentPipeline.analyze_response(
+                response_id=resp_id,
+                image_source=image_source,
+            )
 
             resp.task_status = "COMPLETED"
             resp.answer_status = (
@@ -104,6 +130,13 @@ class InlineDispatcher(BaseDispatcher):
         except Exception as exc:
             logger.exception(f"Error processing response {resp_id}: {exc}")
             resp.task_status = "FAILED"
+            existing_quality = (resp.analysis_data or {}).get("intake_quality", {})
+            resp.analysis_data = {
+                "error": str(exc),
+                "failed_at_step": "VisualEvidenceAgent",
+                "truthfulness_mode": "live_failure",
+                "intake_quality": existing_quality,
+            }
             memory_repo.update_response(resp)
             memory_repo.increment_job_progress(job_id, success=False)
 

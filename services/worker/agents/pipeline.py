@@ -31,6 +31,7 @@ class MultiAgentPipeline:
         target_value: float = 2.0,
         provider: Optional[VisualEvidenceProvider] = None,
         image_source: Optional[Union[str, Path, bytes]] = None,
+        auth_key: Optional[str] = None,
     ) -> StudentResponseAnalysis:
         """Executes the per-response multi-agent sequential pipeline with bounded adversarial audit.
 
@@ -50,6 +51,7 @@ class MultiAgentPipeline:
             target_value: Expected target numerical value.
             provider: Optional injected VisualEvidenceProvider (defaults to configured provider).
             image_source: Optional file path or raw image bytes for visual evidence extraction.
+            auth_key: Optional explicit owner authorization key for live Gemini execution.
 
         Returns:
             Validated StudentResponseAnalysis Pydantic record.
@@ -58,12 +60,13 @@ class MultiAgentPipeline:
         reinterpretation_attempted = False
 
         # Stage 1: VisualEvidenceAgent
-        active_provider = provider or get_visual_evidence_provider()
+        active_provider = provider or get_visual_evidence_provider(auth_key=auth_key)
         visual_evidence = active_provider.extract_evidence(
             response_id=response_id,
             image_source=image_source,
             high_res_mode=high_res_mode,
             confidence_override=confidence_override,
+            auth_key=auth_key,
         )
 
         # Stage 2: MathInterpretationAgent

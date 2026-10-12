@@ -105,6 +105,8 @@ class GeminiVisionAdapter:
         vertexai: bool = True,
         max_calls: int = 3,
         timeout_seconds: float = 30.0,
+        max_output_tokens: int = 4096,
+        max_image_size_bytes: int = 10 * 1024 * 1024,
     ) -> None:
         self.model_id = model_id
         self.location = location
@@ -112,6 +114,8 @@ class GeminiVisionAdapter:
         self.vertexai = vertexai
         self.max_calls = max_calls
         self.timeout_seconds = timeout_seconds
+        self.max_output_tokens = max_output_tokens
+        self.max_image_size_bytes = max_image_size_bytes
 
         # Cached client instance to avoid recreating client on every request
         self._client: Optional[Any] = None
@@ -163,13 +167,20 @@ class GeminiVisionAdapter:
 
         Enforces:
         - Call ceiling circuit breaker.
-        - Single non-retried call to Vertex AI.
+        - Strict image payload size bounds.
+        - Single non-retried call to Vertex AI with bounded timeout.
         - Structured JSON schema enforcement.
         - Usage and cost telemetry capture.
         """
         if self.call_count >= self.max_calls:
             raise RuntimeError(
                 f"Gate 4A Call Budget Exceeded: Reached authorized limit of {self.max_calls} live calls."
+            )
+
+        if len(image_bytes) > self.max_image_size_bytes:
+            raise GeminiVisionError(
+                f"Image size ({len(image_bytes)} bytes) exceeds maximum limit "
+                f"of {self.max_image_size_bytes} bytes."
             )
 
         start_time = time.perf_counter()
@@ -179,11 +190,18 @@ class GeminiVisionAdapter:
 
         image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
 
+        # Enforce explicit request timeout and single attempt (zero retries)
+        http_options = types.HttpOptions(
+            timeout=int(self.timeout_seconds * 1000),
+            retry_options=types.HttpRetryOptions(attempts=1),
+        )
+
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=GeminiVisualEvidenceSchema,
             temperature=0.0,
-            max_output_tokens=4096,
+            max_output_tokens=self.max_output_tokens,
+            http_options=http_options,
         )
 
         user_content = [
@@ -304,16 +322,39 @@ _shared_adapter: Optional[GeminiVisionAdapter] = None
 
 
 def get_shared_gemini_adapter(
-    model_id: str = "gemini-3.8-flash",
-    location: str = "global",
-    project: Optional[str] = "precise-equator-511303-m1",
+    model_id: Optional[str] = None,
+    location: Optional[str] = None,
+    project: Optional[str] = None,
+    timeout_seconds: Optional[float] = None,
+    max_output_tokens: Optional[int] = None,
+    max_calls: Optional[int] = None,
 ) -> GeminiVisionAdapter:
     """Provides a singleton GeminiVisionAdapter across the application."""
     global _shared_adapter
+    from services.api.config import settings
+
+    m_id = model_id or settings.gemini_model
+    loc = location or settings.google_cloud_location
+    proj = project or settings.google_cloud_project
+    tout = timeout_seconds if timeout_seconds is not None else settings.gemini_timeout_seconds
+    tokens = max_output_tokens if max_output_tokens is not None else settings.gemini_max_output_tokens
+    calls = max_calls if max_calls is not None else settings.max_live_calls
+
     if _shared_adapter is None:
         _shared_adapter = GeminiVisionAdapter(
-            model_id=model_id,
-            location=location,
-            project=project,
+            model_id=m_id,
+            location=loc,
+            project=proj,
+            timeout_seconds=tout,
+            max_output_tokens=tokens,
+            max_calls=calls,
+            max_image_size_bytes=settings.max_image_size_bytes,
         )
     return _shared_adapter
+
+
+def reset_shared_gemini_adapter() -> None:
+    """Resets the singleton adapter (primarily for testing and reconfiguration)."""
+    global _shared_adapter
+    _shared_adapter = None
+

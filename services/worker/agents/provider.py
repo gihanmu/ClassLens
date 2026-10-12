@@ -32,6 +32,7 @@ from services.worker.gemini.adapter import GeminiVisionAdapter, get_shared_gemin
 from services.worker.security.provenance_guard import (
     TRUSTED_SYNTHETIC_DIR,
     UntrustedProvenanceError,
+    verify_analysis_image_source,
     verify_synthetic_bytes,
     verify_synthetic_path,
 )
@@ -271,24 +272,29 @@ class GeminiVisualEvidenceProvider:
         high_res_mode: bool = False,
         confidence_override: Optional[float] = None,
         prompt_override: Optional[str] = None,
+        auth_key: Optional[str] = None,
         **kwargs: Any,
     ) -> VisualEvidenceOutput:
-        """Extracts structured visual evidence using live Gemini with provenance verification."""
-        # 1. Enforce synthetic provenance
-        if isinstance(image_source, (str, Path)):
-            trusted_path = verify_synthetic_path(image_source)
-            schema = self.adapter.extract_from_path(
-                image_path=trusted_path,
+        """Extracts structured visual evidence using live Gemini with provenance and authorization verification."""
+        # 1. Enforce image source provenance and authorization (Gate 6)
+        if image_source is not None:
+            verified_target = verify_analysis_image_source(
+                image_source,
                 response_id=response_id,
-                prompt_override=prompt_override,
+                auth_key=auth_key,
             )
-        elif isinstance(image_source, bytes):
-            verify_synthetic_bytes(image_source)
-            schema = self.adapter.extract_from_bytes(
-                image_bytes=image_source,
-                response_id=response_id,
-                prompt_override=prompt_override,
-            )
+            if isinstance(verified_target, Path):
+                schema = self.adapter.extract_from_path(
+                    image_path=verified_target,
+                    response_id=response_id,
+                    prompt_override=prompt_override,
+                )
+            else:
+                schema = self.adapter.extract_from_bytes(
+                    image_bytes=verified_target,
+                    response_id=response_id,
+                    prompt_override=prompt_override,
+                )
         else:
             # Fall back to resolving authorized synthetic fixture by response_id
             fixture_path = self._resolve_synthetic_fixture_for_response(response_id)
@@ -319,15 +325,16 @@ class GeminiVisualEvidenceProvider:
 def get_visual_evidence_provider(
     mode: Optional[str] = None,
     adapter: Optional[GeminiVisionAdapter] = None,
+    auth_key: Optional[str] = None,
 ) -> VisualEvidenceProvider:
     """Factory selecting visual evidence provider based on active settings or explicit mode.
 
-    Defaults to MockVisualEvidenceProvider unless live mode is explicitly configured.
+    Defaults to MockVisualEvidenceProvider unless live mode is explicitly configured AND authorized.
     """
-    selected_mode = mode.lower() if mode else ("live" if settings.is_live_mode() else "mock")
+    selected_mode = mode.lower() if mode else ("live" if settings.is_live_authorized(auth_key) else "mock")
 
     if selected_mode == "live":
-        settings.validate_live_configuration()
+        settings.validate_live_configuration(provided_key=auth_key)
         return GeminiVisualEvidenceProvider(adapter=adapter)
 
     return MockVisualEvidenceProvider()
