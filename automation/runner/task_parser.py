@@ -64,6 +64,7 @@ class TaskSpec:
     security_restrictions: SecurityRestrictions
     git_branch_requirements: GitBranchRequirements
     completion_criteria: List[str]
+    runner: str = "agy"
     raw_data: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -137,6 +138,7 @@ class TaskParser:
             security_restrictions=sec,
             git_branch_requirements=git_req,
             completion_criteria=data["completion_criteria"],
+            runner=data.get("runner", "agy"),
             raw_data=data,
         )
 

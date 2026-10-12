@@ -1,0 +1,79 @@
+task_id: "TASK-GATE-5"
+runner: "agy"
+title: "ClassLens Gate 5: Complete End-to-End Teacher Workflow & Multi-Student Intake"
+objective: >
+  Implement the end-to-end teacher workflow enabling class roster management, multi-page
+  student worksheet intake, asynchronous batch analysis processing, and exportable instructional summaries.
+
+scope:
+  included:
+    - "Multi-student class roster data model and mock repository persistence"
+    - "Batch worksheet upload intake pipeline supporting drag-and-drop file ingestion"
+    - "Asynchronous task worker orchestration for multi-worksheet processing"
+    - "Class-level summary report generation with exportable PDF and CSV formats"
+    - "Teacher instructional action plan generator recommending targeted grouping and intervention"
+    - "Full offline mock workflow enabling complete demonstration without external services"
+  excluded:
+    - "Real Google Cloud Storage or Cloud Run production provisioning"
+    - "Third-party metered document conversion APIs"
+    - "Live external SMS or email notification dispatch"
+
+acceptance_criteria:
+  - "Teacher can view roster of students and filter by class period or submission status"
+  - "Batch intake endpoint accepts multi-file uploads and creates processing jobs"
+  - "Asynchronous worker processes mock batch submissions with progress tracking"
+  - "Instructional grouping recommendations organize students into targeted reteaching cohorts"
+  - "Exportable class summary report generates valid CSV and printable PDF layouts"
+  - "All unit tests for roster, intake, and report generation pass offline"
+  - "Next.js frontend builds cleanly with zero errors"
+
+dependencies:
+  - "TASK-GATE-4C"
+
+allowed_file_changes:
+  - "apps/web/src/app/roster/*"
+  - "apps/web/src/app/upload/*"
+  - "apps/web/src/components/features/roster/*"
+  - "apps/web/src/components/features/upload/*"
+  - "services/api/routers/roster.py"
+  - "services/api/routers/batch_intake.py"
+  - "services/worker/batch_processor.py"
+  - "tests/unit/test_teacher_workflow_gate5.py"
+  - "docs/architecture/gate-5-teacher-workflow-plan.md"
+
+test_commands:
+  - name: "Gate 5 Workflow Unit Tests"
+    command: ".venv/bin/pytest tests/unit/test_teacher_workflow_gate5.py"
+    working_directory: "."
+    timeout_seconds: 90
+  - name: "Full Backend Test Suite"
+    command: ".venv/bin/pytest tests/"
+    working_directory: "."
+    timeout_seconds: 120
+  - name: "Next.js Frontend Production Build"
+    command: "npm run build"
+    working_directory: "apps/web"
+    timeout_seconds: 180
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns:
+    - "api_key"
+    - "service_account"
+
+git_branch_requirements:
+  base_branch: "feature/gate-4c-reliability-evaluation"
+  target_branch_pattern: "feature/gate-5-teacher-workflow"
+
+completion_criteria:
+  - "All specified test commands succeed with exit code 0"
+  - "No unauthorized files modified outside allowed_file_changes"
+  - "Zero external API or cloud calls made"
+  - "Structured implementation report generated in automation/reports/"

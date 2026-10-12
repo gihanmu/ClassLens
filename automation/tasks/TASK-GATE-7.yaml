@@ -1,0 +1,69 @@
+task_id: "TASK-GATE-7"
+runner: "agy"
+title: "ClassLens Gate 7: AI Builder Cup 2026 Interactive Demonstration & Submission Package"
+objective: >
+  Assemble the final competition showcase package, including an interactive guided demonstration
+  mode, curated synthetic student case walkthroughs, live evaluation telemetry, video narrative script,
+  and comprehensive project submission documentation.
+
+scope:
+  included:
+    - "Guided interactive demo mode in Next.js UI with step-by-step feature tours"
+    - "Curated showcase worksheets highlighting subtle mathematical reasoning vs superficial answers"
+    - "Live architectural comparison visualizer (Pure LLM vs Multi-Agent Verifier)"
+    - "Demo walkthrough rehearsal script and screen recording storyboard"
+    - "Final competition documentation, architecture diagram, and submission README"
+    - "Complete end-to-end local demo launch script (scripts/demo-launch.sh)"
+  excluded:
+    - "Live external spending or unapproved cloud deployments"
+    - "Real student personally identifiable information (PII)"
+
+acceptance_criteria:
+  - "Interactive demo mode launches cleanly and guides through 3 core student cases"
+  - "Visualizer displays side-by-side comparison between ungrounded LLM hallucinations and verified ClassLens analysis"
+  - "Demo launch script starts backend, frontend, and opens browser seamlessly"
+  - "Final project submission documentation and video storyboard completed in docs/demo/"
+  - "Full test suite and production build pass with zero failures"
+
+dependencies:
+  - "TASK-GATE-6"
+
+allowed_file_changes:
+  - "apps/web/src/components/demo/*"
+  - "apps/web/src/app/demo/*"
+  - "scripts/demo-launch.sh"
+  - "docs/demo/*"
+  - "README.md"
+
+test_commands:
+  - name: "Full Backend Test Suite"
+    command: ".venv/bin/pytest tests/"
+    working_directory: "."
+    timeout_seconds: 120
+  - name: "Next.js Frontend Production Build"
+    command: "npm run build"
+    working_directory: "apps/web"
+    timeout_seconds: 180
+
+cost_restrictions:
+  max_cost_usd: 0.00
+  allow_external_inference: false
+  requires_cloud_provisioning: false
+
+security_restrictions:
+  allow_real_student_data: false
+  allow_secret_access: false
+  allow_production_mutation: false
+  prohibited_patterns:
+    - "api_key"
+    - "service_account"
+
+git_branch_requirements:
+  base_branch: "feature/gate-6-security-scalability"
+  target_branch_pattern: "feature/gate-7-builder-cup-demo"
+
+completion_criteria:
+  - "Demo launch script executes with exit code 0 in mock mode"
+  - "All unit tests and builds pass"
+  - "Zero external cost incurred"
+  - "Submission package complete"
