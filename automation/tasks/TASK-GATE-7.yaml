@@ -1,4 +1,5 @@
 task_id: "TASK-GATE-7"
+runner: "agy"
 title: "ClassLens Gate 7: AI Builder Cup 2026 Interactive Demonstration & Submission Package"
 objective: >
   Assemble the final competition showcase package, including an interactive guided demonstration

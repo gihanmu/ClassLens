@@ -1,4 +1,5 @@
 task_id: "TASK-GATE-5"
+runner: "agy"
 title: "ClassLens Gate 5: Complete End-to-End Teacher Workflow & Multi-Student Intake"
 objective: >
   Implement the end-to-end teacher workflow enabling class roster management, multi-page

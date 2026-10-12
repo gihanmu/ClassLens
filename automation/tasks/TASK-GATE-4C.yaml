@@ -1,4 +1,5 @@
 task_id: "TASK-GATE-4C"
+runner: "agy"
 title: "ClassLens Gate 4C: Pipeline Reliability, Benchmark Suite & Evaluation Harness"
 objective: >
   Establish a comprehensive automated evaluation harness and regression benchmark suite

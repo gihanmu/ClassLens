@@ -1,4 +1,5 @@
 task_id: "TASK-GATE-4B"
+runner: "agy"
 title: "ClassLens Gate 4B: Teacher Dashboard & AI Analysis Integration"
 objective: >
   Transform the existing ClassLens teacher dashboard into a fully functional,

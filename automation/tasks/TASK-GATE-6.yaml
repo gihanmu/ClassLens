@@ -1,4 +1,5 @@
 task_id: "TASK-GATE-6"
+runner: "agy"
 title: "ClassLens Gate 6: Security Hardening, Scalability & Cloud Deployment Readiness"
 objective: >
   Harden platform security, implement production containerization manifests, configure

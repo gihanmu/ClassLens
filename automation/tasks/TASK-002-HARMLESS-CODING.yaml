@@ -1,4 +1,5 @@
 task_id: "TASK-002-HARMLESS-CODING"
+runner: "agy"
 title: "Harmless Noncritical Code Modification & Test Verification"
 objective: >
   Demonstrate autonomous runner execution on a real coding task modifying a small

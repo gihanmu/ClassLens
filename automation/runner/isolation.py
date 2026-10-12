@@ -83,11 +83,12 @@ class WorkerIsolation:
         workspace_dir: Path,
         allow_network: bool = True,
         protect_orchestrator: bool = True,
+        allow_keychain: bool = False,
     ) -> str:
         """Generate a macOS Seatbelt (sandbox-exec Scheme) profile definition.
 
         Enforces:
-        - Deny read to ~/.ssh, ~/.config/gcloud, ~/.aws, Keychains
+        - Deny read to ~/.ssh, ~/.config/gcloud, ~/.aws, and Keychains (unless allow_keychain=True)
         - Deny write to automation/runner, .github, automation/approvals
         - Deny network outbound if allow_network is False
         - Allow normal execution in repo workspace and standard system paths (/usr, /bin, /Library)
@@ -98,7 +99,10 @@ class WorkerIsolation:
         ]
 
         # 1. Deny reading host secret directories
+        keychain_subpath = str(Path.home() / "Library" / "Keychains")
         for path in self.isolated_paths:
+            if allow_keychain and path == keychain_subpath:
+                continue
             escaped = path.replace('"', '\\"')
             profile_lines.append(f'(deny file-read* (subpath "{escaped}"))')
 
@@ -162,6 +166,7 @@ class WorkerIsolation:
         timeout_seconds: int = 120,
         allow_network: bool = True,
         protect_orchestrator: bool = True,
+        allow_keychain: bool = False,
         extra_env: Optional[Dict[str, str]] = None,
     ) -> Tuple[int, str, str]:
         """Execute a command in an isolated environment with seatbelt and sanitized env.
@@ -178,6 +183,7 @@ class WorkerIsolation:
                 workspace_dir=cwd,
                 allow_network=allow_network,
                 protect_orchestrator=protect_orchestrator,
+                allow_keychain=allow_keychain,
             )
             # Write profile to a temp file
             with tempfile.NamedTemporaryFile("w", suffix=".sb", delete=False) as f:

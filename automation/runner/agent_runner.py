@@ -151,6 +151,7 @@ class AgyCliAgentRunner(BaseAgentRunner):
                 timeout_seconds=600,
                 allow_network=True,
                 protect_orchestrator=True,
+                allow_keychain=True,
             )
             success = returncode == 0
             return AgentExecutionResult(

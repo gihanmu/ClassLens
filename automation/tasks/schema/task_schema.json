@@ -18,6 +18,10 @@
     "completion_criteria"
   ],
   "properties": {
+    "runner": {
+      "type": "string",
+      "enum": ["agy", "deterministic"]
+    },
     "task_id": {
       "type": "string",
       "pattern": "^[A-Z0-9_-]+$"

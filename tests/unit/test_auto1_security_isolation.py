@@ -313,3 +313,38 @@ def test_worker_isolation_timeout_kills_process():
     rc, out, err = iso.run_isolated_command(["sleep", "10"], cwd=REPO_ROOT, timeout_seconds=1)
     assert rc == -1
     assert "timed out after 1s" in err
+
+
+@pytest.mark.skipif(platform.system() != "Darwin", reason="macOS Seatbelt tests require Darwin")
+def test_seatbelt_allows_agy_auth_while_blocking_gcloud_and_ssh():
+    """Verify agy CLI can query models under Seatbelt with allow_keychain=True while gcloud and SSH are blocked."""
+    iso = WorkerIsolation()
+    # 1. Verify gcloud credentials still blocked
+    rc_gc, out_gc, err_gc = iso.run_isolated_command(
+        ["ls", str(Path.home() / ".config" / "gcloud")],
+        cwd=REPO_ROOT,
+        allow_keychain=True,
+    )
+    assert rc_gc != 0, "gcloud credentials must remain blocked even when allow_keychain=True"
+    assert "Operation not permitted" in err_gc
+
+    # 2. Verify SSH private keys still blocked
+    rc_ssh, out_ssh, err_ssh = iso.run_isolated_command(
+        ["ls", str(Path.home() / ".ssh")],
+        cwd=REPO_ROOT,
+        allow_keychain=True,
+    )
+    assert rc_ssh != 0, "SSH keys must remain blocked even when allow_keychain=True"
+    assert "Operation not permitted" in err_ssh
+
+    # 3. Verify agy binary can authenticate and list models
+    agy_path = "/Users/gihanmu/.local/bin/agy"
+    if Path(agy_path).exists():
+        rc_agy, out_agy, err_agy = iso.run_isolated_command(
+            [agy_path, "models"],
+            cwd=REPO_ROOT,
+            allow_keychain=True,
+        )
+        assert rc_agy == 0, f"agy models failed under Seatbelt: {err_agy}"
+        assert "gemini" in out_agy.lower()
+
