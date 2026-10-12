@@ -66,9 +66,14 @@ async def get_response_detail(
     data["response_id"] = base_id
     data["doc_id"] = resp.id
     data["pseudonym_label"] = resp.pseudonym_label
+    data["task_status"] = resp.task_status
+    data["upload_status"] = resp.upload_status
+    data["needs_teacher_review"] = resp.needs_teacher_review
     data["teacher_review_status"] = resp.teacher_review_status
     data["teacher_override_taxonomy_id"] = resp.teacher_override_taxonomy_id
     data["teacher_notes"] = resp.teacher_notes
+    if "intake_quality" in resp.analysis_data:
+        data["intake_quality"] = resp.analysis_data["intake_quality"]
     return data
 
 

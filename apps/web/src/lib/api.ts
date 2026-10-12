@@ -84,6 +84,12 @@ export interface StudentAnalysisDetail {
   teacher_review_status?: string;
   teacher_override_taxonomy_id?: string;
   teacher_notes?: string;
+  task_status?: string;
+  intake_quality?: {
+    sharpness?: number;
+    contrast?: number;
+    resolution?: [number, number];
+  };
   visual_evidence: {
     confidence: number;
     has_number_line: boolean;
@@ -122,7 +128,9 @@ export interface StudentAnalysisDetail {
     taxonomy_title?: string;
     is_compensatory_error: boolean;
     confidence: number;
-    evidence_sufficiency?: "sufficient" | "partial" | "insufficient";
+    evidence_sufficiency?: "sufficient" | "partial" | "insufficient" | "unassessed";
+    truthfulness_mode?: string;
+    offline_truthfulness_message?: string;
     diagnostic_explanation?: string;
     verified_steps: Array<VerifiedStep>;
     first_supported_error?: FirstSupportedError;

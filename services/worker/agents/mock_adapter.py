@@ -112,6 +112,18 @@ class MockAgentAdapter:
                     "requires_teacher_review": True,
                     "teacher_review_reason": "Visual ambiguities and incomplete student work require teacher review.",
                 }
+            elif response_id.startswith("upl_"):
+                fixture = {
+                    "quality_status": "clear",
+                    "confidence": 0.0,
+                    "has_number_line": False,
+                    "final_answer_marked": None,
+                    "observations": [],
+                    "ambiguities": ["Unseen uploaded worksheet requires live visual analysis."],
+                    "requires_teacher_review": True,
+                    "teacher_review_reason": "Live visual analysis required for unseen uploaded worksheet.",
+                    "provenance": "unseen_upload",
+                }
             else:
                 # Fallback for arbitrary response IDs: clean hop fixture
                 fixture = MOCK_FIXTURES["resp_04255753"]
@@ -130,7 +142,7 @@ class MockAgentAdapter:
             has_number_line=bool(fixture.get("has_number_line", True)),
             final_answer_marked=fixture.get("final_answer_marked"),
             confidence=conf,
-            provenance="synthetic_mock_fixture",
+            provenance=fixture.get("provenance", "synthetic_mock_fixture"),
             resolution_mode="high_res_evaluation" if high_res_mode else "standard_768px",
             ambiguities=fixture.get("ambiguities", []),
             requires_teacher_review=bool(fixture.get("requires_teacher_review", False)),

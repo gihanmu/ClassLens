@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   HelpCircle,
   FileCheck2,
+  ShieldCheck,
+  Info,
 } from "lucide-react";
 import { api, StudentAnalysisDetail, StudentResponse } from "@/lib/api";
 import { StudentWorkViewer, HopOverlayData } from "@/components/features/students/StudentWorkViewer";
@@ -305,6 +307,43 @@ export function StudentInspectionModal({
                   <ReasoningStatusBadge status={detail?.reasoning_status || "undetermined"} />
                 </div>
               </div>
+
+              {/* Truthful Offline Mode Callout for Unseen Worksheets */}
+              {(detail?.task_status === "AWAITING_LIVE_ANALYSIS" ||
+                detail?.diagnosis?.truthfulness_mode === "offline_unseen_requires_live") && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-900">
+                    <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span>Worksheet Intake Complete • Offline Truthful Mode</span>
+                  </div>
+                  <p className="text-[11px] text-amber-950 leading-relaxed">
+                    This student worksheet was uploaded successfully with EXIF privacy stripping and fine-detail preservation.
+                    In offline mode ($0.00 external spend), ClassLens <strong>does not hallucinate AI vision results</strong> or pretend to visually transcribe unseen student handwriting.
+                  </p>
+                  <p className="text-[11px] text-amber-900 font-medium">
+                    Live visual analysis requires authorized live multimodal model execution. You can inspect the high-resolution image on the left and enter your manual assessment below.
+                  </p>
+                  {detail?.intake_quality && (
+                    <div className="pt-1.5 flex flex-wrap gap-2 text-[10px]">
+                      {detail.intake_quality.sharpness !== undefined && (
+                        <span className="px-2 py-0.5 rounded bg-surface-base border border-amber-300/60 text-ink-primary font-mono">
+                          Sharpness: {Math.round(detail.intake_quality.sharpness)}
+                        </span>
+                      )}
+                      {detail.intake_quality.contrast !== undefined && (
+                        <span className="px-2 py-0.5 rounded bg-surface-base border border-amber-300/60 text-ink-primary font-mono">
+                          Contrast: {Math.round(detail.intake_quality.contrast)}
+                        </span>
+                      )}
+                      {detail.intake_quality.resolution && (
+                        <span className="px-2 py-0.5 rounded bg-surface-base border border-amber-300/60 text-ink-primary font-mono">
+                          Resolution: {detail.intake_quality.resolution[0]}×{detail.intake_quality.resolution[1]}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* THREE-WAY SEPARATION OF CONCERNS */}
 

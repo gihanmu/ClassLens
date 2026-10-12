@@ -6,9 +6,12 @@ import asyncio
 import logging
 from typing import List
 
+from services.api.config import settings
 from services.api.dispatch.dispatcher import BaseDispatcher
 from services.api.repository.memory_repo import memory_repo
+from services.worker.agents.mock_adapter import BENCHMARK_FIXTURES
 from services.worker.agents.pipeline import MultiAgentPipeline
+from services.worker.fixtures.problem_1065658_fixtures import MOCK_FIXTURES
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,51 @@ class InlineDispatcher(BaseDispatcher):
         try:
             # Yield control to event loop
             await asyncio.sleep(0.001)
+
+            # Check if this is a known synthetic fixture vs an unseen uploaded worksheet
+            is_known_fixture = (
+                resp_id in MOCK_FIXTURES
+                or resp_id in BENCHMARK_FIXTURES
+                or resp_id.startswith("case_")
+                or resp_id.startswith("bench_")
+                or (bool(resp.source_filename) and "fixture" in resp.source_filename.lower())
+            )
+
+            is_offline = not settings.is_live_mode()
+
+            if not is_known_fixture and is_offline:
+                # Truthfulness Principle (Gate 5):
+                # Do NOT fabricate an AI diagnosis for an unseen upload in offline mode.
+                existing_quality = (resp.analysis_data or {}).get("intake_quality", {})
+                resp.task_status = "AWAITING_LIVE_ANALYSIS"
+                resp.answer_status = "not_assessed"
+                resp.reasoning_status = "not_assessed"
+                resp.is_mock = True
+                resp.model_version = "offline-intake-verified"
+                resp.analysis_data = {
+                    "diagnosis": {
+                        "truthfulness_mode": "offline_unseen_requires_live",
+                        "evidence_sufficiency": "unassessed",
+                        "offline_truthfulness_message": (
+                            "Image intake and image quality validation completed successfully. "
+                            "Live multimodal vision model analysis is required to transcribe and assess this new handwritten worksheet."
+                        ),
+                        "diagnosed_misconception_id": None,
+                        "confidence": 0.0,
+                    },
+                    "intake_quality": existing_quality,
+                    "visual_evidence": {
+                        "observations": [],
+                        "has_number_line": None,
+                        "final_answer_marked": None,
+                        "quality_status": resp.upload_status or "clear",
+                        "provenance": "unseen_upload",
+                        "offline_note": "Awaiting live vision model analysis",
+                    },
+                }
+                memory_repo.update_response(resp)
+                memory_repo.increment_job_progress(job_id, success=True)
+                return
 
             analysis = MultiAgentPipeline.analyze_response(response_id=resp_id)
 

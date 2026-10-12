@@ -42,6 +42,9 @@ export function StudentResponseCard({
       if (response.task_status === "FAILED") {
         return "Analysis failed • Click to retry";
       }
+      if (response.task_status === "AWAITING_LIVE_ANALYSIS") {
+        return "Worksheet uploaded • Live visual analysis required in live mode";
+      }
       return "Awaiting analysis • Click 'Run Analysis' to evaluate";
     }
 
