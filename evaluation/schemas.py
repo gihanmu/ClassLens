@@ -157,3 +157,8 @@ class BenchmarkReport(BaseModel):
     metrics: EvaluationMetricsSummary
     category_breakdown: List[CategoryBreakdownItem]
     case_results: List[CaseEvaluationResult]
+    evaluation_mode: str = "offline_regression"
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+    live_authorized: bool = False
+

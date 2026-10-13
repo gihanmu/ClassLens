@@ -16,7 +16,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -283,38 +283,102 @@ async def analyze_synthetic_fixture(req: SyntheticAnalysisRequest):
 # ==============================================================================
 # Gate 4C: AI Reliability & Benchmark Evaluation Endpoints
 # ==============================================================================
+# Gate 4C & Gate 6: AI Reliability & Benchmark Evaluation Endpoints
+# ==============================================================================
 
 @router.get("/evaluation/latest")
-async def get_latest_evaluation_report() -> Dict[str, Any]:
-    """Returns the latest serialized Gate 4C reliability benchmark evaluation report."""
+async def get_latest_evaluation_report(mode: str = "offline") -> Dict[str, Any]:
+    """Returns the latest serialized evaluation report (offline benchmark by default, or live)."""
     _assert_development_mode()
 
+    live_report_path = Path("evaluation/reports/latest_live_evaluation_report.json")
+    has_live_report = live_report_path.is_file()
+    live_report_data = None
+    if has_live_report:
+        try:
+            with open(live_report_path, "r", encoding="utf-8") as f:
+                live_report_data = json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load live evaluation report: {e}")
+
+    live_status = "completed" if live_report_data else "not_performed"
+
+    if mode == "live":
+        if not live_report_data:
+            return {
+                "status": "not_performed",
+                "message": (
+                    "Live handwriting evaluation: Not yet performed. "
+                    "Live inference requires explicit owner authorization and budget allocation."
+                ),
+                "dataset_version": "1.0.0",
+                "cases_available": 20,
+            }
+        return live_report_data
+
+    # Default: offline regression benchmark report
     report_path = Path("evaluation/reports/latest_benchmark_report.json")
     if not report_path.is_file():
-        # Generate report on demand if not present
         from evaluation.runner import run_benchmark
-        report = run_benchmark()
-        return report.model_dump()
+        report = run_benchmark(mode="offline_regression")
+        data = report.model_dump()
+    else:
+        try:
+            with open(report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as exc:
+            logger.exception(f"Failed to read latest benchmark report: {exc}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to load latest benchmark report: {exc}",
+            )
+
+    # Attach live evaluation status metadata to report response
+    data["live_evaluation_status"] = live_status
+    data["live_report"] = live_report_data
+    return data
+
+
+@router.get("/evaluation/live-latest")
+async def get_latest_live_evaluation_report() -> Dict[str, Any]:
+    """Returns the latest authorized live evaluation report, or status 'not_performed'."""
+    _assert_development_mode()
+
+    live_report_path = Path("evaluation/reports/latest_live_evaluation_report.json")
+    if not live_report_path.is_file():
+        return {
+            "status": "not_performed",
+            "message": (
+                "Live handwriting evaluation: Not yet performed. "
+                "Live inference requires explicit owner authorization and budget allocation."
+            ),
+            "dataset_version": "1.0.0",
+            "cases_available": 20,
+            "report": None,
+        }
 
     try:
-        with open(report_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(live_report_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"status": "completed", "report": data}
     except Exception as exc:
-        logger.exception(f"Failed to read latest benchmark report: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load latest benchmark report: {exc}",
+            detail=f"Failed to read live evaluation report: {exc}",
         )
 
 
 @router.post("/evaluation/run")
 async def trigger_evaluation_run() -> Dict[str, Any]:
-    """Triggers an offline benchmark evaluation run against the versioned dataset."""
+    """Triggers an offline benchmark evaluation run against the versioned dataset ($0.00 spend)."""
     _assert_development_mode()
 
     try:
         from evaluation.runner import run_benchmark
-        report = run_benchmark(dataset_path="evaluation/datasets/benchmark_v1.json")
+        report = run_benchmark(
+            dataset_path="evaluation/datasets/benchmark_v1.json",
+            mode="offline_regression",
+        )
         return report.model_dump()
     except Exception as exc:
         logger.exception(f"Failed to execute benchmark evaluation: {exc}")
@@ -324,15 +388,62 @@ async def trigger_evaluation_run() -> Dict[str, Any]:
         )
 
 
-@router.get("/evaluation/markdown")
-async def get_latest_evaluation_markdown() -> Dict[str, str]:
-    """Returns the rendered markdown text of the latest benchmark report."""
+@router.post("/evaluation/run-live")
+async def trigger_live_evaluation_run(
+    x_classlens_live_auth: Optional[str] = Header(None, alias="X-ClassLens-Live-Auth"),
+) -> Dict[str, Any]:
+    """Triggers an authorized live evaluation run against handwriting_eval_v1.json.
+    
+    Strictly fails closed if live inference is not enabled or authorization key is invalid.
+    """
     _assert_development_mode()
 
-    md_path = Path("evaluation/reports/latest_benchmark_report.md")
-    if not md_path.is_file():
+    if not settings.is_live_authorized(provided_key=x_classlens_live_auth):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Live handwriting evaluation requires CLASSLENS_LIVE_INFERENCE_ENABLED=true "
+                "and valid owner authorization key via X-ClassLens-Live-Auth. "
+                "Live inference is strictly disabled to prevent unauthorized charges ($0.00 spend guarantee)."
+            ),
+        )
+
+    try:
         from evaluation.runner import run_benchmark
-        run_benchmark()
+        report = run_benchmark(
+            dataset_path="evaluation/datasets/handwriting_eval_v1.json",
+            mode="authorized_live",
+            auth_key=x_classlens_live_auth,
+        )
+        return report.model_dump()
+    except Exception as exc:
+        logger.exception(f"Failed to execute live benchmark evaluation: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Live benchmark evaluation execution failed: {exc}",
+        )
+
+
+@router.get("/evaluation/markdown")
+async def get_latest_evaluation_markdown(mode: str = "offline") -> Dict[str, str]:
+    """Returns the rendered markdown text of the latest benchmark or live evaluation report."""
+    _assert_development_mode()
+
+    if mode == "live":
+        md_path = Path("evaluation/reports/latest_live_evaluation_report.md")
+        if not md_path.is_file():
+            return {
+                "markdown": (
+                    "# ClassLens Real Gemini Handwriting Evaluation Report\n\n"
+                    "> **Status:** Not yet performed.\n"
+                    "> Live inference requires explicit owner authorization and budget allocation."
+                )
+            }
+    else:
+        md_path = Path("evaluation/reports/latest_benchmark_report.md")
+        if not md_path.is_file():
+            from evaluation.runner import run_benchmark
+            run_benchmark(mode="offline_regression")
 
     try:
         content = md_path.read_text(encoding="utf-8")
@@ -342,4 +453,5 @@ async def get_latest_evaluation_markdown() -> Dict[str, str]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to read markdown report: {exc}",
         )
+
 

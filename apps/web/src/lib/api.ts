@@ -507,10 +507,24 @@ export const api = {
     return res.json();
   },
 
-  async getLatestEvaluationReport(): Promise<BenchmarkReport> {
-    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/latest`);
+  async getLatestEvaluationReport(mode: "offline" | "live" = "offline"): Promise<BenchmarkReport> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/latest?mode=${mode}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch evaluation report: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async getLatestLiveEvaluation(): Promise<{
+    status: "not_performed" | "completed";
+    message?: string;
+    dataset_version?: string;
+    cases_available?: number;
+    report?: BenchmarkReport | null;
+  }> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/live-latest`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch live evaluation: ${res.status}`);
     }
     return res.json();
   },
@@ -525,8 +539,24 @@ export const api = {
     return res.json();
   },
 
-  async getEvaluationMarkdown(): Promise<string> {
-    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/markdown`);
+  async runLiveEvaluation(authKey?: string): Promise<BenchmarkReport> {
+    const headers: Record<string, string> = {};
+    if (authKey) {
+      headers["X-ClassLens-Live-Auth"] = authKey;
+    }
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/run-live`, {
+      method: "POST",
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Live evaluation failed with status ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async getEvaluationMarkdown(mode: "offline" | "live" = "offline"): Promise<string> {
+    const res = await fetchWithCsrf(`${API_BASE}/dev/evaluation/markdown?mode=${mode}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch evaluation markdown: ${res.status}`);
     }
@@ -649,5 +679,12 @@ export interface BenchmarkReport {
   metrics: EvaluationMetricsSummary;
   category_breakdown: CategoryBreakdownItem[];
   case_results: CaseEvaluationResult[];
+  live_evaluation_status?: "not_performed" | "completed";
+  live_report?: BenchmarkReport | null;
+  evaluation_mode?: "offline_regression" | "authorized_live";
+  total_tokens?: number;
+  estimated_cost_usd?: number;
+  live_authorized?: boolean;
 }
+
 

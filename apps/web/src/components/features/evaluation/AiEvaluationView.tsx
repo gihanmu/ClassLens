@@ -22,6 +22,10 @@ import {
   Clock,
   ExternalLink,
   Code2,
+  Lock,
+  Sparkles,
+  Key,
+  Info,
 } from "lucide-react";
 import {
   api,
@@ -39,6 +43,13 @@ import { cn } from "@/lib/utils";
 
 export function AiEvaluationView() {
   const [report, setReport] = useState<BenchmarkReport | null>(null);
+  const [liveReport, setLiveReport] = useState<BenchmarkReport | null>(null);
+  const [liveStatus, setLiveStatus] = useState<"not_performed" | "completed">("not_performed");
+  const [activeTab, setActiveTab] = useState<"offline" | "live">("offline");
+  const [liveAuthKey, setLiveAuthKey] = useState<string>("");
+  const [runningLive, setRunningLive] = useState<boolean>(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [running, setRunning] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +64,14 @@ export function AiEvaluationView() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getLatestEvaluationReport();
+      const data = await api.getLatestEvaluationReport("offline");
       setReport(data);
+      if (data.live_report) {
+        setLiveReport(data.live_report);
+        setLiveStatus("completed");
+      } else if (data.live_evaluation_status) {
+        setLiveStatus(data.live_evaluation_status);
+      }
     } catch (err: any) {
       console.error("Failed to load evaluation report:", err);
       setError(err.message || "Failed to load benchmark evaluation report.");
@@ -77,11 +94,26 @@ export function AiEvaluationView() {
     }
   };
 
+  const handleRunLive = async () => {
+    try {
+      setRunningLive(true);
+      setLiveError(null);
+      const res = await api.runLiveEvaluation(liveAuthKey.trim() || undefined);
+      setLiveReport(res);
+      setLiveStatus("completed");
+    } catch (err: any) {
+      console.error("Live evaluation failed:", err);
+      setLiveError(err.message || "Failed to execute live evaluation.");
+    } finally {
+      setRunningLive(false);
+    }
+  };
+
   const handleOpenMarkdown = async () => {
     try {
       setLoadingMarkdown(true);
       setShowMarkdownModal(true);
-      const md = await api.getEvaluationMarkdown();
+      const md = await api.getEvaluationMarkdown(activeTab === "live" ? "live" : "offline");
       setMarkdownText(md);
     } catch (err: any) {
       setMarkdownText("Failed to load markdown report.");
@@ -98,12 +130,13 @@ export function AiEvaluationView() {
     return (
       <div className="flex flex-col items-center justify-center p-16 space-y-4">
         <Spinner size="lg" />
-        <p className="text-sm text-ink-muted font-medium">Loading AI reliability benchmark report...</p>
+        <p className="text-sm text-ink-muted font-medium">Loading AI reliability evaluation suite...</p>
       </div>
     );
   }
 
-  const cases = report?.case_results || [];
+  const currentDisplayReport = activeTab === "live" ? liveReport : report;
+  const cases = currentDisplayReport?.case_results || [];
   const filteredCases = cases.filter((c) => {
     const matchesCat = selectedCategory === "all" || c.category === selectedCategory;
     const matchesSearch =
@@ -114,7 +147,7 @@ export function AiEvaluationView() {
     return matchesCat && matchesSearch;
   });
 
-  const m = report?.metrics;
+  const m = currentDisplayReport?.metrics;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
@@ -130,7 +163,7 @@ export function AiEvaluationView() {
                 AI Reliability, Benchmarking & Evaluation
               </h1>
               <p className="text-xs text-ink-muted">
-                Gate 4C: Evidence-grounded multi-agent verification audit across 18 benchmark cases
+                Gate 4C & Gate 6: Evidence-grounded verification and multimodal Gemini validation
               </p>
             </div>
           </div>
@@ -151,33 +184,76 @@ export function AiEvaluationView() {
             variant="outline"
             size="sm"
             onClick={fetchReport}
-            disabled={running}
+            disabled={running || runningLive}
             className="flex items-center gap-1.5"
           >
-            <RefreshCw className={cn("w-4 h-4 text-ink-muted", running && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4 text-ink-muted", (running || runningLive) && "animate-spin")} />
             <span>Refresh</span>
           </Button>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleRunBenchmark}
-            disabled={running}
-            className="flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xs"
-          >
-            {running ? (
-              <>
-                <Spinner size="sm" />
-                <span>Running Suite...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-current" />
-                <span>Run Benchmark</span>
-              </>
-            )}
-          </Button>
+          {activeTab === "offline" && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleRunBenchmark}
+              disabled={running}
+              className="flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xs"
+            >
+              {running ? (
+                <>
+                  <Spinner size="sm" />
+                  <span>Running Suite...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Run Offline Benchmark</span>
+                </>
+              )}
+            </Button>
+          )}
         </div>
+      </div>
+
+      {/* Mode Navigation Tabs */}
+      <div className="flex border-b border-border-default space-x-8">
+        <button
+          onClick={() => setActiveTab("offline")}
+          className={cn(
+            "pb-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors",
+            activeTab === "offline"
+              ? "border-brand-primary text-brand-primary"
+              : "border-transparent text-ink-muted hover:text-ink-primary"
+          )}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Offline Regression Suite</span>
+          <Badge variant="outline" className="text-[10px] bg-surface-subtle font-mono">
+            Synthetic Mock (18 cases)
+          </Badge>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("live")}
+          className={cn(
+            "pb-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors",
+            activeTab === "live"
+              ? "border-brand-primary text-brand-primary"
+              : "border-transparent text-ink-muted hover:text-ink-primary"
+          )}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Authorized Live Handwriting Evaluation</span>
+          {liveStatus === "completed" ? (
+            <Badge variant="outline" className="text-[10px] bg-semantic-success-bg text-semantic-success-text border-semantic-success-border font-mono">
+              Live Verified (20 cases)
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 font-mono">
+              Not Yet Performed
+            </Badge>
+          )}
+        </button>
       </div>
 
       {error && (
@@ -190,8 +266,116 @@ export function AiEvaluationView() {
         </div>
       )}
 
-      {/* Overview Metadata Card */}
-      {report && (
+      {/* Tab 1: Offline Mode Educational Banner */}
+      {activeTab === "offline" && (
+        <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-950 flex items-start gap-3 shadow-xs">
+          <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <p className="font-semibold text-blue-900">
+              Deterministic Offline Regression Suite (Synthetic Mock)
+            </p>
+            <p className="text-blue-800 leading-relaxed">
+              Evaluates multi-agent verification, SymPy mathematical consistency, procedural error localization, and Independent Critic challenge rules on deterministic mock fixtures with guaranteed <strong>$0.00 external spend</strong>.
+              <span className="block mt-1 font-medium text-blue-900">
+                Notice: Synthetic mock benchmark pass rates measure reasoning pipeline logic, not real handwriting OCR recognition accuracy.
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Live Mode Default State (Not Yet Performed) */}
+      {activeTab === "live" && !liveReport && (
+        <div className="space-y-6">
+          <Card className="border-border-default shadow-xs overflow-hidden">
+            <div className="p-8 text-center max-w-2xl mx-auto space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+                <Lock className="w-7 h-7" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-ink-primary">
+                  Live handwriting evaluation: Not yet performed.
+                </h2>
+                <p className="text-sm text-ink-muted leading-relaxed">
+                  Live inference requires explicit owner authorization and budget allocation.
+                  In accordance with ClassLens cost safety constraints, live Gemini API inference is strictly gated behind fail-closed authorization controls.
+                </p>
+              </div>
+
+              <div className="p-4 bg-surface-subtle border border-border-default rounded-xl text-left space-y-2.5 text-xs text-ink-secondary">
+                <div className="font-semibold text-ink-primary flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-brand-primary" />
+                  <span>Evaluation Dataset & Execution Specifications:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 pl-1">
+                  <li><strong>Ground-Truth Dataset:</strong> <code>evaluation/datasets/handwriting_eval_v1.json</code> (20 independently annotated cases across 10 error and ambiguity categories).</li>
+                  <li><strong>Single Multimodal Agent Architecture:</strong> Multimodal Gemini (<code>gemini-2.5-flash</code>) extracts physical ink strokes only; downstream mathematical verification remains 100% deterministic (SymPy & rule engine).</li>
+                  <li><strong>Strict $0.00 Default Guard:</strong> Calls are blocked unless authorized with valid owner key (<code>X-ClassLens-Live-Auth</code>).</li>
+                  <li><strong>Architectural Honesty:</strong> Synthetic mock benchmark pass rates are never conflated with real handwriting recognition accuracy.</li>
+                </ul>
+              </div>
+
+              {liveError && (
+                <div className="p-3.5 rounded-xl bg-semantic-error-bg text-semantic-error-text border border-semantic-error-border text-xs text-left flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Authorization / Execution Notice: </span>
+                    {liveError}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <input
+                  type="password"
+                  placeholder="Owner Authorization Key (Optional if pre-configured)"
+                  value={liveAuthKey}
+                  onChange={(e) => setLiveAuthKey(e.target.value)}
+                  className="text-xs px-3 py-2 rounded-lg border border-border-default bg-surface-base w-full sm:w-80 focus:outline-none focus:ring-1 focus:ring-brand-primary font-mono"
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleRunLive}
+                  disabled={runningLive}
+                  className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-xs whitespace-nowrap"
+                >
+                  {runningLive ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span>Running Live Evaluation...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Run Authorized Live Evaluation</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tab 2: Live Mode Active Report Banner */}
+      {activeTab === "live" && liveReport && (
+        <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-950 flex items-start gap-3 shadow-xs">
+          <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <p className="font-semibold text-emerald-900">
+              Authorized Live Multimodal Handwriting Evaluation Active
+            </p>
+            <p className="text-emerald-800 leading-relaxed">
+              Evaluating 20 handwritten worksheets using multimodal Gemini (<code>gemini-2.5-flash</code>) for visual mark extraction, coupled with deterministic SymPy reasoning agents.
+              Total Tokens: <strong>{liveReport.total_tokens ?? 0}</strong> • Estimated Cost: <strong>${(liveReport.estimated_cost_usd ?? 0).toFixed(4)} USD</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Overview Metadata Card (rendered when there is a report for the active tab) */}
+      {currentDisplayReport && (
         <Card className="border-border-default shadow-xs overflow-hidden">
           <div className="p-6 bg-surface-subtle border-b border-border-default flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -200,15 +384,23 @@ export function AiEvaluationView() {
                   Ground-Truth Suite:
                 </span>
                 <span className="font-mono text-xs font-bold text-ink-primary bg-surface-base px-2 py-0.5 rounded border border-border-default">
-                  v{report.dataset_version}
+                  v{currentDisplayReport.dataset_version}
                 </span>
                 <span className="text-ink-muted text-xs">•</span>
                 <span className="font-mono text-xs text-ink-secondary">
-                  commit: {report.git_commit}
+                  commit: {currentDisplayReport.git_commit}
                 </span>
+                {currentDisplayReport.pipeline_mode && (
+                  <>
+                    <span className="text-ink-muted text-xs">•</span>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      {currentDisplayReport.pipeline_mode}
+                    </Badge>
+                  </>
+                )}
               </div>
               <p className="text-xs text-ink-muted">
-                Executed: {new Date(report.timestamp).toLocaleString()} ({report.pipeline_mode} mode)
+                Executed: {new Date(currentDisplayReport.timestamp).toLocaleString()}
               </p>
             </div>
 
@@ -216,23 +408,23 @@ export function AiEvaluationView() {
               <div className="text-right">
                 <div className="text-xs text-ink-muted">Overall Pass Rate</div>
                 <div className="text-xl font-bold font-mono text-ink-primary">
-                  {report.passed_cases}/{report.total_cases} ({report.overall_pass_rate_pct}%)
+                  {currentDisplayReport.passed_cases}/{currentDisplayReport.total_cases} ({currentDisplayReport.overall_pass_rate_pct}%)
                 </div>
               </div>
               <div
                 className={cn(
                   "px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-xs border",
-                  report.overall_status === "PASS"
+                  currentDisplayReport.overall_status === "PASS"
                     ? "bg-semantic-success-bg text-semantic-success-text border-semantic-success-border"
                     : "bg-semantic-error-bg text-semantic-error-text border-semantic-error-border"
                 )}
               >
-                {report.overall_status === "PASS" ? (
+                {currentDisplayReport.overall_status === "PASS" ? (
                   <CheckCircle2 className="w-5 h-5" />
                 ) : (
                   <XCircle className="w-5 h-5" />
                 )}
-                <span>{report.overall_status}</span>
+                <span>{currentDisplayReport.overall_status}</span>
               </div>
             </div>
           </div>
@@ -243,7 +435,7 @@ export function AiEvaluationView() {
                 Total Benchmark Cases
               </div>
               <div className="text-2xl font-bold font-mono text-ink-primary mt-1">
-                {report.total_cases}
+                {currentDisplayReport.total_cases}
               </div>
             </div>
             <div className="p-4">
@@ -251,7 +443,7 @@ export function AiEvaluationView() {
                 Passed Cases
               </div>
               <div className="text-2xl font-bold font-mono text-semantic-success-text mt-1">
-                {report.passed_cases}
+                {currentDisplayReport.passed_cases}
               </div>
             </div>
             <div className="p-4">
@@ -259,7 +451,7 @@ export function AiEvaluationView() {
                 Failed Cases
               </div>
               <div className="text-2xl font-bold font-mono text-semantic-error-text mt-1">
-                {report.failed_cases}
+                {currentDisplayReport.failed_cases}
               </div>
             </div>
             <div className="p-4">
@@ -267,7 +459,7 @@ export function AiEvaluationView() {
                 Avg Latency
               </div>
               <div className="text-2xl font-bold font-mono text-ink-primary mt-1">
-                {report.metrics.avg_latency_ms} <span className="text-xs font-normal text-ink-muted">ms</span>
+                {currentDisplayReport.metrics.avg_latency_ms} <span className="text-xs font-normal text-ink-muted">ms</span>
               </div>
             </div>
           </div>
