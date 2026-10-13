@@ -1,0 +1,70 @@
+{
+  "dataset_name": "ClassLens 5-Case Blind Handwriting Evaluation Benchmark",
+  "version": "1.0.0",
+  "created_at": "2026-10-13T12:00:00Z",
+  "description": "Isolated 5-case blind evaluation specification for real-world multimodal handwriting verification. Pre-inference ground truth is strictly sequestered in blind_eval_ground_truth.json and never exposed to the model or prompt context.",
+  "target_problem_reference": "problem_1065658",
+  "isolation_mode": "blind_evaluation",
+  "cases": [
+    {
+      "case_id": "blind_eval_01_canonical_correct",
+      "priority_index": 1,
+      "category": "clear_correct_solution",
+      "target_problem": "Evaluate -6 + 12 - 4 on the number line",
+      "target_canonical_value": "2",
+      "image_reference": "blind_eval_01_canonical_correct.png",
+      "expected_resolution": "1400x900",
+      "student_persona": "ADULT_SIM_A_CANONICAL",
+      "has_image_on_disk": false,
+      "audit_status": "SPECIFICATION_DEFINED_IMAGE_PENDING"
+    },
+    {
+      "case_id": "blind_eval_02_off_by_one_under",
+      "priority_index": 2,
+      "category": "off_by_one_tick_count",
+      "target_problem": "Evaluate -6 + 12 - 4 on the number line",
+      "target_canonical_value": "2",
+      "image_reference": "blind_eval_02_off_by_one.png",
+      "expected_resolution": "1400x900",
+      "student_persona": "ADULT_SIM_B_OFF_BY_ONE",
+      "has_image_on_disk": false,
+      "audit_status": "SPECIFICATION_DEFINED_IMAGE_PENDING"
+    },
+    {
+      "case_id": "blind_eval_03_direction_reversal",
+      "priority_index": 3,
+      "category": "direction_error",
+      "target_problem": "Evaluate -6 + 12 - 4 on the number line",
+      "target_canonical_value": "2",
+      "image_reference": "blind_eval_03_direction_reversal.png",
+      "expected_resolution": "1400x900",
+      "student_persona": "ADULT_SIM_C_DIRECTION_FLIP",
+      "has_image_on_disk": false,
+      "audit_status": "SPECIFICATION_DEFINED_IMAGE_PENDING"
+    },
+    {
+      "case_id": "blind_eval_04_compensatory_lucky",
+      "priority_index": 4,
+      "category": "arithmetic_numberline_contradiction",
+      "target_problem": "Evaluate -6 + 12 - 4 on the number line",
+      "target_canonical_value": "2",
+      "image_reference": "blind_eval_04_compensatory.png",
+      "expected_resolution": "1400x900",
+      "student_persona": "ADULT_SIM_D_COMPENSATORY",
+      "has_image_on_disk": false,
+      "audit_status": "SPECIFICATION_DEFINED_IMAGE_PENDING"
+    },
+    {
+      "case_id": "blind_eval_05_ambiguous_incomplete",
+      "priority_index": 5,
+      "category": "partially_completed_work",
+      "target_problem": "Evaluate -6 + 12 - 4 on the number line",
+      "target_canonical_value": "2",
+      "image_reference": "blind_eval_05_ambiguous_incomplete.png",
+      "expected_resolution": "1400x900",
+      "student_persona": "ADULT_SIM_E_AMBIGUOUS_INCOMPLETE",
+      "has_image_on_disk": false,
+      "audit_status": "SPECIFICATION_DEFINED_IMAGE_PENDING"
+    }
+  ]
+}

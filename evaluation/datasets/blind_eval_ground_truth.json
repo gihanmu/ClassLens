@@ -1,0 +1,122 @@
+{
+  "dataset_name": "ClassLens 5-Case Blind Handwriting Ground Truth Annotations",
+  "version": "1.0.0",
+  "created_at": "2026-10-13T12:00:00Z",
+  "description": "Pre-inference human ground-truth annotations independently verified by mathematics educators. Strictly quarantined from model inference prompts.",
+  "target_problem_reference": "problem_1065658",
+  "cases": [
+    {
+      "case_id": "blind_eval_01_canonical_correct",
+      "priority_index": 1,
+      "category": "clear_correct_solution",
+      "image_reference": "blind_eval_01_canonical_correct.png",
+      "expected_answer": "2",
+      "expected_answer_status": "correct",
+      "expected_reasoning_status": "supported_correct",
+      "expected_error_step_index": null,
+      "expected_misconception_id": null,
+      "expected_is_compensatory": false,
+      "expected_evidence_sufficiency": "sufficient",
+      "expected_requires_teacher_review": false,
+      "expected_critic_verdict": "audit_passed",
+      "allowed_alternative_taxonomies": [],
+      "ground_truth_hops": [
+        { "step_number": 1, "start_pos": 0.0, "end_pos": -6.0, "stated_magnitude": -6.0, "actual_displacement": -6.0, "direction": "left", "is_valid_hop": true, "error_type": null },
+        { "step_number": 2, "start_pos": -6.0, "end_pos": 6.0, "stated_magnitude": 12.0, "actual_displacement": 12.0, "direction": "right", "is_valid_hop": true, "error_type": null },
+        { "step_number": 3, "start_pos": 6.0, "end_pos": 2.0, "stated_magnitude": -4.0, "actual_displacement": -4.0, "direction": "left", "is_valid_hop": true, "error_type": null }
+      ],
+      "annotator_notes": "Flawless canonical number line reasoning. All three hops clearly visible and correctly labeled. Terminal position 2 matches final answer box.",
+      "provenance": "Pre-inference educator panel rubric"
+    },
+    {
+      "case_id": "blind_eval_02_off_by_one_under",
+      "priority_index": 2,
+      "category": "off_by_one_tick_count",
+      "image_reference": "blind_eval_02_off_by_one.png",
+      "expected_answer": "1",
+      "expected_answer_status": "incorrect",
+      "expected_reasoning_status": "supported_error",
+      "expected_error_step_index": 2,
+      "expected_misconception_id": "off_by_one",
+      "expected_is_compensatory": false,
+      "expected_evidence_sufficiency": "sufficient",
+      "expected_requires_teacher_review": false,
+      "expected_critic_verdict": "audit_passed",
+      "allowed_alternative_taxonomies": ["interval_mislabel"],
+      "ground_truth_hops": [
+        { "step_number": 1, "start_pos": 0.0, "end_pos": -6.0, "stated_magnitude": -6.0, "actual_displacement": -6.0, "direction": "left", "is_valid_hop": true, "error_type": null },
+        { "step_number": 2, "start_pos": -6.0, "end_pos": 5.0, "stated_magnitude": 12.0, "actual_displacement": 11.0, "direction": "right", "is_valid_hop": false, "error_type": "off_by_one" },
+        { "step_number": 3, "start_pos": 5.0, "end_pos": 1.0, "stated_magnitude": -4.0, "actual_displacement": -4.0, "direction": "left", "is_valid_hop": true, "error_type": null }
+      ],
+      "annotator_notes": "Student undercounted 12 ticks by 1, landing at 5 instead of 6 on hop 2. Hop 3 subtracts 4 accurately to reach 1. Final answer 1 faithfully reflects the flawed geometric working.",
+      "provenance": "Pre-inference educator panel rubric"
+    },
+    {
+      "case_id": "blind_eval_03_direction_reversal",
+      "priority_index": 3,
+      "category": "direction_error",
+      "image_reference": "blind_eval_03_direction_reversal.png",
+      "expected_answer": "-14",
+      "expected_answer_status": "incorrect",
+      "expected_reasoning_status": "supported_error",
+      "expected_error_step_index": 3,
+      "expected_misconception_id": "direction_reverse",
+      "expected_is_compensatory": false,
+      "expected_evidence_sufficiency": "sufficient",
+      "expected_requires_teacher_review": false,
+      "expected_critic_verdict": "audit_passed",
+      "allowed_alternative_taxonomies": ["sign_inversion"],
+      "ground_truth_hops": [
+        { "step_number": 1, "start_pos": 0.0, "end_pos": -6.0, "stated_magnitude": -6.0, "actual_displacement": -6.0, "direction": "left", "is_valid_hop": true, "error_type": null },
+        { "step_number": 2, "start_pos": -6.0, "end_pos": -18.0, "stated_magnitude": 12.0, "actual_displacement": -12.0, "direction": "left", "is_valid_hop": false, "error_type": "direction_reverse" },
+        { "step_number": 3, "start_pos": -18.0, "end_pos": -14.0, "stated_magnitude": -4.0, "actual_displacement": 4.0, "direction": "right", "is_valid_hop": false, "error_type": "direction_reverse" }
+      ],
+      "annotator_notes": "Student reversed directions: moved left for +12 and right for -4. Systematic directional confusion between positive and negative arithmetic operations.",
+      "provenance": "Pre-inference educator panel rubric"
+    },
+    {
+      "case_id": "blind_eval_04_compensatory_lucky",
+      "priority_index": 4,
+      "category": "arithmetic_numberline_contradiction",
+      "image_reference": "blind_eval_04_compensatory.png",
+      "expected_answer": "2",
+      "expected_answer_status": "correct",
+      "expected_reasoning_status": "supported_error",
+      "expected_error_step_index": 2,
+      "expected_misconception_id": "contradiction",
+      "expected_is_compensatory": true,
+      "expected_evidence_sufficiency": "sufficient",
+      "expected_requires_teacher_review": true,
+      "expected_critic_verdict": "review_required",
+      "allowed_alternative_taxonomies": ["compensatory_error"],
+      "ground_truth_hops": [
+        { "step_number": 1, "start_pos": 0.0, "end_pos": -6.0, "stated_magnitude": -6.0, "actual_displacement": -6.0, "direction": "left", "is_valid_hop": true, "error_type": null },
+        { "step_number": 2, "start_pos": -6.0, "end_pos": 5.0, "stated_magnitude": 12.0, "actual_displacement": 11.0, "direction": "right", "is_valid_hop": false, "error_type": "off_by_one" },
+        { "step_number": 3, "start_pos": 5.0, "end_pos": 2.0, "stated_magnitude": -4.0, "actual_displacement": -3.0, "direction": "left", "is_valid_hop": false, "error_type": "interval_mislabel" }
+      ],
+      "annotator_notes": "Classic compensatory error: student made an off-by-one undercount on hop 2 (landing at 5) and compensated with a 3-unit hop labeled '-4' to force landing on 2. Final answer is 2 (correct), but mathematical working is flawed. Critic MUST flag review_required and is_compensatory must be true.",
+      "provenance": "Pre-inference educator panel rubric"
+    },
+    {
+      "case_id": "blind_eval_05_ambiguous_incomplete",
+      "priority_index": 5,
+      "category": "partially_completed_work",
+      "image_reference": "blind_eval_05_ambiguous_incomplete.png",
+      "expected_answer": null,
+      "expected_answer_status": "undetermined",
+      "expected_reasoning_status": "incomplete",
+      "expected_error_step_index": null,
+      "expected_misconception_id": null,
+      "expected_is_compensatory": false,
+      "expected_evidence_sufficiency": "insufficient",
+      "expected_requires_teacher_review": true,
+      "expected_critic_verdict": "review_required",
+      "allowed_alternative_taxonomies": ["insufficient_evidence", "empty_reasoning"],
+      "ground_truth_hops": [
+        { "step_number": 1, "start_pos": 0.0, "end_pos": -6.0, "stated_magnitude": -6.0, "actual_displacement": -6.0, "direction": "left", "is_valid_hop": true, "error_type": null }
+      ],
+      "annotator_notes": "Student drew only the initial hop from 0 to -6 and stopped. No subsequent hops (+12 or -4) and no final answer in the box. System MUST abstain from hallucinating an answer or full diagnosis and flag for teacher review.",
+      "provenance": "Pre-inference educator panel rubric"
+    }
+  ]
+}
