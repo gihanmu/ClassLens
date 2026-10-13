@@ -5,10 +5,10 @@
 > Zero API calls ($0.00 spend). Mock accuracy does NOT measure real handwriting OCR performance.
 
 
-**Run ID:** `run_1791889518`  
+**Run ID:** `run_1791889816`  
 **Dataset Version:** `1.0.0`  
-**Timestamp:** `2026-10-13T11:05:18.784314+00:00`  
-**Git Commit:** `a04fce7`  
+**Timestamp:** `2026-10-13T11:10:16.066917+00:00`  
+**Git Commit:** `bae9d22`  
 **Pipeline Mode:** `mock-offline`  
 **Evaluation Mode:** `offline_regression`  
 **Overall Status:** **PASS** (18/18 passed, 100.0%)  
@@ -60,17 +60,17 @@
 | `case_01_canonical_correct` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.2 ms |
 | `case_02_off_by_one_error` | `off_by_one` | ✅ PASS | `incorrect` | `supported_error` | `MISC-LINE-INTERVAL-MISLABEL` | No | 0.14 ms |
 | `case_03_ambiguous_incomplete` | `ambiguous_insufficient` | ✅ PASS | `undetermined` | `incomplete` | `None` | Yes | 0.12 ms |
-| `resp_04255753` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.11 ms |
-| `resp_0a70eabf` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.1 ms |
+| `resp_04255753` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.12 ms |
+| `resp_0a70eabf` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.11 ms |
 | `resp_2292f546` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.1 ms |
 | `resp_2b804ad7` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.1 ms |
-| `resp_56005c1c` | `compensatory` | ✅ PASS | `correct` | `supported_error` | `MISC-ARITH-OFF-BY-ONE` | Yes | 0.11 ms |
+| `resp_56005c1c` | `compensatory` | ✅ PASS | `correct` | `supported_error` | `MISC-ARITH-OFF-BY-ONE` | Yes | 0.12 ms |
 | `resp_80545ef3` | `off_by_one` | ✅ PASS | `incorrect` | `supported_error` | `MISC-ARITH-OFF-BY-ONE` | No | 0.11 ms |
 | `resp_8cbadb4e` | `arithmetic_slip` | ✅ PASS | `incorrect` | `supported_correct` | `None` | No | 0.1 ms |
 | `resp_8ef9d302` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.09 ms |
 | `resp_a5c95313` | `off_by_one` | ✅ PASS | `incorrect` | `supported_error` | `MISC-LINE-INTERVAL-MISLABEL` | No | 0.11 ms |
 | `resp_b4214e02` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.09 ms |
-| `resp_d3e07e18` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.19 ms |
+| `resp_d3e07e18` | `canonical_correct` | ✅ PASS | `correct` | `supported_correct` | `None` | No | 0.3 ms |
 | `resp_e33295ea` | `ambiguous_insufficient` | ✅ PASS | `correct` | `incomplete` | `REASONING_INCOMPLETE` | Yes | 0.06 ms |
 | `resp_f0738571` | `ambiguous_insufficient` | ✅ PASS | `undetermined` | `undetermined` | `None` | Yes | 0.04 ms |
 | `bench_sign_flip_hop2` | `sign_error` | ✅ PASS | `incorrect` | `supported_error` | `MISC-NUM-DIR-REVERSE` | No | 0.12 ms |
