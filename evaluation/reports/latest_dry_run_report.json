@@ -1,0 +1,98 @@
+{
+  "dry_run_id": "dry_run_1791990225",
+  "timestamp": "2026-10-14T15:03:45.384168+00:00",
+  "git_commit": "36880e9",
+  "dataset_name": "ClassLens 5-Case Blind Handwriting Evaluation Benchmark",
+  "dataset_path": "evaluation/datasets/blind_eval_specification.json",
+  "evaluation_mode": "offline_regression",
+  "configured_model": "gemini-3.8-flash",
+  "configured_location": "global",
+  "live_inference_enabled": false,
+  "live_authorization_valid": false,
+  "max_cases_ceiling": null,
+  "total_cases_selected": 5,
+  "images_present_count": 0,
+  "images_missing_count": 5,
+  "synthetic_fixtures_rejected_count": 0,
+  "annotations_present_count": 5,
+  "annotations_missing_count": 0,
+  "ready_cases_count": 0,
+  "external_requests_sent": 0,
+  "estimated_tokens_per_case": 1850,
+  "estimated_total_tokens": 9250,
+  "estimated_cost_usd_per_case": 0.002438,
+  "estimated_total_cost_usd": 0.0122,
+  "cost_is_estimate": true,
+  "readiness_verdict": "NOT_READY_MISSING_PREREQUISITES",
+  "actionable_diagnostics": [
+    "Physical images missing for 5 cases. Create handwritten worksheets using 'evaluation/datasets/templates/blank_worksheet_template.png' and deposit into 'evaluation/datasets/images/' per 'docs/evaluations/project_owner_handwriting_collection_checklist.md'.",
+    "Live Gemini inference is strictly disabled in settings ($0.00 spend guarantee). To authorize Phase B evaluation, set CLASSLENS_LIVE_INFERENCE_ENABLED=true and supply CLASSLENS_LIVE_AUTH_KEY."
+  ],
+  "case_manifest": [
+    {
+      "case_id": "blind_eval_01_canonical_correct",
+      "category": "clear_correct_solution",
+      "image_reference": "blind_eval_01_canonical_correct.png",
+      "image_path_resolved": null,
+      "image_exists_on_disk": false,
+      "is_synthetic_fixture": false,
+      "has_ground_truth_annotation": true,
+      "ready_for_evaluation": false,
+      "blockers": [
+        "Image file 'blind_eval_01_canonical_correct.png' not found on disk in evaluation/datasets/images/."
+      ]
+    },
+    {
+      "case_id": "blind_eval_02_off_by_one_under",
+      "category": "off_by_one_tick_count",
+      "image_reference": "blind_eval_02_off_by_one.png",
+      "image_path_resolved": null,
+      "image_exists_on_disk": false,
+      "is_synthetic_fixture": false,
+      "has_ground_truth_annotation": true,
+      "ready_for_evaluation": false,
+      "blockers": [
+        "Image file 'blind_eval_02_off_by_one.png' not found on disk in evaluation/datasets/images/."
+      ]
+    },
+    {
+      "case_id": "blind_eval_03_direction_reversal",
+      "category": "direction_error",
+      "image_reference": "blind_eval_03_direction_reversal.png",
+      "image_path_resolved": null,
+      "image_exists_on_disk": false,
+      "is_synthetic_fixture": false,
+      "has_ground_truth_annotation": true,
+      "ready_for_evaluation": false,
+      "blockers": [
+        "Image file 'blind_eval_03_direction_reversal.png' not found on disk in evaluation/datasets/images/."
+      ]
+    },
+    {
+      "case_id": "blind_eval_04_compensatory_lucky",
+      "category": "arithmetic_numberline_contradiction",
+      "image_reference": "blind_eval_04_compensatory.png",
+      "image_path_resolved": null,
+      "image_exists_on_disk": false,
+      "is_synthetic_fixture": false,
+      "has_ground_truth_annotation": true,
+      "ready_for_evaluation": false,
+      "blockers": [
+        "Image file 'blind_eval_04_compensatory.png' not found on disk in evaluation/datasets/images/."
+      ]
+    },
+    {
+      "case_id": "blind_eval_05_ambiguous_incomplete",
+      "category": "partially_completed_work",
+      "image_reference": "blind_eval_05_ambiguous_incomplete.png",
+      "image_path_resolved": null,
+      "image_exists_on_disk": false,
+      "is_synthetic_fixture": false,
+      "has_ground_truth_annotation": true,
+      "ready_for_evaluation": false,
+      "blockers": [
+        "Image file 'blind_eval_05_ambiguous_incomplete.png' not found on disk in evaluation/datasets/images/."
+      ]
+    }
+  ]
+}

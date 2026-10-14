@@ -140,7 +140,6 @@ def is_trusted_synthetic(target: Union[str, Path, bytes]) -> bool:
 
 
 TRUSTED_UPLOADS_DIR = (PROJECT_ROOT / "local-data" / "uploads").resolve()
-TRUSTED_EVAL_IMAGES_DIR = (PROJECT_ROOT / "evaluation" / "datasets" / "images").resolve()
 
 
 def verify_uploaded_worksheet_path(
@@ -148,22 +147,21 @@ def verify_uploaded_worksheet_path(
     auth_key: Optional[str] = None,
 ) -> Path:
     """Verifies that an uploaded worksheet image path is securely confined to local-data/uploads/
-    or evaluation/datasets/images/ and that explicit owner authorization is active.
+    and that explicit owner authorization is active.
 
     Enforces Gate 6 DevSecOps Safeguards:
     1. Prohibits accessing raw research datasets or arbitrary external directories.
     2. Fail-closed owner authorization: settings.is_live_authorized(auth_key) MUST be True.
-    3. Path traversal & symlink prevention: canonical realpath must resolve strictly within
-       TRUSTED_UPLOADS_DIR or TRUSTED_EVAL_IMAGES_DIR.
+    3. Path traversal & symlink prevention: canonical realpath must resolve strictly within TRUSTED_UPLOADS_DIR.
     4. Regular file verification and size check <= settings.max_image_size_bytes.
     """
     from services.api.config import settings
 
     # 1. Reject paths pointing to real research datasets or forbidden directories
     str_repr = str(file_path).lower()
-    if "drawedumath" in str_repr or "mathwriting" in str_repr or "external_dataset" in str_repr:
+    if "dataset/" in str_repr or "/dataset" in str_repr or "drawedumath" in str_repr or "mathwriting" in str_repr:
         raise UntrustedProvenanceError(
-            f"Provenance Guard Block: Path '{file_path}' references a prohibited research dataset. "
+            f"Provenance Guard Block: Path '{file_path}' references a real dataset or external directory. "
             "Live Gemini inference is strictly prohibited from accessing real student datasets."
         )
 
@@ -183,45 +181,23 @@ def verify_uploaded_worksheet_path(
     except FileNotFoundError:
         raise UntrustedProvenanceError(f"Provenance Guard Block: Uploaded worksheet file not found: {file_path}")
 
-    # 4. Path confinement check (must be in uploads or eval images directory)
-    in_uploads = False
-    in_eval = False
+    # 4. Path confinement check
     try:
         resolved.relative_to(TRUSTED_UPLOADS_DIR)
-        in_uploads = True
     except ValueError:
-        pass
-
-    try:
-        resolved.relative_to(TRUSTED_EVAL_IMAGES_DIR)
-        in_eval = True
-    except ValueError:
-        pass
-
-    if not in_uploads and not in_eval:
         raise UntrustedProvenanceError(
-            f"Provenance Guard Block: Path '{resolved}' escapes trusted storage directories. "
-            f"Path traversal and unauthorized directory access are blocked."
+            f"Provenance Guard Block: Path '{resolved}' escapes the trusted uploads directory: "
+            f"'{TRUSTED_UPLOADS_DIR}'. Path traversal and unauthorized directory access are blocked."
         )
 
     # 5. Check for symlink escaping
     if os.path.islink(raw_path):
         real_target = Path(os.path.realpath(raw_path))
-        target_in_uploads = False
-        target_in_eval = False
         try:
             real_target.relative_to(TRUSTED_UPLOADS_DIR)
-            target_in_uploads = True
         except ValueError:
-            pass
-        try:
-            real_target.relative_to(TRUSTED_EVAL_IMAGES_DIR)
-            target_in_eval = True
-        except ValueError:
-            pass
-        if not target_in_uploads and not target_in_eval:
             raise UntrustedProvenanceError(
-                f"Provenance Guard Block: Symlink '{raw_path}' resolves outside trusted roots."
+                f"Provenance Guard Block: Symlink '{raw_path}' resolves outside trusted uploads root."
             )
 
     # 6. Check regular file and size bound
@@ -250,16 +226,15 @@ def verify_analysis_image_source(
     Supports:
     1. Authorized synthetic fixtures in tests/fixtures/synthetic_evaluation_cases/.
     2. Securely confined uploaded worksheets in local-data/uploads/ (with owner authorization).
-    3. Confined evaluation dataset images in evaluation/datasets/images/ (with owner authorization).
-    4. In-memory image bytes (synthetic matching allowlist, or uploaded if authorized).
+    3. In-memory image bytes (synthetic matching allowlist, or uploaded if authorized).
     """
     from services.api.config import settings
 
     if isinstance(target, (str, Path)):
         str_repr = str(target).lower()
-        if "drawedumath" in str_repr or "mathwriting" in str_repr or "external_dataset" in str_repr:
+        if "dataset/" in str_repr or "/dataset" in str_repr or "drawedumath" in str_repr or "mathwriting" in str_repr:
             raise UntrustedProvenanceError(
-                f"Provenance Guard Block: Path '{target}' references a prohibited research dataset. "
+                f"Provenance Guard Block: Path '{target}' references a real dataset or external directory. "
                 "Live Gemini inference is strictly prohibited from accessing real student datasets."
             )
 
@@ -275,7 +250,7 @@ def verify_analysis_image_source(
         except FileNotFoundError:
             pass
 
-        # Otherwise verify as uploaded worksheet or eval image
+        # Otherwise verify as uploaded worksheet
         return verify_uploaded_worksheet_path(p, auth_key=auth_key)
 
     elif isinstance(target, bytes):

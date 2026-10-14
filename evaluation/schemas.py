@@ -25,15 +25,16 @@ class BenchmarkCase(BaseModel):
     category: str  # e.g., "canonical_correct", "procedural_error", "off_by_one", "ambiguous_insufficient", "compensatory", "arithmetic_slip", "sign_error"
     topic: str = "Integers & Number Lines"
     grade_level: str = "Secondary 1 / Grade 7"
-    problem_statement: str = "Evaluate -6 + 12 - 4 on the number line"
+    problem_statement: Optional[str] = "Evaluate -6 + 12 - 4 on the number line"
+    target_problem: Optional[str] = None
     target_canonical_value: str = "2"
     image_reference: str
     source_type: str = "synthetic_curated"  # "synthetic_curated", "synthetic_procedural", "manually_authored", "consented_sample"
 
-    # Ground truth expectations
+    # Ground truth expectations (Optional to support sequestered blind evaluation specifications)
     expected_answer: Optional[str] = None
-    expected_answer_status: str  # "correct", "incorrect", "undetermined"
-    expected_reasoning_status: str  # "supported_correct", "supported_error", "incomplete", "unverifiable"
+    expected_answer_status: Optional[str] = None  # "correct", "incorrect", "undetermined"
+    expected_reasoning_status: Optional[str] = None  # "supported_correct", "supported_error", "incomplete", "unverifiable"
     expected_error_step_index: Optional[int] = None
     expected_misconception_id: Optional[str] = None
     expected_is_compensatory: bool = False
@@ -47,6 +48,13 @@ class BenchmarkCase(BaseModel):
     annotation_notes: str = ""
     provenance: str = "ClassLens Assessment Evaluation Benchmark v1"
 
+    # Optional fields for blind evaluation manifests
+    priority_index: Optional[int] = None
+    expected_resolution: Optional[str] = None
+    student_persona: Optional[str] = None
+    has_image_on_disk: Optional[bool] = None
+    audit_status: Optional[str] = None
+
 
 class BenchmarkDataset(BaseModel):
     """Versioned collection of benchmark cases."""
@@ -55,7 +63,53 @@ class BenchmarkDataset(BaseModel):
     created_at: str
     description: str
     target_problem_reference: str = "problem_1065658"
+    isolation_mode: Optional[str] = None
     cases: List[BenchmarkCase]
+
+
+class DryRunCaseResult(BaseModel):
+    """Prerequisite check result for an individual evaluation case during dry run."""
+    case_id: str
+    category: str
+    image_reference: str
+    image_path_resolved: Optional[str] = None
+    image_exists_on_disk: bool = False
+    is_synthetic_fixture: bool = False
+    has_ground_truth_annotation: bool = False
+    ready_for_evaluation: bool = False
+    blockers: List[str] = Field(default_factory=list)
+
+
+class DryRunReport(BaseModel):
+    """Comprehensive safety and readiness audit produced by evaluation dry-run mode."""
+    dry_run_id: str
+    timestamp: str
+    git_commit: str
+    dataset_name: str
+    dataset_path: str
+    evaluation_mode: str
+    configured_model: str
+    configured_location: str
+    live_inference_enabled: bool
+    live_authorization_valid: bool
+    max_cases_ceiling: Optional[int] = None
+    total_cases_selected: int
+    images_present_count: int
+    images_missing_count: int
+    synthetic_fixtures_rejected_count: int = 0
+    annotations_present_count: int
+    annotations_missing_count: int
+    ready_cases_count: int
+    external_requests_sent: int = 0  # Strictly 0 in dry-run
+    estimated_tokens_per_case: int = 1500
+    estimated_total_tokens: int = 0
+    estimated_cost_usd_per_case: float = 0.002
+    estimated_total_cost_usd: float = 0.0
+    cost_is_estimate: bool = True
+    readiness_verdict: str  # "READY_FOR_AUTHORIZED_LIVE_TEST" | "NOT_READY_MISSING_PREREQUISITES"
+    actionable_diagnostics: List[str] = Field(default_factory=list)
+    case_manifest: List[DryRunCaseResult] = Field(default_factory=list)
+
 
 
 class CaseEvaluationResult(BaseModel):
