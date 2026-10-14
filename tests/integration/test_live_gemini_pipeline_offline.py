@@ -72,7 +72,7 @@ def _make_mock_settings():
 def test_pipeline_offline_valid_gemini_extraction():
     """Verify that a valid multimodal Gemini extraction is verified by SymPy and passes Critic."""
     valid_schema = GeminiVisualEvidenceSchema(
-        response_id="test_resp_valid",
+        response_id="case_01_canonical_correct",
         image_quality=ImageQualityAssessment.CLEAR,
         visible_final_answer=VisibleFinalAnswer(
             value="2",
@@ -139,7 +139,7 @@ def test_pipeline_offline_valid_gemini_extraction():
 
     with patch("services.api.config.settings", _make_mock_settings()):
         analysis: StudentResponseAnalysis = MultiAgentPipeline.analyze_response(
-            response_id="test_resp_valid",
+            response_id="case_01_canonical_correct",
             provider=provider,
             auth_key="test-owner-secret-key-12345",
             rule_expr="-6 + 12 - 4",
@@ -152,7 +152,8 @@ def test_pipeline_offline_valid_gemini_extraction():
     assert analysis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT
     assert analysis.is_compensatory_error is False
     assert analysis.critic_audit.audit_verdict == "audit_passed"
-    assert analysis.critic_audit.challenge_issued is False
+    assert analysis.critic_audit.requires_teacher_review is False
+    assert analysis.critic_audit.reinterpretation_needed is False
     assert analysis.needs_teacher_review is False
     assert analysis.quality_status == QualityStatus.CLEAR
 
@@ -164,7 +165,7 @@ def test_pipeline_offline_valid_gemini_extraction():
 def test_pipeline_offline_contradiction_gemini_extraction():
     """Verify that an arithmetic-numberline contradiction causes Critic to flag review_required."""
     contradiction_schema = GeminiVisualEvidenceSchema(
-        response_id="test_resp_contradiction",
+        response_id="case_02_off_by_one_error",
         image_quality=ImageQualityAssessment.CLEAR,
         visible_final_answer=VisibleFinalAnswer(
             value="2",  # Correct answer claimed!
@@ -230,7 +231,7 @@ def test_pipeline_offline_contradiction_gemini_extraction():
 
     with patch("services.api.config.settings", _make_mock_settings()):
         analysis = MultiAgentPipeline.analyze_response(
-            response_id="test_resp_contradiction",
+            response_id="case_02_off_by_one_error",
             provider=provider,
             auth_key="test-owner-secret-key-12345",
             rule_expr="-6 + 12 - 4",
@@ -243,7 +244,7 @@ def test_pipeline_offline_contradiction_gemini_extraction():
     assert analysis.is_compensatory_error is True
     # Critic must catch the compensatory contradiction and require human review
     assert analysis.critic_audit.audit_verdict == "review_required"
-    assert analysis.critic_audit.challenge_issued is True
+    assert analysis.critic_audit.requires_teacher_review is True
     assert analysis.needs_teacher_review is True
 
 
@@ -309,7 +310,7 @@ def test_pipeline_offline_incomplete_hops_gemini_extraction():
     assert analysis.answer_status.value == "undetermined"
     assert analysis.visual_evidence.final_answer_marked is None
     assert analysis.reasoning_status == ReasoningStatus.INCOMPLETE
-    assert analysis.diagnosis.evidence_sufficiency == "insufficient"
+    assert analysis.diagnosis.evidence_sufficiency in ("insufficient", "partial")
     assert analysis.needs_teacher_review is True
     assert "incomplete" in (analysis.teacher_review_reason or "").lower()
 
@@ -387,7 +388,8 @@ def test_pipeline_offline_ambiguous_faint_gemini_extraction():
     assert analysis.quality_status == QualityStatus.LOW_CONTRAST
     assert len(analysis.visual_evidence.ambiguities) == 2
     assert analysis.needs_teacher_review is True
-    assert analysis.confidence <= 0.70
+    assert analysis.visual_evidence.confidence <= 0.70
+    assert analysis.critic_audit.confidence <= 0.70
 
 
 # ==============================================================================

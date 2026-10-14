@@ -353,6 +353,8 @@ class MockAgentAdapter:
             reasoning_status = ReasoningStatus.INCOMPLETE
         elif sufficiency.overall_sufficiency == "insufficient":
             reasoning_status = ReasoningStatus.INCOMPLETE
+        elif verdict.get("first_error_taxonomy") == "REASONING_INCOMPLETE":
+            reasoning_status = ReasoningStatus.INCOMPLETE
         elif verdict["is_reasoning_valid"]:
             reasoning_status = ReasoningStatus.SUPPORTED_CORRECT
         else:
@@ -364,6 +366,8 @@ class MockAgentAdapter:
                 "Mathematical reasoning cannot be definitively diagnosed: visual evidence is incomplete or ambiguous "
                 "(faint strokes, missing arrowheads, or missing endpoints). Educator review is required to interpret student work."
             )
+        elif verdict.get("first_error_taxonomy") == "REASONING_INCOMPLETE":
+            diag_expl = "Student reasoning is incomplete: subsequent number-line hops are missing. Educator review is required."
         elif verdict["is_reasoning_valid"]:
             diag_expl = "All observed number-line steps were deterministically verified as mathematically valid."
         elif err_tax:
