@@ -178,18 +178,19 @@ async def trigger_batch_analysis(
 
     idempotency_key = req.idempotency_key if req else None
 
-    # Check if job already exists for this idempotency key
+    # Check if job already exists for this idempotency key and assessment
     if idempotency_key and idempotency_key in memory_repo.idempotency_keys:
         existing_job_id = memory_repo.idempotency_keys[idempotency_key]
-        job = memory_repo.analysis_jobs[existing_job_id]
-        return {
-            "job_id": job.id,
-            "status": job.status,
-            "total_items": job.total_items,
-            "completed_items": job.completed_items,
-            "failed_items": job.failed_items,
-            "idempotent_replay": True,
-        }
+        job = memory_repo.analysis_jobs.get(existing_job_id)
+        if job and job.assessment_id == assessment_id:
+            return {
+                "job_id": job.id,
+                "status": job.status,
+                "total_items": job.total_items,
+                "completed_items": job.completed_items,
+                "failed_items": job.failed_items,
+                "idempotent_replay": True,
+            }
 
     job = memory_repo.create_or_get_analysis_job(
         assessment_id=assessment_id,

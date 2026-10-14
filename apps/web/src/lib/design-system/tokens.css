@@ -1,9 +1,14 @@
 :root {
   /* Brand Colors */
-  --brand-primary: #5145F5;
-  --brand-primary-hover: #4035D5;
-  --brand-primary-active: #3026B5;
+  --brand-primary: #4F46E5;
+  --brand-primary-hover: #4338CA;
+  --brand-primary-active: #3730A3;
   --brand-primary-soft: #EEECFF;
+  --brand-navy: #12233F;
+  --brand-indigo: #4F46E5;
+  --brand-teal: #0F9D92;
+  --brand-teal-soft: #E6F7F6;
+  --brand-teal-border: #99DDD8;
   --brand-coral: #F76543;
   --brand-coral-hover: #D94D2D;
   --brand-yellow: #FFCF78;

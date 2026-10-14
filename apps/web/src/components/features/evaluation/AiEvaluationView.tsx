@@ -293,13 +293,23 @@ export function AiEvaluationView() {
                 <Lock className="w-7 h-7" />
               </div>
               <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-semibold">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Live handwriting validation: Pending owner authorization ($0.00 spend guarantee)</span>
+                </div>
                 <h2 className="text-xl font-bold text-ink-primary">
-                  Live handwriting evaluation: Not yet performed.
+                  Live Handwriting Evaluation: Not Yet Performed
                 </h2>
                 <p className="text-sm text-ink-muted leading-relaxed">
                   Live inference requires explicit owner authorization and budget allocation.
-                  In accordance with ClassLens cost safety constraints, live Gemini API inference is strictly gated behind fail-closed authorization controls.
+                  In strict accordance with ClassLens zero-spend constraints, live multimodal Gemini API calls remain disabled by default.
                 </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
+                  <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-medium border border-blue-200">State 1: MOCK/OFFLINE (Active)</span>
+                  <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium border border-purple-200">State 2: AWAITING_LIVE_ANALYSIS (Uploads)</span>
+                  <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-medium border border-amber-200">State 3: LIVE NOT PERFORMED (Eval Set)</span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium border border-emerald-200">State 4: LIVE MEASURED (0 / 20)</span>
+                </div>
               </div>
 
               <div className="p-4 bg-surface-subtle border border-border-default rounded-xl text-left space-y-2.5 text-xs text-ink-secondary">

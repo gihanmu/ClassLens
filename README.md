@@ -5,7 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SymPy](https://img.shields.io/badge/SymPy-1.14-green.svg)](https://www.sympy.org/)
 [![Google ADK](https://img.shields.io/badge/Google%20ADK-2.11-4285F4.svg)](https://github.com/google/skills)
-[![Tests Passing](https://img.shields.io/badge/tests-130%20passing-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/tests-304%20passing-brightgreen.svg)]()
 
 > **Empowering Singapore Secondary 1 Mathematics Educators to see how students actually think.**
 > ClassLens pinpoints the exact number-line hop where student reasoning breaks down—separating conceptual misconceptions from superficial arithmetic slips using multimodal AI and deterministic mathematical proof.
@@ -71,13 +71,14 @@ flowchart TD
 | Capability | Current State | Technical Details |
 | :--- | :--- | :--- |
 | **Mathematical Verification** | **Active & Production-Ready** | 100% deterministic exact evaluation using SymPy (`sympy.Rational`, `sympy.sympify`). Zero hallucination risk. |
-| **Image Intake & Sanitization** | **Active & Production-Ready** | Validates JPEG, PNG, WebP; strips EXIF metadata; bounds decoding to 16M pixels (decompression-bomb defense); computes RMS contrast and Laplacian blur metrics. |
-| **Agent Orchestration** | **Active (Offline Mock Mode)** | Google ADK agent contracts implemented with Pydantic schemas. Currently backed by deterministic synthetic fixtures and structured observations for offline evaluation ($0.00 cloud spend). |
-| **Teacher Review & Audit** | **Active & Production-Ready** | Full teacher confirmation and override persistence with complete tamper-evident audit history. |
-| **Live Multimodal Gemini 3.8 Flash** | **Planned (Gate 2)** | Pre-configured for Google Cloud Singapore (`asia-southeast1`) using the Google Gen AI SDK. Blocked until live deployment authorization is granted. |
+| **Image Intake & Sanitization** | **Active & Production-Ready** | Validates JPEG, PNG, WebP magic bytes; strips EXIF metadata; bounds decoding to 16M pixels (decompression-bomb defense); computes RMS contrast and Laplacian blur metrics; confines uploads to `local-data/uploads/` with SHA-256 deduplication. |
+| **Durable Local Persistence** | **Active & Production-Ready** | Relational SQLite database (`local-data/classlens.db`) in WAL mode with foreign keys, transactional integrity, and non-destructive migration from JSON backups. |
+| **Agent Orchestration** | **Active (Offline Mock Mode)** | Google ADK agent contracts implemented with Pydantic schemas. Currently backed by deterministic synthetic fixtures and structured observations for offline evaluation ($0.00 cloud spend guarantee). |
+| **Teacher Review & Audit** | **Active & Production-Ready** | Full teacher confirmation and override persistence with complete tamper-evident audit history surviving process restarts. |
+| **Live Multimodal Gemini 3.8 Flash** | **Offline Evaluation Ready** | Full dry-run validation implemented. Dual-gate fail-closed circuit breaker enforces $0.00 spend guarantee until explicit owner authorization. |
 
 > [!NOTE]
-> **No Claim of Live Handwriting OCR**: In the current offline demonstration, diagnostic breakdowns on the 13 sample responses are driven by deterministic synthetic observation schemas matching the problem vertical slice, **not by live ungrounded Gemini OCR calls**.
+> **No Claim of Live Handwriting OCR**: In the current offline demonstration, diagnostic breakdowns on the 13 sample responses are driven by deterministic synthetic observation schemas matching the problem vertical slice, **not by live ungrounded Gemini OCR calls**. Real uploaded worksheets in mock mode truthfully remain in `AWAITING_LIVE_ANALYSIS` without fabricating diagnoses.
 
 ---
 
@@ -101,18 +102,19 @@ flowchart TD
    # Using uv (fastest)
    uv venv
    source .venv/bin/activate
-   uv pip install -r requirements.txt
+   uv pip install -e ".[dev]"
 
    # Or using standard pip
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   python -m pip install -e ".[dev]"
    ```
 
 3. **Configure environment**:
    ```bash
    cp .env.example .env
    ```
+   *Note: Default `.env` operates in 100% offline mock mode (`CLASSLENS_AI_MODE=mock`, `CLASSLENS_LIVE_INFERENCE_ENABLED=false`) with zero API calls and $0.00 spend guarantee.*
 
 4. **Start the backend server**:
    ```bash
@@ -148,11 +150,14 @@ flowchart TD
 
 ## 5. Running the Test Suite
 
-ClassLens includes a comprehensive, 100% offline test suite covering mathematical verification, image processing, API endpoints, tenant isolation, and accessibility.
+ClassLens includes a comprehensive, 100% offline test suite with **304 automated tests** covering mathematical verification, image processing, durable SQLite persistence, API endpoints, tenant isolation, and accessibility.
 
 ```bash
-# Run all 130 backend unit & integration tests
+# Run all 304 backend unit & integration tests
 .venv/bin/pytest tests/ -v
+
+# Run durable SQLite persistence tests specifically
+.venv/bin/pytest tests/unit/test_sqlite_persistence.py -v
 
 # Run image intake tests specifically
 .venv/bin/pytest tests/unit/test_image_intake.py -v

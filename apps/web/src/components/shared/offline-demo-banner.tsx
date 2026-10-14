@@ -22,7 +22,7 @@ export function OfflineDemoBanner({ className, onViewDetails }: OfflineDemoBanne
           Offline Demo Mode
         </span>
         <span className="text-ink-secondary">
-          Simulated multi-agent analysis with deterministic SymPy mathematical verification.
+          Offline demo mode ($0.00 spend guarantee) with deterministic SymPy mathematical verification.
         </span>
       </div>
       <div className="flex items-center gap-3 text-[11px] text-ink-muted">

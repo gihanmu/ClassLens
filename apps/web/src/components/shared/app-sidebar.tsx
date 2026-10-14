@@ -208,12 +208,12 @@ export function AppSidebar({
       {/* Teacher Profile Footer */}
       <div className="p-4 border-t border-border-default bg-surface-subtle/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-accent-coral/15 text-accent-coral font-bold flex items-center justify-center shrink-0 border border-accent-coral/20">
-            ER
+          <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center shrink-0 border border-brand-primary/20">
+            SL
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-ink-primary truncate">Ms. Evelyn Reed</p>
-            <p className="text-[11px] text-ink-muted truncate">6th Grade Math • Period 2</p>
+            <p className="text-xs font-bold text-ink-primary truncate">Mrs. Sarah Lim</p>
+            <p className="text-[11px] text-ink-muted truncate">Cedar Secondary • Sec 1 Math</p>
           </div>
         </div>
       </div>
