@@ -238,6 +238,7 @@ def execute_cleanup(
 
     # 2. Backup and synchronize JSON state persistence file if present
     state_file = db_path.parent / "org_cedar_sec_state.json"
+    backup_state_path = None
     if state_file.is_file():
         backup_state_path = db_path.parent / f"org_cedar_sec_state.json.bak.{timestamp}"
         shutil.copy2(state_file, backup_state_path)
@@ -257,7 +258,34 @@ def execute_cleanup(
         except Exception as exc:
             logger.warning(f"Could not synchronize JSON state file: {exc}")
 
-    # 3. Atomic SQLite cascading delete
+    # 3. Create verified backup of all upload files scheduled for deletion
+    test_id_set = set(test_ids)
+    test_upload_dirs = scan_uploads(uploads_dir, test_id_set)
+    backup_uploads_tar = None
+    uploads_files_backed_up = 0
+    if test_upload_dirs:
+        import tarfile
+        backup_uploads_tar = uploads_dir.parent / f"uploads_test_backup_{timestamp}.tar.gz"
+        with tarfile.open(backup_uploads_tar, "w:gz") as tar:
+            for u_dir in test_upload_dirs:
+                rel_path = u_dir.relative_to(uploads_dir)
+                tar.add(u_dir, arcname=str(rel_path))
+                uploads_files_backed_up += sum(1 for f in u_dir.rglob("*") if f.is_file())
+
+        # Verify tar archive integrity
+        if not tarfile.is_tarfile(str(backup_uploads_tar)):
+            raise RuntimeError("Uploads backup archive is invalid. Aborting cleanup.")
+        with tarfile.open(backup_uploads_tar, "r:gz") as tar:
+            members = tar.getmembers()
+            if not members:
+                raise RuntimeError("Uploads backup archive is empty. Aborting cleanup.")
+        tar_sha = calc_sha256(backup_uploads_tar)
+        logger.info(
+            f"Verified uploads backup created: {backup_uploads_tar} "
+            f"({len(test_upload_dirs)} folders, {uploads_files_backed_up} files, SHA-256: {tar_sha[:12]}...)"
+        )
+
+    # 4. Atomic SQLite cascading delete
     conn = sqlite3.connect(str(db_path))
     placeholders = ",".join("?" for _ in test_ids)
     try:
@@ -296,10 +324,8 @@ def execute_cleanup(
     conn.execute("VACUUM;")
     conn.close()
 
-    # 4. Remove associated upload directories
-    test_id_set = set(test_ids)
+    # 5. Remove associated upload directories (only after DB transaction committed)
     upload_dirs_removed = 0
-    test_upload_dirs = scan_uploads(uploads_dir, test_id_set)
     for u_dir in test_upload_dirs:
         try:
             shutil.rmtree(u_dir, ignore_errors=True)
@@ -309,12 +335,58 @@ def execute_cleanup(
 
     return {
         "status": "success",
+        "timestamp": timestamp,
         "backup_db": str(backup_db_path),
+        "backup_db_sha256": bak_sha,
+        "backup_uploads": str(backup_uploads_tar) if backup_uploads_tar else None,
+        "uploads_files_backed_up": uploads_files_backed_up,
+        "backup_state": str(backup_state_path) if backup_state_path else None,
         "assessments_deleted": len(test_ids),
         "responses_deleted": scan_results["child_counts"]["responses"],
         "audit_events_deleted": scan_results["child_counts"]["audit_events"],
         "analysis_jobs_deleted": scan_results["child_counts"]["analysis_jobs"],
         "upload_dirs_removed": upload_dirs_removed,
+    }
+
+
+def restore_backup(timestamp: str, db_path: Path, uploads_dir: Path) -> Dict[str, Any]:
+    """Restores SQLite database, JSON state, and upload files from verified backups."""
+    import tarfile
+
+    # 1. Verify and restore SQLite database
+    backup_db = db_path.parent / f"{db_path.name}.bak.{timestamp}"
+    if not backup_db.is_file():
+        raise FileNotFoundError(f"Database backup not found: {backup_db}")
+    if not verify_sqlite_integrity(backup_db):
+        raise RuntimeError(f"Database backup failed integrity check: {backup_db}")
+
+    shutil.copy2(backup_db, db_path)
+    logger.info(f"Restored SQLite database from {backup_db}")
+
+    # 2. Restore JSON state file if present
+    backup_state = db_path.parent / f"org_cedar_sec_state.json.bak.{timestamp}"
+    if backup_state.is_file():
+        state_file = db_path.parent / "org_cedar_sec_state.json"
+        shutil.copy2(backup_state, state_file)
+        logger.info(f"Restored JSON state file from {backup_state}")
+
+    # 3. Restore upload files archive if present
+    backup_tar = uploads_dir.parent / f"uploads_test_backup_{timestamp}.tar.gz"
+    extracted_files = 0
+    if backup_tar.is_file():
+        with tarfile.open(backup_tar, "r:gz") as tar:
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(path=uploads_dir, filter="data")
+            else:
+                tar.extractall(path=uploads_dir)
+            extracted_files = len(tar.getmembers())
+        logger.info(f"Restored {extracted_files} upload entries from {backup_tar}")
+
+    return {
+        "status": "success",
+        "restored_db": str(backup_db),
+        "restored_uploads": str(backup_tar) if backup_tar.is_file() else None,
+        "extracted_files": extracted_files,
     }
 
 
@@ -341,6 +413,12 @@ def main():
         help="Explicit confirmation flag required to execute destructive cleanup",
     )
     parser.add_argument(
+        "--restore",
+        type=str,
+        default=None,
+        help="Timestamp of backup to restore from (e.g. 20261016_203000)",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Display all record identifiers",
@@ -349,6 +427,24 @@ def main():
 
     db_path: Path = args.db_path.resolve()
     uploads_dir: Path = args.uploads_dir.resolve()
+
+    if args.restore:
+        print("=" * 76)
+        print("ClassLens Assessment Backup Restore Procedure")
+        print("=" * 76)
+        print(f"Target Database: {db_path}")
+        print(f"Target Uploads:  {uploads_dir}")
+        print(f"Backup Tag:      {args.restore}")
+        print("-" * 76)
+        res = restore_backup(args.restore, db_path, uploads_dir)
+        print("\n" + "=" * 76)
+        print("RESTORE COMPLETED SUCCESSFULLY")
+        print("=" * 76)
+        print(f"Restored Database: {res.get('restored_db')}")
+        print(f"Restored Uploads:  {res.get('restored_uploads')}")
+        print(f"Extracted Entries: {res.get('extracted_files')}")
+        print("=" * 76)
+        return
 
     print("=" * 76)
     print("ClassLens Assessment Cleanup & Test Isolation Utility")
@@ -406,12 +502,20 @@ def main():
     print("\n" + "=" * 76)
     print("CLEANUP COMPLETED SUCCESSFULLY")
     print("=" * 76)
-    print(f"Backup file:            {result.get('backup_db')}")
+    print(f"Backup Timestamp:       {result.get('timestamp')}")
+    print(f"Database Backup:        {result.get('backup_db')} (SHA-256: {result.get('backup_db_sha256')[:12]}...)")
+    print(f"Uploads Backup Archive: {result.get('backup_uploads')} ({result.get('uploads_files_backed_up')} files)")
+    if result.get("backup_state"):
+        print(f"JSON State Backup:      {result.get('backup_state')}")
     print(f"Assessments deleted:    {result.get('assessments_deleted')}")
     print(f"Responses deleted:      {result.get('responses_deleted')}")
     print(f"Audit events deleted:   {result.get('audit_events_deleted')}")
     print(f"Analysis jobs deleted:  {result.get('analysis_jobs_deleted')}")
     print(f"Upload dirs removed:    {result.get('upload_dirs_removed')}")
+    print("-" * 76)
+    print(f"RESTORE PROCEDURE:")
+    print(f"To restore both database and uploads at any time, execute:")
+    print(f"  python3 scripts/cleanup_test_data.py --restore {result.get('timestamp')}")
     print("=" * 76)
 
 

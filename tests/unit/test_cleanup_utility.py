@@ -190,8 +190,30 @@ def test_cleanup_execution_with_backup_and_relational_integrity():
         assert cur.fetchone()[0] == "true"
         conn_after.close()
 
+        # Verify uploads backup exists and is valid
+        backup_uploads = Path(exec_res["backup_uploads"])
+        assert backup_uploads.is_file()
+        assert exec_res["uploads_files_backed_up"] == 2
+
         # Verify uploads directories: test dirs removed, demo and teacher preserved
         assert (uploads_dir / "org_cedar_sec" / "asm_1065658").is_dir()
         assert (uploads_dir / "org_cedar_sec" / "asm_real_teacher").is_dir()
         assert not (uploads_dir / "org_cedar_sec" / "asm_test_conc1").exists()
         assert not (uploads_dir / "org_cedar_sec" / "asm_test_dup").exists()
+
+        # 3. Test restore_backup procedure
+        from scripts.cleanup_test_data import restore_backup
+        restore_res = restore_backup(exec_res["timestamp"], db_path, uploads_dir)
+        assert restore_res["status"] == "success"
+
+        conn_restored = sqlite3.connect(str(db_path))
+        cur_res = conn_restored.cursor()
+        cur_res.execute("SELECT count(*) FROM assessments")
+        assert cur_res.fetchone()[0] == 4
+        cur_res.execute("SELECT count(*) FROM responses")
+        assert cur_res.fetchone()[0] == 4
+        conn_restored.close()
+
+        # Check restored uploads
+        assert (uploads_dir / "org_cedar_sec" / "asm_test_conc1").is_dir()
+        assert (uploads_dir / "org_cedar_sec" / "asm_test_dup").is_dir()

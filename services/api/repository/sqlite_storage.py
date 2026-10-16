@@ -141,7 +141,6 @@ class SqliteDatabaseManager:
         """,
         # Indexes for fast querying & aggregations
         "CREATE INDEX IF NOT EXISTS idx_assessments_org ON assessments (organization_id);",
-        "CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);",
         "CREATE INDEX IF NOT EXISTS idx_responses_assessment ON responses (assessment_id);",
         "CREATE INDEX IF NOT EXISTS idx_responses_task_status ON responses (task_status);",
         "CREATE INDEX IF NOT EXISTS idx_responses_review ON responses (needs_teacher_review, teacher_review_status);",
@@ -185,7 +184,9 @@ class SqliteDatabaseManager:
                     cols = [r["name"] for r in cur.fetchall()]
                     if "is_demo" not in cols:
                         conn.execute("ALTER TABLE assessments ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;")
-                        conn.execute("CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);")
+
+                    # Index for demo filtering (guaranteed column exists)
+                    conn.execute("CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);")
 
                     conn.execute("COMMIT;")
                 except Exception as exc:
