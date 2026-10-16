@@ -26,6 +26,26 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Auto-bootstrap project virtual environment if argon2-cffi is not installed in the active interpreter
+try:
+    import argon2  # noqa: F401
+except ImportError:
+    venv_py = PROJECT_ROOT / ".venv" / "bin" / "python"
+    if venv_py.is_file() and os.access(venv_py, os.X_OK) and Path(sys.executable).resolve() != venv_py.resolve():
+        os.execv(str(venv_py), [str(venv_py)] + sys.argv)
+    else:
+        print(
+            "[ERROR] Missing required dependency 'argon2-cffi'.\n"
+            "        Please run this script using the project virtual environment:\n"
+            "          uv run python scripts/init_teacher.py\n"
+            "        or activate the virtual environment:\n"
+            "          source .venv/bin/activate && python scripts/init_teacher.py\n"
+            "        or install dependencies:\n"
+            "          uv sync",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
 from services.api.auth.security import hash_password
 from services.api.config import load_project_env, settings
 from services.api.repository.memory_repo import UserDoc, utc_now

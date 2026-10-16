@@ -68,8 +68,13 @@ def test_argon2id_hashing_and_verification():
 
 def test_teacher_account_initialization_idempotency(tmp_path, monkeypatch):
     """Verifies that init_teacher_account is idempotent and does not overwrite existing password without reset."""
+    monkeypatch.delenv("CLASSLENS_DEMO_PASSWORD", raising=False)
     db_file = tmp_path / "init_test.db"
     repo = SqliteAssessmentRepository(db_path=db_file)
+    sarah = repo.get_user("usr_sarah_lim")
+    if sarah:
+        sarah.password_hash = None
+        repo.save_user(sarah)
 
     monkeypatch.setattr("scripts.init_teacher.mem_mod.memory_repo", repo)
 
