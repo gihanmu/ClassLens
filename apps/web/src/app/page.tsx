@@ -93,7 +93,22 @@ export default function ClassLensApp() {
         console.warn("Could not list assessments:", e);
       }
 
-      const asm = await api.getAssessment(targetAsmId);
+      let asm: Assessment | null = null;
+      try {
+        asm = await api.getAssessment(targetAsmId);
+      } catch (e) {
+        console.warn(`Could not load target assessment ${targetAsmId}, checking list:`, e);
+        try {
+          const freshAsms = await api.listAssessments();
+          if (freshAsms.length > 0) {
+            targetAsmId = freshAsms[0].id;
+            setCurrentAssessmentId(targetAsmId);
+            asm = await api.getAssessment(targetAsmId);
+          }
+        } catch {
+          // Fallback gracefully
+        }
+      }
       setAssessment(asm);
 
       const resps = await api.listResponses(targetAsmId);
@@ -119,6 +134,16 @@ export default function ClassLensApp() {
   const handleSelectAssessment = async (newAsmId: string) => {
     setCurrentAssessmentId(newAsmId);
     setShowAssessmentModal(false);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("classlens_active_assessment_id", newAsmId);
+        const url = new URL(window.location.href);
+        url.searchParams.set("asm", newAsmId);
+        window.history.replaceState({}, "", url.toString());
+      } catch (e) {
+        console.warn("Could not save active assessment to storage/url:", e);
+      }
+    }
     await loadData(newAsmId);
   };
 
@@ -129,9 +154,14 @@ export default function ClassLensApp() {
       const respParam = params.get("response");
       const tabParam = params.get("tab");
       const asmParam = params.get("asm");
-      if (asmParam && (asmParam === "asm_1065658" || asmParam === "asm_synthetic_cases")) {
-        targetAsm = asmParam;
-        setCurrentAssessmentId(asmParam);
+      const savedAsm = localStorage.getItem("classlens_active_assessment_id");
+
+      if (asmParam && asmParam.trim()) {
+        targetAsm = asmParam.trim();
+        setCurrentAssessmentId(targetAsm);
+      } else if (savedAsm && savedAsm.trim()) {
+        targetAsm = savedAsm.trim();
+        setCurrentAssessmentId(targetAsm);
       }
       if (respParam) setSelectedResponseId(respParam);
       if (
@@ -1334,8 +1364,19 @@ export default function ClassLensApp() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onAssessmentCreated={async (newAsm) => {
-          await loadData(newAsm.id);
           setCurrentAssessmentId(newAsm.id);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("classlens_active_assessment_id", newAsm.id);
+              const url = new URL(window.location.href);
+              url.searchParams.set("asm", newAsm.id);
+              url.searchParams.set("tab", "responses");
+              window.history.replaceState({}, "", url.toString());
+            } catch (e) {
+              console.warn("Could not save new assessment to storage/url:", e);
+            }
+          }
+          await loadData(newAsm.id);
           setCurrentTab("responses");
         }}
       />

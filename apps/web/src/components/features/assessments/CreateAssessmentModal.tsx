@@ -21,17 +21,30 @@ export function CreateAssessmentModal({
   onClose,
   onAssessmentCreated,
 }: CreateAssessmentModalProps) {
-  const [title, setTitle] = useState("Integers on Number Line: Checkpoint 2");
-  const [topic, setTopic] = useState("Integer operations on number lines");
-  const [gradeLevel, setGradeLevel] = useState("Secondary 1");
+  const [title, setTitle] = useState("");
+  const [topic, setTopic] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [classId, setClassId] = useState("cls_sec1_math");
-  const [questionText, setQuestionText] = useState(
-    "Use the number line to evaluate -6 + 12 - 4"
-  );
-  const [latexFormula, setLatexFormula] = useState("-6 + 12 - 4");
-  const [expectedAnswer, setExpectedAnswer] = useState("2");
+  const [questionText, setQuestionText] = useState("");
+  const [latexFormula, setLatexFormula] = useState("");
+  const [expectedAnswer, setExpectedAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset all fields whenever the modal is opened
+  React.useEffect(() => {
+    if (isOpen) {
+      setTitle("");
+      setTopic("");
+      setGradeLevel("");
+      setClassId("cls_sec1_math");
+      setQuestionText("");
+      setLatexFormula("");
+      setExpectedAnswer("");
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +58,9 @@ export function CreateAssessmentModal({
       setError(null);
       const input: CreateAssessmentInput = {
         title: title.trim(),
-        class_id: classId.trim(),
-        math_topic: topic.trim(),
-        grade_level: gradeLevel.trim(),
+        class_id: classId.trim() || "cls_sec1_math",
+        math_topic: topic.trim() || "Integer operations on number lines",
+        grade_level: gradeLevel.trim() || "Secondary 1",
         question_text: questionText.trim(),
         latex_formula: latexFormula.trim(),
         expected_answer: expectedAnswer.trim(),
@@ -115,7 +128,7 @@ export function CreateAssessmentModal({
               <Input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="Integer operations on number lines"
+                placeholder="e.g. Integer operations on number lines"
                 className="text-xs sm:text-sm h-9 sm:h-10"
               />
             </div>
@@ -155,7 +168,7 @@ export function CreateAssessmentModal({
               <Input
                 value={latexFormula}
                 onChange={(e) => setLatexFormula(e.target.value)}
-                placeholder="-6 + 12 - 4"
+                placeholder="e.g. -6 + 12 - 4"
                 className="font-mono text-xs sm:text-sm h-9 sm:h-10"
               />
               <span className="text-[10px] text-ink-muted block">
@@ -169,7 +182,7 @@ export function CreateAssessmentModal({
               <Input
                 value={expectedAnswer}
                 onChange={(e) => setExpectedAnswer(e.target.value)}
-                placeholder="2"
+                placeholder="e.g. 2"
                 className="font-mono text-xs sm:text-sm h-9 sm:h-10"
               />
               <span className="text-[10px] text-ink-muted block">

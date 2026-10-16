@@ -42,7 +42,7 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 
 class CreateAssessmentRequest(BaseModel):
-    title: str = "Integers on Number Line: Checkpoint 1"
+    title: str = Field(..., min_length=1, description="Assessment title")
     class_id: str = "cls_sec1_math"
     math_topic: str = "Integer operations on number lines"
     grade_level: str = "Secondary 1"
@@ -80,9 +80,9 @@ async def create_assessment(
     """Creates a new assessment record."""
     q_cfg = req.question or QuestionConfig(
         problem_reference_id=uuid.uuid4().hex[:6],
-        question_text=req.question_text or "Use the number line to evaluate -6 + 12 - 4",
-        latex_formula=req.latex_formula or "-6 + 12 - 4",
-        expected_answer=req.expected_answer or "2",
+        question_text=req.question_text or req.title,
+        latex_formula=req.latex_formula or "",
+        expected_answer=req.expected_answer or "",
     )
     if req.question_text:
         q_cfg.question_text = req.question_text
