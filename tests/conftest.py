@@ -20,6 +20,11 @@ os.makedirs(_TEST_UPLOADS_DIR, exist_ok=True)
 
 os.environ["CLASSLENS_DATA_DIR"] = _TEST_DATA_DIR
 os.environ["CLASSLENS_UPLOADS_DIR"] = _TEST_UPLOADS_DIR
+os.environ["CLASSLENS_AI_MODE"] = "mock"
+os.environ["CLASSLENS_LIVE_INFERENCE_ENABLED"] = "false"
+os.environ["CLASSLENS_MAX_LIVE_CALLS"] = "3"
+os.environ["MOCK_LLM"] = "true"
+os.environ["ENVIRONMENT"] = "development"
 
 
 @pytest.fixture(scope="session", autouse=True)

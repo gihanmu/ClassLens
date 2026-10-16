@@ -716,10 +716,15 @@ class SqliteAssessmentRepository:
                 ),
             ]
 
+            from services.worker.agents.provider import MockVisualEvidenceProvider
+
             imported: List[ResponseDoc] = []
             for cid, label, filename in cases:
                 doc_id = cid if assessment_id == "asm_synthetic_cases" else f"{assessment_id}_{cid}"
-                analysis = MultiAgentPipeline.analyze_response(response_id=cid)
+                analysis = MultiAgentPipeline.analyze_response(
+                    response_id=cid,
+                    provider=MockVisualEvidenceProvider(),
+                )
                 doc = ResponseDoc(
                     id=doc_id,
                     assessment_id=assessment_id,

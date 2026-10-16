@@ -102,9 +102,22 @@ class InlineDispatcher(BaseDispatcher):
                 memory_repo.increment_job_progress(job_id, success=True)
                 return
 
+            target_val = 2.0
+            rule_str = "-6 + 12 - 4"
+            if asm and asm.question:
+                if asm.question.latex_formula:
+                    rule_str = asm.question.latex_formula
+                if asm.question.expected_answer:
+                    try:
+                        target_val = float(asm.question.expected_answer)
+                    except ValueError:
+                        pass
+
             analysis = MultiAgentPipeline.analyze_response(
                 response_id=resp_id,
                 image_source=image_source,
+                rule_expr=rule_str,
+                target_value=target_val,
             )
 
             resp.task_status = "COMPLETED"
@@ -146,12 +159,16 @@ class InlineDispatcher(BaseDispatcher):
         job_id: str,
         assessment_id: str,
         response_ids: List[str],
+        max_concurrency: int = 2,
     ) -> None:
-        """Dispatches each response analysis in parallel via asyncio tasks."""
-        tasks = [
-            self._process_single_response(job_id, assessment_id, resp_id)
-            for resp_id in response_ids
-        ]
+        """Dispatches response analysis with bounded concurrency to prevent API deadline timeouts."""
+        sem = asyncio.Semaphore(max_concurrency)
+
+        async def _bounded_worker(resp_id: str) -> None:
+            async with sem:
+                await self._process_single_response(job_id, assessment_id, resp_id)
+
+        tasks = [_bounded_worker(resp_id) for resp_id in response_ids]
         await asyncio.gather(*tasks)
 
 

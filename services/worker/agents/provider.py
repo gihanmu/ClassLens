@@ -191,14 +191,31 @@ def gemini_schema_to_visual_evidence(
             )
         )
 
-    # 4. Uncertainty and overall confidence
+    # 4. Alternative visual models or unsupported notations
+    unsupported_items = getattr(schema, "unsupported_observations", []) or []
+    for unsupp in unsupported_items:
+        observations.append(
+            VisualObservation(
+                kind="text_label",
+                value=str(unsupp),
+                confidence=0.90,
+            )
+        )
+
+    req_review = schema.requires_teacher_review
+    review_reason = schema.teacher_review_reason
+    if not schema.number_line.is_present and not schema.number_line.observed_hops and unsupported_items:
+        req_review = True
+        review_reason = review_reason or "Alternative visual model observed (e.g. tape/area model). Teacher review recommended."
+
+    # 5. Uncertainty and overall confidence
     if confidence_override is not None:
         overall_conf = confidence_override
     elif quality_status == QualityStatus.UNREADABLE:
         overall_conf = 0.30
-    elif schema.requires_teacher_review and any(a.severity == "blocking" for a in schema.ambiguities):
+    elif req_review and any(a.severity == "blocking" for a in schema.ambiguities):
         overall_conf = 0.60
-    elif schema.requires_teacher_review:
+    elif req_review:
         overall_conf = 0.68
     else:
         obs_confs = [o.confidence for o in observations]
@@ -216,8 +233,8 @@ def gemini_schema_to_visual_evidence(
         provenance=model_id,
         resolution_mode="high_res_evaluation" if high_res_mode else "standard_768px",
         ambiguities=ambiguity_strings,
-        requires_teacher_review=schema.requires_teacher_review,
-        teacher_review_reason=schema.teacher_review_reason,
+        requires_teacher_review=req_review,
+        teacher_review_reason=review_reason,
         raw_extraction=schema.model_dump(),
     )
 

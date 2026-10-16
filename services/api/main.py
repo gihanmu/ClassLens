@@ -45,4 +45,8 @@ async def health_check():
         "version": settings.app_version,
         "environment": settings.environment,
         "queue_type": settings.queue_type,
+        "ai_mode": settings.ai_mode,
+        "is_live_authorized": settings.is_live_authorized(),
+        "gemini_model": settings.gemini_model,
+        "google_cloud_project": settings.google_cloud_project,
     }
