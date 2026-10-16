@@ -142,6 +142,15 @@ def is_trusted_synthetic(target: Union[str, Path, bytes]) -> bool:
 TRUSTED_UPLOADS_DIR = (PROJECT_ROOT / "local-data" / "uploads").resolve()
 
 
+def get_trusted_uploads_dir() -> Path:
+    """Returns the dynamically configured trusted uploads directory."""
+    try:
+        from services.api.repository.storage_config import get_uploads_dir
+        return get_uploads_dir().resolve()
+    except Exception:
+        return TRUSTED_UPLOADS_DIR
+
+
 def verify_uploaded_worksheet_path(
     file_path: Union[str, Path],
     auth_key: Optional[str] = None,
@@ -182,20 +191,34 @@ def verify_uploaded_worksheet_path(
         raise UntrustedProvenanceError(f"Provenance Guard Block: Uploaded worksheet file not found: {file_path}")
 
     # 4. Path confinement check
-    try:
-        resolved.relative_to(TRUSTED_UPLOADS_DIR)
-    except ValueError:
+    trusted_dirs = [get_trusted_uploads_dir(), TRUSTED_UPLOADS_DIR]
+    in_trusted = False
+    for t_dir in trusted_dirs:
+        try:
+            resolved.relative_to(t_dir)
+            in_trusted = True
+            break
+        except ValueError:
+            pass
+
+    if not in_trusted:
         raise UntrustedProvenanceError(
             f"Provenance Guard Block: Path '{resolved}' escapes the trusted uploads directory: "
-            f"'{TRUSTED_UPLOADS_DIR}'. Path traversal and unauthorized directory access are blocked."
+            f"'{trusted_dirs[0]}'. Path traversal and unauthorized directory access are blocked."
         )
 
     # 5. Check for symlink escaping
     if os.path.islink(raw_path):
         real_target = Path(os.path.realpath(raw_path))
-        try:
-            real_target.relative_to(TRUSTED_UPLOADS_DIR)
-        except ValueError:
+        symlink_in_trusted = False
+        for t_dir in trusted_dirs:
+            try:
+                real_target.relative_to(t_dir)
+                symlink_in_trusted = True
+                break
+            except ValueError:
+                pass
+        if not symlink_in_trusted:
             raise UntrustedProvenanceError(
                 f"Provenance Guard Block: Symlink '{raw_path}' resolves outside trusted uploads root."
             )

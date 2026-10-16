@@ -10,6 +10,7 @@ export interface Assessment {
   math_topic?: string;
   grade_level?: string;
   status: string;
+  is_demo?: boolean;
   question: {
     problem_reference_id: string;
     question_text: string;
@@ -233,6 +234,7 @@ export interface AssessmentSummaryItem {
   correct_answers_count?: number;
   correct_answers_pct?: number;
   status: "ready" | "analyzed" | "analyzing" | "awaiting_analysis";
+  is_demo?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -202,10 +202,11 @@ async def get_response_image(
     """Serves the student response handwritten image file read-only."""
     resp = _get_verified_response(response_id, user.organization_id)
 
+    from services.api.repository.storage_config import get_uploads_dir
     from services.worker.security.provenance_guard import TRUSTED_SYNTHETIC_DIR
 
     # Check local uploads directory first
-    uploads_dir = os.path.realpath(os.path.join(os.getcwd(), "local-data", "uploads"))
+    uploads_dir = os.path.realpath(str(get_uploads_dir()))
     upload_candidates = [
         os.path.join(uploads_dir, user.organization_id, resp.assessment_id, resp.source_filename),
         os.path.join(uploads_dir, user.organization_id, resp.source_filename),

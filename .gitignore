@@ -59,6 +59,8 @@ pnpm-debug.log*
 *.sqlite3
 *.db
 *.db-journal
+*.bak
+*.bak.*
 tmp/
 temp/
 .cache/

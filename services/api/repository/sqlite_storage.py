@@ -21,9 +21,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from services.api.repository.storage_config import DEFAULT_DATA_DIR, get_data_dir
 
-DEFAULT_DATA_DIR = Path("local-data/store")
+logger = logging.getLogger(__name__)
 
 
 def utc_now_iso() -> str:
@@ -71,6 +71,7 @@ class SqliteDatabaseManager:
             math_topic TEXT,
             grade_level TEXT,
             status TEXT NOT NULL DEFAULT 'ready',
+            is_demo INTEGER NOT NULL DEFAULT 0,
             question_json TEXT NOT NULL,
             total_responses INTEGER DEFAULT 0,
             reviewed_responses INTEGER DEFAULT 0,
@@ -131,8 +132,16 @@ class SqliteDatabaseManager:
             created_at TEXT NOT NULL
         );
         """,
+        """
+        CREATE TABLE IF NOT EXISTS app_metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        """,
         # Indexes for fast querying & aggregations
         "CREATE INDEX IF NOT EXISTS idx_assessments_org ON assessments (organization_id);",
+        "CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);",
         "CREATE INDEX IF NOT EXISTS idx_responses_assessment ON responses (assessment_id);",
         "CREATE INDEX IF NOT EXISTS idx_responses_task_status ON responses (task_status);",
         "CREATE INDEX IF NOT EXISTS idx_responses_review ON responses (needs_teacher_review, teacher_review_status);",
@@ -170,11 +179,37 @@ class SqliteDatabaseManager:
                 try:
                     for stmt in self.DDL_STATEMENTS:
                         conn.execute(stmt)
+
+                    # Ensure is_demo exists on assessments for pre-existing databases
+                    cur = conn.execute("PRAGMA table_info(assessments);")
+                    cols = [r["name"] for r in cur.fetchall()]
+                    if "is_demo" not in cols:
+                        conn.execute("ALTER TABLE assessments ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;")
+                        conn.execute("CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);")
+
                     conn.execute("COMMIT;")
                 except Exception as exc:
                     conn.execute("ROLLBACK;")
                     logger.error(f"Failed to initialize SQLite schema: {exc}")
                     raise
+
+    def get_metadata(self, key: str) -> Optional[str]:
+        """Retrieves a metadata value by key."""
+        with self.get_connection() as conn:
+            cur = conn.execute("SELECT value FROM app_metadata WHERE key = ?", (key,))
+            row = cur.fetchone()
+            return row["value"] if row else None
+
+    def set_metadata(self, key: str, value: str) -> None:
+        """Sets a metadata key-value pair idempotently."""
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO app_metadata (key, value, updated_at) VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;
+                """,
+                (key, value, utc_now_iso()),
+            )
 
     def migrate_from_json_if_needed(self, data_dir: Path, org_id: str = "org_cedar_sec") -> bool:
         """Non-destructively migrates records from existing JSON state file into SQLite if tables are empty."""

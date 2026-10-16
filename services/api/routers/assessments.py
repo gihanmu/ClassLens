@@ -33,6 +33,7 @@ from services.api.repository.memory_repo import (
     memory_repo,
     utc_now,
 )
+from services.api.repository.storage_config import get_uploads_dir
 from services.worker.intake.quality_service import ImageQualityService
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ async def create_assessment(
         math_topic=req.math_topic,
         grade_level=req.grade_level,
         status="ready",
+        is_demo=False,
         question=q_cfg,
         total_responses=0,
         reviewed_responses=0,
@@ -290,10 +292,10 @@ async def upload_student_worksheet(
             detail=validation_result.error_message or "Invalid or malicious image file",
         )
 
-    # 2. Secure file persistence in local-data/uploads/{org_id}/{assessment_id}/
+    # 2. Secure file persistence in uploads directory
     safe_org = re.sub(r"[^a-zA-Z0-9_-]", "_", user.organization_id)
     safe_asm = re.sub(r"[^a-zA-Z0-9_-]", "_", assessment_id)
-    upload_dir = Path("local-data/uploads") / safe_org / safe_asm
+    upload_dir = get_uploads_dir() / safe_org / safe_asm
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     clean_orig_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", file.filename or "worksheet.jpg")
@@ -376,7 +378,7 @@ async def upload_batch_student_worksheets(
 
     safe_org = re.sub(r"[^a-zA-Z0-9_-]", "_", user.organization_id)
     safe_asm = re.sub(r"[^a-zA-Z0-9_-]", "_", assessment_id)
-    upload_dir = Path("local-data/uploads") / safe_org / safe_asm
+    upload_dir = get_uploads_dir() / safe_org / safe_asm
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     created_docs: List[ResponseDoc] = []

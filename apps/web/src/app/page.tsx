@@ -70,6 +70,7 @@ export default function ClassLensApp() {
   const [showHeroBanner, setShowHeroBanner] = useState<boolean>(false);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+  const [assessmentFilter, setAssessmentFilter] = useState<"all" | "classroom" | "demo">("all");
 
   const asmId = currentAssessmentId;
 
@@ -987,121 +988,231 @@ export default function ClassLensApp() {
         {/* =========================================================================
             SCREEN G: ASSESSMENTS MANAGEMENT VIEW
            ========================================================================= */}
-        {currentTab === "assessments" && (
-          <div className="space-y-6">
-            <PageHeader
-              title="Assessment Management"
-              subtitle="Review, create, and configure mathematics diagnostic checkpoints."
-              actions={
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowUploadModal(true)}
-                    className="border-brand-primary/30 text-brand-primary hover:bg-brand-light/30 font-semibold"
-                  >
-                    <UploadCloud className="w-4 h-4 mr-1 text-brand-primary" />
-                    Upload Worksheets
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    New Assessment
-                  </Button>
+        {currentTab === "assessments" && (() => {
+          const rawAssessments = assessmentsList.length > 0 ? assessmentsList : assessment ? [assessment] : [];
+          const isDemoAssessment = (a: Assessment) =>
+            Boolean(a.is_demo) || a.id === "asm_1065658" || a.id === "asm_synthetic_cases";
+
+          const totalAll = rawAssessments.length;
+          const totalClassroom = rawAssessments.filter((a) => !isDemoAssessment(a)).length;
+          const totalDemo = rawAssessments.filter((a) => isDemoAssessment(a)).length;
+
+          const displayedAssessments = rawAssessments.filter((a) => {
+            if (assessmentFilter === "classroom") return !isDemoAssessment(a);
+            if (assessmentFilter === "demo") return isDemoAssessment(a);
+            return true;
+          });
+
+          return (
+            <div className="space-y-6">
+              <PageHeader
+                title="Assessment Management"
+                subtitle="Review, create, and configure mathematics diagnostic checkpoints."
+                actions={
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowUploadModal(true)}
+                      className="border-brand-primary/30 text-brand-primary hover:bg-brand-light/30 font-semibold"
+                    >
+                      <UploadCloud className="w-4 h-4 mr-1 text-brand-primary" />
+                      Upload Worksheets
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowCreateModal(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      New Assessment
+                    </Button>
+                  </div>
+                }
+              />
+
+              {/* Assessment Type Filter Pills */}
+              <div className="flex items-center gap-2 border-b border-border-default pb-3 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setAssessmentFilter("all")}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
+                    assessmentFilter === "all"
+                      ? "bg-brand-primary text-white shadow-xs"
+                      : "bg-surface-subtle text-ink-secondary hover:text-ink-primary hover:bg-surface-base border border-border-default"
+                  )}
+                >
+                  All Checkpoints ({totalAll})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssessmentFilter("classroom")}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5",
+                    assessmentFilter === "classroom"
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "bg-surface-subtle text-ink-secondary hover:text-ink-primary hover:bg-surface-base border border-border-default"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                  Classroom Checkpoints ({totalClassroom})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssessmentFilter("demo")}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5",
+                    assessmentFilter === "demo"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "bg-surface-subtle text-ink-secondary hover:text-ink-primary hover:bg-surface-base border border-border-default"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                  Demo Showcases ({totalDemo})
+                </button>
+              </div>
+
+              {displayedAssessments.length === 0 ? (
+                <div className="p-12 text-center border border-dashed border-border-default rounded-2xl bg-surface-subtle/50 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-brand-light/50 text-brand-primary flex items-center justify-center mx-auto">
+                    <FolderOpen className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-bold text-ink-primary text-base">
+                    {assessmentFilter === "classroom"
+                      ? "No Classroom Assessments Yet"
+                      : assessmentFilter === "demo"
+                      ? "No Demo Showcases Found"
+                      : "No Assessments Found"}
+                  </h3>
+                  <p className="text-xs text-ink-secondary max-w-md mx-auto">
+                    {assessmentFilter === "classroom"
+                      ? "Create custom mathematics diagnostic checkpoints for your own classes using the 'New Assessment' button."
+                      : "No matching checkpoints found for the selected filter."}
+                  </p>
+                  {assessmentFilter === "classroom" && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowCreateModal(true)}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Create First Classroom Assessment
+                    </Button>
+                  )}
                 </div>
-              }
-            />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {displayedAssessments.map((asm) => {
+                    const isActive = asm.id === currentAssessmentId;
+                    const isDemo = isDemoAssessment(asm);
+                    const classNameLabel =
+                      asm.class_id === "cls_sec1_math"
+                        ? "Sec 1 Mathematics"
+                        : asm.class_id || "Classroom";
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {(assessmentsList.length > 0 ? assessmentsList : assessment ? [assessment] : []).map((asm) => {
-                const isActive = asm.id === currentAssessmentId;
-                return (
-                  <Card
-                    key={asm.id}
-                    variant={isActive ? "highlighted" : "default"}
-                    className={cn(
-                      "transition-all flex flex-col justify-between",
-                      isActive ? "ring-2 ring-brand-primary/40 shadow-sm" : "hover:border-brand-primary/40"
-                    )}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
-                            isActive
-                              ? "bg-brand-light text-brand-primary font-bold"
-                              : "bg-surface-subtle text-ink-secondary border border-border-default"
-                          )}
-                        >
-                          {isActive ? "Active Assessment" : asm.grade_level || "Secondary 1"}
-                        </span>
-                        <span className="text-[11px] font-mono text-ink-muted">{asm.id}</span>
-                      </div>
-                      <CardTitle className="text-base mt-2 line-clamp-1">{asm.title}</CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {asm.math_topic || "Integer operations on number lines"}
-                        {asm.question?.question_text ? ` • ${asm.question.question_text}` : ""}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-0">
-                      <div className="space-y-1.5 text-xs text-ink-secondary bg-surface-subtle/50 p-2.5 rounded-lg border border-border-default">
-                        <div className="flex justify-between py-0.5">
-                          <span>Total Submissions:</span>
-                          <strong className="text-ink-primary font-mono">
-                            {isActive ? responses.length : (asm.total_responses ?? 0)} Worksheets
-                          </strong>
-                        </div>
-                        <div className="flex justify-between py-0.5">
-                          <span>Expected Solution:</span>
-                          <strong className="text-emerald-700 font-mono">
-                            {asm.question?.expected_answer || "+2"} (SymPy Verified)
-                          </strong>
-                        </div>
-                        <div className="flex justify-between py-0.5">
-                          <span>Status:</span>
-                          <strong className="text-ink-primary font-mono capitalize">
-                            {asm.status || "ready"}
-                          </strong>
-                        </div>
-                      </div>
+                    return (
+                      <Card
+                        key={asm.id}
+                        variant={isActive ? "highlighted" : "default"}
+                        className={cn(
+                          "transition-all flex flex-col justify-between",
+                          isActive ? "ring-2 ring-brand-primary/40 shadow-sm" : "hover:border-brand-primary/40"
+                        )}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isActive && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white tracking-wide uppercase">
+                                  Active
+                                </span>
+                              )}
+                              {isDemo ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                  Demo Showcase
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  Classroom Checkpoint
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-medium text-ink-secondary bg-surface-subtle px-2 py-0.5 rounded-md border border-border-default">
+                              {classNameLabel}
+                              {asm.grade_level ? ` • ${asm.grade_level}` : ""}
+                            </span>
+                          </div>
+                          <CardTitle className="text-base mt-2.5 line-clamp-1">{asm.title}</CardTitle>
+                          <CardDescription className="line-clamp-2 text-xs">
+                            {asm.math_topic || "Integer operations on number lines"}
+                            {asm.question?.question_text ? ` • ${asm.question.question_text}` : ""}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0">
+                          <div className="space-y-1.5 text-xs text-ink-secondary bg-surface-subtle/50 p-2.5 rounded-lg border border-border-default">
+                            <div className="flex justify-between py-0.5">
+                              <span>Class & Grade:</span>
+                              <strong className="text-ink-primary font-medium">
+                                {classNameLabel} • {asm.grade_level || "Secondary 1"}
+                              </strong>
+                            </div>
+                            <div className="flex justify-between py-0.5">
+                              <span>Total Submissions:</span>
+                              <strong className="text-ink-primary font-mono">
+                                {isActive ? responses.length : (asm.total_responses ?? 0)} Worksheets
+                              </strong>
+                            </div>
+                            <div className="flex justify-between py-0.5">
+                              <span>Expected Solution:</span>
+                              <strong className="text-emerald-700 font-mono">
+                                {asm.question?.expected_answer || "+2"} (SymPy Verified)
+                              </strong>
+                            </div>
+                            <div className="flex justify-between py-0.5">
+                              <span>Status:</span>
+                              <strong className="text-ink-primary font-mono capitalize">
+                                {asm.status || "ready"}
+                              </strong>
+                            </div>
+                          </div>
 
-                      <div className="flex items-center gap-2 pt-1">
-                        <Button
-                          variant={isActive ? "secondary" : "outline"}
-                          size="sm"
-                          className="flex-1 text-xs"
-                          onClick={() => {
-                            if (!isActive) handleSelectAssessment(asm.id);
-                            setCurrentTab("responses");
-                          }}
-                        >
-                          {isActive ? "View Submissions" : "Select Checkpoint"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-brand-primary hover:bg-brand-light/30"
-                          onClick={() => {
-                            if (!isActive) handleSelectAssessment(asm.id);
-                            setShowUploadModal(true);
-                          }}
-                          title="Upload new worksheets to this assessment"
-                        >
-                          <UploadCloud className="w-3.5 h-3.5 mr-1" />
-                          Upload
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                          <div className="flex items-center gap-2 pt-1">
+                            <Button
+                              variant={isActive ? "secondary" : "outline"}
+                              size="sm"
+                              className="flex-1 text-xs"
+                              onClick={() => {
+                                if (!isActive) handleSelectAssessment(asm.id);
+                                setCurrentTab("responses");
+                              }}
+                            >
+                              {isActive ? "View Submissions" : "Select Checkpoint"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-brand-primary hover:bg-brand-light/30"
+                              onClick={() => {
+                                if (!isActive) handleSelectAssessment(asm.id);
+                                setShowUploadModal(true);
+                              }}
+                              title="Upload new worksheets to this assessment"
+                            >
+                              <UploadCloud className="w-3.5 h-3.5 mr-1" />
+                              Upload
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* =========================================================================
             SCREEN F: AI RELIABILITY & BENCHMARK EVALUATION (GATE 4C)
@@ -1152,15 +1263,18 @@ export default function ClassLensApp() {
                     id: "asm_1065658",
                     title: "Checkpoint 1 — Integers & Number Lines",
                     math_topic: "Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)",
+                    is_demo: true,
                   },
                   {
                     id: "asm_synthetic_cases",
                     title: "Synthetic Feasibility Benchmark: Cases 1–3",
                     math_topic: "3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous & Incomplete",
+                    is_demo: true,
                   },
                 ]
             ).map((asm) => {
               const isSelected = currentAssessmentId === asm.id;
+              const isDemo = ("is_demo" in asm && Boolean(asm.is_demo)) || asm.id === "asm_1065658" || asm.id === "asm_synthetic_cases";
               return (
                 <div
                   key={asm.id}
@@ -1173,9 +1287,16 @@ export default function ClassLensApp() {
                   )}
                 >
                   <div className="pr-2">
-                    <p className="font-bold text-ink-primary text-sm">{asm.title}</p>
+                    <p className="font-bold text-ink-primary text-sm flex items-center gap-1.5">
+                      {asm.title}
+                      {isDemo && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          Demo
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-1">
-                      {asm.math_topic || ("question" in asm ? asm.question?.question_text : undefined) || asm.id}
+                      {asm.math_topic || ("question" in asm ? asm.question?.question_text : undefined) || "Mathematics Checkpoint"}
                     </p>
                   </div>
                   {isSelected && (

@@ -16,17 +16,16 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from services.api.repository.storage_config import get_data_dir
 
-DEFAULT_DATA_DIR = Path("local-data/store")
+logger = logging.getLogger(__name__)
 
 
 class LocalStatePersistence:
     """Manages atomic, tenant-isolated state serialization to disk."""
 
     def __init__(self, data_dir: Optional[Path] = None):
-        env_dir = os.environ.get("CLASSLENS_DATA_DIR")
-        self.data_dir = Path(env_dir) if env_dir else (data_dir or DEFAULT_DATA_DIR)
+        self.data_dir = data_dir or get_data_dir()
         try:
             self.data_dir.mkdir(parents=True, exist_ok=True)
         except Exception as exc:

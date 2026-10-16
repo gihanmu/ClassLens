@@ -10,6 +10,7 @@ from typing import List
 from services.api.config import settings
 from services.api.dispatch.dispatcher import BaseDispatcher
 from services.api.repository.memory_repo import memory_repo
+from services.api.repository.storage_config import get_uploads_dir
 from services.worker.agents.mock_adapter import BENCHMARK_FIXTURES
 from services.worker.agents.pipeline import MultiAgentPipeline
 from services.worker.fixtures.problem_1065658_fixtures import MOCK_FIXTURES
@@ -52,7 +53,7 @@ class InlineDispatcher(BaseDispatcher):
             # Locate source image if available
             image_source = None
             if resp.source_filename:
-                uploads_dir = (Path.cwd() / "local-data" / "uploads").resolve()
+                uploads_dir = get_uploads_dir().resolve()
                 asm = memory_repo.get_assessment(resp.assessment_id)
                 org_id = asm.organization_id if asm else None
                 candidates = []

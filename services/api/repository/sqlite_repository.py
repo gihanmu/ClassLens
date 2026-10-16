@@ -23,11 +23,10 @@ from pydantic import BaseModel, Field
 
 from services.api.repository.local_persistence import LocalStatePersistence
 from services.api.repository.sqlite_storage import SqliteDatabaseManager, utc_now_iso
+from services.api.repository.storage_config import DEFAULT_DATA_DIR, get_data_dir
 from services.worker.fixtures.problem_1065658_fixtures import MOCK_FIXTURES
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_DATA_DIR = Path("local-data/store")
 
 
 def utc_now() -> datetime:
@@ -73,6 +72,7 @@ class AssessmentDoc(BaseModel):
     math_topic: str = "Integer operations on number lines"
     grade_level: str = "Secondary 1"
     status: str = "ready"  # draft, ready, processing, review, completed
+    is_demo: bool = False
     question: QuestionConfig = Field(default_factory=QuestionConfig)
     total_responses: int = 0
     reviewed_responses: int = 0
@@ -134,8 +134,7 @@ class SqliteAssessmentRepository:
 
     def __init__(self, data_dir: Optional[Path] = None):
         self._lock = threading.RLock()
-        env_dir = os.environ.get("CLASSLENS_DATA_DIR")
-        self.data_dir = Path(env_dir) if env_dir else (data_dir or DEFAULT_DATA_DIR)
+        self.data_dir = data_dir or get_data_dir()
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = self.data_dir / "classlens.db"
 
@@ -157,13 +156,37 @@ class SqliteAssessmentRepository:
         # 2. Load all state from SQLite into in-memory cache
         self._load_from_sqlite()
 
-        # 3. If still empty, seed default data
-        if not self.assessments:
-            self._seed_default_data()
+        # 3. Check demo seeding status in metadata:
+        # If metadata key 'demo_seeded' is absent and assessments is empty, seed demo data once.
+        # If assessments were deleted by user, do NOT re-seed on ordinary startup.
+        demo_seeded = self.db_manager.get_metadata("demo_seeded")
+        if demo_seeded is None and not self.assessments:
+            self.seed_demo_data(force=False)
             self._save_all_to_sqlite("org_cedar_sec")
+
+    def reconfigure(self, data_dir: Optional[Path] = None) -> None:
+        """Reconfigures the repository to use a specified or newly resolved data directory."""
+        with self._lock:
+            self.data_dir = data_dir or get_data_dir()
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            self.db_path = self.data_dir / "classlens.db"
+            self.db_manager = SqliteDatabaseManager(self.db_path)
+            self.persistence = LocalStatePersistence(data_dir=self.data_dir)
+            self.users.clear()
+            self.assessments.clear()
+            self.responses.clear()
+            self.audit_events.clear()
+            self.analysis_jobs.clear()
+            self.idempotency_keys.clear()
+            self._load_from_sqlite()
+            demo_seeded = self.db_manager.get_metadata("demo_seeded")
+            if demo_seeded is None and not self.assessments:
+                self.seed_demo_data(force=False)
+                self._save_all_to_sqlite("org_cedar_sec")
 
     def _row_to_assessment(self, row: Any) -> AssessmentDoc:
         q_data = json.loads(row["question_json"]) if row["question_json"] else {}
+        is_demo = bool(row["is_demo"]) if "is_demo" in row.keys() else False
         return AssessmentDoc(
             id=row["id"],
             class_id=row["class_id"],
@@ -172,6 +195,7 @@ class SqliteAssessmentRepository:
             math_topic=row["math_topic"] or "Mathematics",
             grade_level=row["grade_level"] or "Secondary 1",
             status=row["status"],
+            is_demo=is_demo,
             question=QuestionConfig(**q_data),
             total_responses=row["total_responses"],
             reviewed_responses=row["reviewed_responses"],
@@ -288,9 +312,9 @@ class SqliteAssessmentRepository:
                 """
                 INSERT INTO assessments (
                     id, class_id, organization_id, title, math_topic,
-                    grade_level, status, question_json, total_responses,
+                    grade_level, status, is_demo, question_json, total_responses,
                     reviewed_responses, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     class_id = excluded.class_id,
                     organization_id = excluded.organization_id,
@@ -298,6 +322,7 @@ class SqliteAssessmentRepository:
                     math_topic = excluded.math_topic,
                     grade_level = excluded.grade_level,
                     status = excluded.status,
+                    is_demo = excluded.is_demo,
                     question_json = excluded.question_json,
                     total_responses = excluded.total_responses,
                     reviewed_responses = excluded.reviewed_responses,
@@ -311,6 +336,7 @@ class SqliteAssessmentRepository:
                     doc.math_topic,
                     doc.grade_level,
                     doc.status,
+                    1 if doc.is_demo else 0,
                     q_json,
                     doc.total_responses,
                     doc.reviewed_responses,
@@ -578,44 +604,59 @@ class SqliteAssessmentRepository:
             ]
             self.persistence.save_tenant_state(org_id, org_asms, org_resps, org_evts)
 
+    def seed_demo_data(self, force: bool = False) -> None:
+        """Seeds the 2 canonical demo assessments with is_demo=True deterministically and idempotently."""
+        with self._lock:
+            sarah = UserDoc(
+                id="usr_sarah_lim",
+                email="sarah.lim@moe.edu.sg",
+                name="Sarah Lim",
+                role="teacher",
+                organization_id="org_cedar_sec",
+            )
+            self.users[sarah.id] = sarah
+
+            default_asm = AssessmentDoc(
+                id="asm_1065658",
+                class_id="cls_sec1_math",
+                organization_id="org_cedar_sec",
+                title="Integers on Number Line: Checkpoint 1",
+                math_topic="Integer operations on number lines",
+                grade_level="Secondary 1",
+                status="ready",
+                is_demo=True,
+                question=QuestionConfig(),
+            )
+            if force or "asm_1065658" not in self.assessments:
+                self.assessments[default_asm.id] = default_asm
+                self._save_assessment_to_sqlite(default_asm)
+                self.import_demo_responses(default_asm.id, default_asm.organization_id)
+
+            synthetic_asm = AssessmentDoc(
+                id="asm_synthetic_cases",
+                class_id="cls_sec1_math",
+                organization_id="org_cedar_sec",
+                title="Synthetic Feasibility Benchmark: Cases 1–3",
+                math_topic="Integer operations on number lines",
+                grade_level="Secondary 1",
+                status="ready",
+                is_demo=True,
+                question=QuestionConfig(
+                    problem_reference_id="synthetic_benchmark",
+                    question_text="Evaluate -6 + 12 - 4 on the number line (Evaluation Benchmark).",
+                    latex_formula="-6 + 12 - 4",
+                    expected_answer="2",
+                ),
+            )
+            if force or "asm_synthetic_cases" not in self.assessments:
+                self.assessments[synthetic_asm.id] = synthetic_asm
+                self._save_assessment_to_sqlite(synthetic_asm)
+                self.import_synthetic_demo_cases(synthetic_asm.id, synthetic_asm.organization_id)
+
+            self.db_manager.set_metadata("demo_seeded", "true")
+
     def _seed_default_data(self):
-        sarah = UserDoc(
-            id="usr_sarah_lim",
-            email="sarah.lim@moe.edu.sg",
-            name="Sarah Lim",
-            role="teacher",
-            organization_id="org_cedar_sec",
-        )
-        self.users[sarah.id] = sarah
-
-        default_asm = AssessmentDoc(
-            id="asm_1065658",
-            class_id="cls_sec1_math",
-            organization_id="org_cedar_sec",
-            title="Integers on Number Line: Checkpoint 1",
-            status="ready",
-            question=QuestionConfig(),
-        )
-        self.assessments[default_asm.id] = default_asm
-        self._save_assessment_to_sqlite(default_asm)
-        self.import_demo_responses(default_asm.id, default_asm.organization_id)
-
-        synthetic_asm = AssessmentDoc(
-            id="asm_synthetic_cases",
-            class_id="cls_sec1_math",
-            organization_id="org_cedar_sec",
-            title="Synthetic Feasibility Benchmark: Cases 1–3",
-            status="ready",
-            question=QuestionConfig(
-                problem_reference_id="synthetic_benchmark",
-                question_text="Evaluate -6 + 12 - 4 on the number line (Evaluation Benchmark).",
-                latex_formula="-6 + 12 - 4",
-                expected_answer="2",
-            ),
-        )
-        self.assessments[synthetic_asm.id] = synthetic_asm
-        self._save_assessment_to_sqlite(synthetic_asm)
-        self.import_synthetic_demo_cases(synthetic_asm.id, synthetic_asm.organization_id)
+        self.seed_demo_data(force=False)
 
     def import_synthetic_demo_cases(self, assessment_id: str, org_id: str) -> List[ResponseDoc]:
         with self._lock:
@@ -1057,9 +1098,9 @@ class SqliteAssessmentRepository:
                     "id": a.id,
                     "title": a.title,
                     "subject": "Mathematics",
-                    "topic": "Integers & Number Lines",
+                    "topic": getattr(a, "math_topic", None) or "Mathematics",
                     "class_id": a.class_id,
-                    "class_name": "Sec 1 Mathematics",
+                    "class_name": "Sec 1 Mathematics" if a.class_id == "cls_sec1_math" else (a.class_id or "Classroom"),
                     "total_submissions": len(a_resps),
                     "awaiting_analysis_count": len(a_pending),
                     "analyzed_count": len(a_analyzed),
@@ -1070,6 +1111,7 @@ class SqliteAssessmentRepository:
                     "correct_answers_count": a_correct_count,
                     "correct_answers_pct": round((a_correct_count / len(a_analyzed)) * 100) if a_analyzed else 0,
                     "status": status_label,
+                    "is_demo": getattr(a, "is_demo", False) or a.id in ("asm_1065658", "asm_synthetic_cases"),
                     "created_at": a.created_at.isoformat(),
                     "updated_at": a.updated_at.isoformat(),
                 })
