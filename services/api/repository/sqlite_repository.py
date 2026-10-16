@@ -48,8 +48,11 @@ class UserDoc(BaseModel):
     id: str
     email: str
     name: str
-    role: str = "teacher"
+    role: str = "Secondary 1 Mathematics Teacher"
     organization_id: str
+    school: Optional[str] = "Cedar Secondary School"
+    password_hash: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class QuestionConfig(BaseModel):
@@ -132,11 +135,15 @@ class AnalysisJobDoc(BaseModel):
 class SqliteAssessmentRepository:
     """Relational SQLite-backed assessment repository with cached in-memory access and JSON dual-persistence."""
 
-    def __init__(self, data_dir: Optional[Path] = None):
+    def __init__(self, data_dir: Optional[Path] = None, db_path: Optional[Path] = None):
         self._lock = threading.RLock()
-        self.data_dir = data_dir or get_data_dir()
+        if db_path is not None:
+            self.db_path = Path(db_path)
+            self.data_dir = self.db_path.parent
+        else:
+            self.data_dir = data_dir or get_data_dir()
+            self.db_path = self.data_dir / "classlens.db"
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.db_path = self.data_dir / "classlens.db"
 
         # Initialize SQLite database manager
         self.db_manager = SqliteDatabaseManager(self.db_path)
@@ -265,12 +272,16 @@ class SqliteAssessmentRepository:
                 # 1. Users
                 cur = conn.execute("SELECT * FROM users")
                 for r in cur.fetchall():
+                    cols = r.keys()
                     self.users[r["id"]] = UserDoc(
                         id=r["id"],
                         email=r["email"],
                         name=r["name"],
                         role=r["role"],
                         organization_id=r["organization_id"],
+                        school=r["school"] if "school" in cols else "Cedar Secondary School",
+                        password_hash=r["password_hash"] if "password_hash" in cols else None,
+                        created_at=parse_datetime(r["created_at"]) if "created_at" in cols and r["created_at"] else None,
                     )
 
                 # 2. Assessments
@@ -439,10 +450,19 @@ class SqliteAssessmentRepository:
                     for u in self.users.values():
                         conn.execute(
                             """
-                            INSERT OR REPLACE INTO users (id, email, name, role, organization_id, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?)
+                            INSERT OR REPLACE INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             """,
-                            (u.id, u.email, u.name, u.role, u.organization_id, utc_now_iso()),
+                            (
+                                u.id,
+                                u.email,
+                                u.name,
+                                u.role,
+                                u.organization_id,
+                                u.school or "Cedar Secondary School",
+                                u.password_hash,
+                                u.created_at.isoformat() if u.created_at else utc_now_iso(),
+                            ),
                         )
 
                     for a in self.assessments.values():
@@ -607,14 +627,26 @@ class SqliteAssessmentRepository:
     def seed_demo_data(self, force: bool = False) -> None:
         """Seeds the 2 canonical demo assessments with is_demo=True deterministically and idempotently."""
         with self._lock:
+            demo_pwd = os.getenv("CLASSLENS_DEMO_PASSWORD")
+            existing_user = self.get_user("usr_sarah_lim")
+            existing_hash = existing_user.password_hash if existing_user else None
+
+            initial_hash = existing_hash
+            if not initial_hash and demo_pwd:
+                from services.api.auth.security import hash_password
+                initial_hash = hash_password(demo_pwd)
+
             sarah = UserDoc(
                 id="usr_sarah_lim",
-                email="sarah.lim@moe.edu.sg",
-                name="Sarah Lim",
-                role="teacher",
+                email="teacher@classlens.demo",
+                name="Mrs. Sarah Lim",
+                role="Secondary 1 Mathematics Teacher",
                 organization_id="org_cedar_sec",
+                school="Cedar Secondary School",
+                password_hash=initial_hash,
             )
             self.users[sarah.id] = sarah
+            self.save_user(sarah)
 
             default_asm = AssessmentDoc(
                 id="asm_1065658",
@@ -791,6 +823,64 @@ class SqliteAssessmentRepository:
     def get_user(self, user_id: str) -> Optional[UserDoc]:
         with self._lock:
             return self.users.get(user_id)
+
+    def save_user(self, user: UserDoc) -> UserDoc:
+        with self._lock:
+            self.users[user.id] = user
+            with self.db_manager.get_connection() as conn:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        user.id,
+                        user.email,
+                        user.name,
+                        user.role,
+                        user.organization_id,
+                        user.school or "Cedar Secondary School",
+                        user.password_hash,
+                        user.created_at.isoformat() if user.created_at else utc_now_iso(),
+                    ),
+                )
+            return user
+
+    def get_user_by_identifier(self, identifier: str) -> Optional[UserDoc]:
+        with self._lock:
+            if not identifier:
+                return None
+            norm = identifier.strip().lower()
+            for u in self.users.values():
+                if (
+                    u.id.lower() == norm
+                    or u.email.lower() == norm
+                    or (norm in ("teacher@classlens.demo", "sarah.lim@moe.edu.sg", "usr_sarah_lim") and u.id == "usr_sarah_lim")
+                ):
+                    return u
+
+            # Fallback to SQLite
+            with self.db_manager.get_connection() as conn:
+                cur = conn.execute(
+                    "SELECT * FROM users WHERE LOWER(id) = ? OR LOWER(email) = ?",
+                    (norm, norm),
+                )
+                row = cur.fetchone()
+                if row:
+                    cols = row.keys()
+                    doc = UserDoc(
+                        id=row["id"],
+                        email=row["email"],
+                        name=row["name"],
+                        role=row["role"],
+                        organization_id=row["organization_id"],
+                        school=row["school"] if "school" in cols else "Cedar Secondary School",
+                        password_hash=row["password_hash"] if "password_hash" in cols else None,
+                        created_at=parse_datetime(row["created_at"]) if "created_at" in cols and row["created_at"] else None,
+                    )
+                    self.users[doc.id] = doc
+                    return doc
+            return None
 
     def create_assessment(self, doc: AssessmentDoc) -> AssessmentDoc:
         with self._lock:

@@ -5,6 +5,8 @@ import { AppHeader } from "@/components/shared/app-header";
 import { OfflineDemoBanner } from "@/components/shared/offline-demo-banner";
 import { Drawer } from "@/components/ui/drawer";
 
+import { UserProfile } from "@/lib/api";
+
 export interface AppShellProps {
   children: React.ReactNode;
   currentTab?: NavItemKey;
@@ -14,6 +16,8 @@ export interface AppShellProps {
   onRunAnalysis?: () => void;
   isAnalyzing?: boolean;
   className?: string;
+  user?: UserProfile | null;
+  onLogout?: () => void;
 }
 
 export function AppShell({
@@ -25,6 +29,8 @@ export function AppShell({
   onRunAnalysis,
   isAnalyzing,
   className,
+  user,
+  onLogout,
 }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -44,7 +50,13 @@ export function AppShell({
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop Persistent Sidebar */}
         <div className="hidden md:block">
-          <AppSidebar currentTab={currentTab} onSelectTab={onSelectTab} className="h-full" />
+          <AppSidebar
+            currentTab={currentTab}
+            onSelectTab={onSelectTab}
+            className="h-full"
+            user={user}
+            onLogout={onLogout}
+          />
         </div>
 
         {/* Mobile Navigation Drawer */}
@@ -60,6 +72,8 @@ export function AppShell({
             onSelectTab={onSelectTab}
             onCloseMobile={() => setMobileMenuOpen(false)}
             className="w-full h-full border-r-0"
+            user={user}
+            onLogout={onLogout}
           />
         </Drawer>
 

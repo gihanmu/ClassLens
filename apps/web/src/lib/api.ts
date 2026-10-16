@@ -315,7 +315,54 @@ async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Re
   return res;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  school?: string;
+  organization_id: string;
+}
+
 export const api = {
+  async login(username: string, password: string): Promise<{ user: UserProfile; csrf_token: string }> {
+    const res = await fetchWithCsrf(`${API_BASE}/auth/login`, {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      let detail = "Invalid username or password";
+      try {
+        const data = await res.json();
+        if (data.detail) detail = data.detail;
+      } catch {}
+      const err = new Error(detail);
+      (err as any).status = res.status;
+      throw err;
+    }
+    return res.json();
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await fetchWithCsrf(`${API_BASE}/auth/logout`, {
+        method: "POST",
+      });
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
+  },
+
+  async getCurrentUser(): Promise<UserProfile> {
+    const res = await fetchWithCsrf(`${API_BASE}/auth/me`);
+    if (!res.ok) {
+      const err = new Error("Authentication required");
+      (err as any).status = res.status;
+      throw err;
+    }
+    return res.json();
+  },
+
   async ensureDemoSession() {
     const res = await fetchWithCsrf(`${API_BASE}/auth/google`, {
       method: "POST",

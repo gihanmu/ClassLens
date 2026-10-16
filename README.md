@@ -5,7 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SymPy](https://img.shields.io/badge/SymPy-1.14-green.svg)](https://www.sympy.org/)
 [![Google ADK](https://img.shields.io/badge/Google%20ADK-2.11-4285F4.svg)](https://github.com/google/skills)
-[![Tests Passing](https://img.shields.io/badge/tests-304%20passing-brightgreen.svg)]()
+[![Tests Passing](https://img.shields.io/badge/tests-323%20passing-brightgreen.svg)]()
 
 > **Empowering Singapore Secondary 1 Mathematics Educators to see how students actually think.**
 > ClassLens pinpoints the exact number-line hop where student reasoning breaks down—separating conceptual misconceptions from superficial arithmetic slips using multimodal AI and deterministic mathematical proof.
@@ -110,11 +110,13 @@ flowchart TD
    python -m pip install -e ".[dev]"
    ```
 
-3. **Configure environment**:
+3. **Configure environment & initialize default teacher account**:
    ```bash
    cp .env.example .env
+   # Set your reviewer password in .env (CLASSLENS_DEMO_PASSWORD) or initialize directly:
+   python scripts/init_teacher.py --password "ReviewerPassword2026!"
    ```
-   *Note: Default `.env` operates in 100% offline mock mode (`CLASSLENS_AI_MODE=mock`, `CLASSLENS_LIVE_INFERENCE_ENABLED=false`) with zero API calls and $0.00 spend guarantee.*
+   *For detailed authentication architecture and security specifications, see [docs/TEACHER_AUTHENTICATION.md](docs/TEACHER_AUTHENTICATION.md).*
 
 4. **Start the backend server**:
    ```bash
@@ -138,7 +140,9 @@ flowchart TD
    ```bash
    npm run dev
    ```
-   Open `http://localhost:3000` in your browser.
+   Open `http://localhost:3000` in your browser. You will be greeted by the ClassLens Teacher Login Portal (`/login`). Log in with:
+   - **Username**: `teacher@classlens.demo`
+   - **Password**: The password you initialized above.
 
 4. **Production Build**:
    ```bash
@@ -150,11 +154,14 @@ flowchart TD
 
 ## 5. Running the Test Suite
 
-ClassLens includes a comprehensive, 100% offline test suite with **304 automated tests** covering mathematical verification, image processing, durable SQLite persistence, API endpoints, tenant isolation, and accessibility.
+ClassLens includes a comprehensive, 100% offline test suite with **323 automated tests** covering mathematical verification, image processing, durable SQLite persistence, teacher authentication & Argon2id security, API endpoints, tenant isolation, and accessibility.
 
 ```bash
-# Run all 304 backend unit & integration tests
+# Run all 323 backend unit & integration tests
 .venv/bin/pytest tests/ -v
+
+# Run teacher login & security tests specifically (Gate 7)
+.venv/bin/pytest tests/unit/test_teacher_login_gate7.py -v
 
 # Run durable SQLite persistence tests specifically
 .venv/bin/pytest tests/unit/test_sqlite_persistence.py -v

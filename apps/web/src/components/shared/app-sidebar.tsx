@@ -28,6 +28,8 @@ export type NavItemKey =
   | "gemini-test"
   | "evaluation";
 
+import { api, UserProfile } from "@/lib/api";
+
 export interface NavItem {
   key: NavItemKey;
   label: string;
@@ -41,6 +43,8 @@ export interface AppSidebarProps {
   onSelectTab?: (key: NavItemKey) => void;
   className?: string;
   onCloseMobile?: () => void;
+  user?: UserProfile | null;
+  onLogout?: () => void;
 }
 
 export function AppSidebar({
@@ -48,6 +52,8 @@ export function AppSidebar({
   onSelectTab,
   className,
   onCloseMobile,
+  user,
+  onLogout,
 }: AppSidebarProps) {
   const pathname = usePathname();
 
@@ -205,16 +211,45 @@ export function AppSidebar({
         </Link>
       </nav>
 
-      {/* Teacher Profile Footer */}
+      {/* Teacher Profile Footer with Logout */}
       <div className="p-4 border-t border-border-default bg-surface-subtle/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center shrink-0 border border-brand-primary/20">
-            SL
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center shrink-0 border border-brand-primary/20 text-xs">
+              {user?.name
+                ? user.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join("")
+                : "SL"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-ink-primary truncate">
+                {user?.name || "Mrs. Sarah Lim"}
+              </p>
+              <p className="text-[11px] text-ink-muted truncate">
+                {user?.school || "Cedar Secondary"} • {user?.role || "Sec 1 Math"}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-ink-primary truncate">Mrs. Sarah Lim</p>
-            <p className="text-[11px] text-ink-muted truncate">Cedar Secondary • Sec 1 Math</p>
-          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (onLogout) {
+                onLogout();
+              } else {
+                await api.logout();
+                window.location.href = "/login";
+              }
+            }}
+            className="p-1.5 rounded-lg text-ink-muted hover:text-ink-primary hover:bg-surface-subtle transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            title="Sign out of ClassLens"
+            aria-label="Sign out of ClassLens"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

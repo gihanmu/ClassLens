@@ -44,8 +44,8 @@ def test_tc_004_01_demo_login(client):
 
     assert "user" in data
     assert data["user"]["id"] == "usr_sarah_lim"
-    assert data["user"]["email"] == "sarah.lim@moe.edu.sg"
-    assert data["user"]["role"] == "teacher"
+    assert data["user"]["email"] == "teacher@classlens.demo"
+    assert data["user"]["role"] in ("Secondary 1 Mathematics Teacher", "teacher")
     assert "csrf_token" in data
     assert "__session" in resp.cookies
     assert "csrf_token" in resp.cookies

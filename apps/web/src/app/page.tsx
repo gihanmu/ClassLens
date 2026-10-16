@@ -8,6 +8,7 @@ import {
   StudentResponse,
   CohortInsights,
   DashboardSummary,
+  UserProfile,
 } from "@/lib/api";
 import { TeacherDashboardView } from "@/components/features/dashboard/TeacherDashboardView";
 import {
@@ -71,13 +72,25 @@ export default function ClassLensApp() {
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [assessmentFilter, setAssessmentFilter] = useState<"all" | "classroom" | "demo">("all");
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   const asmId = currentAssessmentId;
 
   const loadData = async (targetAsmId = currentAssessmentId) => {
     try {
       setLoading(true);
-      await api.ensureDemoSession();
+
+      try {
+        const user = await api.getCurrentUser();
+        setCurrentUser(user);
+      } catch (authErr: any) {
+        if (typeof window !== "undefined") {
+          const currentPath = window.location.pathname + window.location.search;
+          const target = currentPath === "/" ? "" : `?redirect=${encodeURIComponent(currentPath)}`;
+          window.location.href = `/login${target}`;
+          return;
+        }
+      }
 
       try {
         const dash = await api.getDashboardSummary();
@@ -361,6 +374,7 @@ export default function ClassLensApp() {
       onSelectAssessment={() => setShowAssessmentModal(true)}
       onRunAnalysis={handleAnalyze}
       isAnalyzing={isAnalyzing}
+      user={currentUser}
     >
       <div className="space-y-6">
         {/* =========================================================================

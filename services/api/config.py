@@ -59,9 +59,13 @@ class Settings(BaseModel):
     )
     default_org_id: str = "org_cedar_sec"
     demo_user_id: str = "usr_sarah_lim"
-    demo_user_name: str = "Sarah Lim"
-    demo_user_email: str = "sarah.lim@moe.edu.sg"
-    demo_user_role: str = "teacher"
+    demo_user_name: str = "Mrs. Sarah Lim"
+    demo_user_email: str = "teacher@classlens.demo"
+    demo_user_role: str = "Secondary 1 Mathematics Teacher"
+    demo_user_school: str = "Cedar Secondary School"
+    session_max_age_seconds: int = Field(
+        default_factory=lambda: int(os.getenv("CLASSLENS_SESSION_MAX_AGE_SECONDS", "86400"))
+    )
 
     # AI Execution Mode Configuration
     # MOCK (default): 100% offline, deterministic fixtures, zero network calls

@@ -39,8 +39,10 @@ class SqliteDatabaseManager:
             id TEXT PRIMARY KEY,
             email TEXT NOT NULL,
             name TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'teacher',
+            role TEXT NOT NULL DEFAULT 'Secondary 1 Mathematics Teacher',
             organization_id TEXT NOT NULL,
+            school TEXT DEFAULT 'Cedar Secondary School',
+            password_hash TEXT,
             created_at TEXT NOT NULL
         );
         """,
@@ -147,6 +149,7 @@ class SqliteDatabaseManager:
         "CREATE INDEX IF NOT EXISTS idx_audit_events_response ON audit_events (response_id);",
         "CREATE INDEX IF NOT EXISTS idx_audit_events_assessment ON audit_events (assessment_id);",
         "CREATE INDEX IF NOT EXISTS idx_analysis_jobs_assessment ON analysis_jobs (assessment_id);",
+        "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);",
     ]
 
     def __init__(self, db_path: Path):
@@ -187,6 +190,14 @@ class SqliteDatabaseManager:
 
                     # Index for demo filtering (guaranteed column exists)
                     conn.execute("CREATE INDEX IF NOT EXISTS idx_assessments_demo ON assessments (is_demo);")
+
+                    # Ensure password_hash and school exist on users table for pre-existing databases
+                    cur_u = conn.execute("PRAGMA table_info(users);")
+                    user_cols = [r["name"] for r in cur_u.fetchall()]
+                    if "password_hash" not in user_cols:
+                        conn.execute("ALTER TABLE users ADD COLUMN password_hash TEXT;")
+                    if "school" not in user_cols:
+                        conn.execute("ALTER TABLE users ADD COLUMN school TEXT DEFAULT 'Cedar Secondary School';")
 
                     conn.execute("COMMIT;")
                 except Exception as exc:
