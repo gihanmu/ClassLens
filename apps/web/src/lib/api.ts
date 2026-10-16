@@ -147,6 +147,17 @@ export interface StudentAnalysisDetail {
     teacher_review_reason?: string;
     audit_verdict?: "audit_passed" | "review_required" | "audit_rejected";
   };
+  stage_logs?: Array<{
+    stage: string;
+    stage_name: string;
+    status: "completed" | "warning" | "failed" | "skipped";
+    duration_ms: number;
+    provider?: string;
+    task_type?: string;
+    summary: string;
+    details?: string;
+    metrics?: Record<string, any>;
+  }>;
   is_mock: boolean;
   model_version: string;
 }

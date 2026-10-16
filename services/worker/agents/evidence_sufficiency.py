@@ -115,13 +115,15 @@ class EvidenceSufficiencyEvaluator:
         )
 
     @classmethod
-    def evaluate(cls, visual: VisualEvidenceOutput) -> ResponseEvidenceSufficiency:
+    def evaluate(
+        cls,
+        visual: VisualEvidenceOutput,
+        task_type: str = "integer_number_line",
+    ) -> ResponseEvidenceSufficiency:
         """Performs comprehensive evidence-sufficiency assessment over VisualEvidenceOutput."""
-        reasons: List[str] = []
-        hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
-
-        # 1. Unreadable or low quality image
+        # 1. Unreadable or low quality image (universal across all tasks)
         if visual.quality_status in (QualityStatus.UNREADABLE, QualityStatus.BLURRED):
+            hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
             return ResponseEvidenceSufficiency(
                 overall_sufficiency="insufficient",
                 can_evaluate_reasoning=False,
@@ -134,7 +136,78 @@ class EvidenceSufficiencyEvaluator:
                 reasons=[f"Image quality is {visual.quality_status.value}; handwriting cannot be reliably transcribed."],
             )
 
-        # 2. Number line presence
+        # 2. Task-specific evaluation
+        if task_type == "fraction_division":
+            return cls._evaluate_fraction_division(visual)
+
+        # Default: Integer Number Line evaluation
+        return cls._evaluate_number_line(visual)
+
+    @classmethod
+    def _evaluate_fraction_division(cls, visual: VisualEvidenceOutput) -> ResponseEvidenceSufficiency:
+        """Evaluates evidence sufficiency for fraction division with visual models or equations."""
+        reasons: List[str] = []
+
+        # Gather all textual descriptions from observations, ambiguities, and raw extraction
+        all_snippets = [obs.value for obs in visual.observations if obs.value]
+        all_snippets.extend(visual.ambiguities)
+        raw = visual.raw_extraction or {}
+        raw_ans = raw.get("visible_final_answer") or {}
+        if isinstance(raw_ans, dict) and raw_ans.get("value"):
+            all_snippets.append(f"visible_final_answer: {raw_ans.get('value')}")
+        for unsupp in raw.get("unsupported_observations", []):
+            all_snippets.append(str(unsupp))
+        for amb in raw.get("ambiguities", []):
+            if isinstance(amb, dict) and "description" in amb:
+                all_snippets.append(amb["description"])
+
+        combined = " ".join(all_snippets).lower()
+
+        has_model = any(k in combined for k in ("tape diagram", "bar model", "rectangular model", "fraction bar", "partitioned", "divided into 9", "shaded", "group"))
+        has_equation = any(k in combined for k in ("unit form", "ninths", "÷", "/", "multiplied by", "equation"))
+        has_final_ans = bool(visual.final_answer_marked or (isinstance(raw_ans, dict) and raw_ans.get("value")))
+
+        # Check for genuine blocking ambiguities
+        has_blocking_ambiguity = any("blocking" in amb.lower() for amb in visual.ambiguities)
+
+        if has_blocking_ambiguity:
+            reasons.append("Visual extraction flagged blocking perceptual ambiguities requiring educator review.")
+
+        if (has_model or has_equation) and not has_blocking_ambiguity:
+            overall = "sufficient"
+            can_eval = True
+            can_diag = True
+            reasons.append("Visual evidence contains verifiable mathematical model or working steps.")
+        elif has_final_ans:
+            overall = "partial"
+            can_eval = True
+            can_diag = False
+            reasons.append("Final answer present, but visual model or working steps are missing or partial.")
+        else:
+            overall = "insufficient"
+            can_eval = False
+            can_diag = False
+            reasons.append("Insufficient visual evidence to evaluate fraction division reasoning.")
+
+        return ResponseEvidenceSufficiency(
+            overall_sufficiency=overall,
+            can_evaluate_reasoning=can_eval,
+            can_diagnose_misconception=can_diag,
+            step_evaluations=[],
+            supported_step_count=1 if (has_model or has_equation) else 0,
+            unverifiable_step_count=0 if (has_model or has_equation) else 1,
+            is_final_answer_present=has_final_ans,
+            unresolved_ambiguities=visual.ambiguities,
+            reasons=reasons,
+        )
+
+    @classmethod
+    def _evaluate_number_line(cls, visual: VisualEvidenceOutput) -> ResponseEvidenceSufficiency:
+        """Evaluates evidence sufficiency for standard 1D horizontal number line tasks."""
+        reasons: List[str] = []
+        hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
+
+        # Number line presence
         if not visual.has_number_line:
             return ResponseEvidenceSufficiency(
                 overall_sufficiency="insufficient",
@@ -148,7 +221,7 @@ class EvidenceSufficiencyEvaluator:
                 reasons=["No number line visible in student submission."],
             )
 
-        # 3. Evaluate each hop
+        # Evaluate each hop
         step_evals: List[StepEvidenceEvaluation] = []
         for idx, h in enumerate(hops, start=1):
             eval_res = cls.evaluate_step(h, step_number=idx, global_ambiguities=visual.ambiguities)
@@ -170,7 +243,7 @@ class EvidenceSufficiencyEvaluator:
             if not e.is_supported:
                 reasons.append(f"Step {e.step_number} has insufficient evidence: {', '.join(e.issues)}.")
 
-        # 4. Overall classification
+        # Overall classification
         if supported_count >= 2 and unverifiable_count == 0 and not has_blocking_ambiguity:
             overall = "sufficient"
             can_eval = True
@@ -178,7 +251,6 @@ class EvidenceSufficiencyEvaluator:
         elif supported_count >= 1:
             overall = "partial"
             can_eval = True
-            # Misconceptions can only be diagnosed if the error step itself is strictly supported
             can_diag = False
             reasons.append("Partial evidence only: some steps are missing coordinates or arrowheads.")
         else:

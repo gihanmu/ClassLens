@@ -15,6 +15,8 @@ import {
   FileCheck2,
   ShieldCheck,
   Info,
+  Activity,
+  Clock,
 } from "lucide-react";
 import { api, StudentAnalysisDetail, StudentResponse } from "@/lib/api";
 import { StudentWorkViewer, HopOverlayData } from "@/components/features/students/StudentWorkViewer";
@@ -60,6 +62,7 @@ export function StudentInspectionModal({
   const [activeMobileTab, setActiveMobileTab] = React.useState<"image" | "diagnosis">("image");
   const [auditDrawerOpen, setAuditDrawerOpen] = React.useState(false);
   const [showRawObservations, setShowRawObservations] = React.useState(false);
+  const [showStageLogs, setShowStageLogs] = React.useState(true);
 
   React.useEffect(() => {
     if (!isOpen || !responseId) return;
@@ -126,13 +129,35 @@ export function StudentInspectionModal({
 
   const imageUrl = `/api/v1/responses/${responseId}/image`;
 
-  // Format hops overlay data from diagnosis verified steps
-  const hopsData: HopOverlayData[] = (detail?.diagnosis?.verified_steps || []).map((step, idx) => ({
-    start: idx === 0 ? 0 : step.expected_result - (idx === 1 ? 12 : -4),
-    end: step.observed_result !== undefined ? step.observed_result : step.expected_result,
-    label: step.operation,
-    isCorrect: step.is_correct,
-  }));
+  // Format hops overlay data only for actual 1D number-line tasks
+  const hopsData: HopOverlayData[] = detail?.visual_evidence?.has_number_line
+    ? (detail?.diagnosis?.verified_steps || []).map((step, idx) => ({
+        start: idx === 0 ? 0 : step.expected_result - (idx === 1 ? 12 : -4),
+        end: step.observed_result !== undefined ? step.observed_result : step.expected_result,
+        label: step.operation,
+        isCorrect: step.is_correct,
+      }))
+    : [];
+
+  const detectedModelLabel = React.useMemo(() => {
+    if (detail?.visual_evidence?.has_number_line) return "Number Line (Horizontal)";
+    const allText = [
+      ...(detail?.visual_evidence?.observations?.map((o) => o.value) || []),
+      ...(detail?.visual_evidence?.ambiguities || []),
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (allText.includes("tape") || allText.includes("bar model") || allText.includes("rectangular")) {
+      return "Tape / Fraction Bar Model";
+    }
+    return "None / Not Detected";
+  }, [detail]);
+
+  const displayedFinalAnswer = React.useMemo(() => {
+    if (detail?.visual_evidence?.final_answer_marked) return detail.visual_evidence.final_answer_marked;
+    if (detail?.diagnosis?.inferred_final_answer) return `${detail.diagnosis.inferred_final_answer} (Inferred from Model)`;
+    return null;
+  }, [detail]);
 
   const handleSaveTeacherReview = async (reviewData: {
     status: "confirmed" | "overridden" | "unreadable";
@@ -397,19 +422,19 @@ export function StudentInspectionModal({
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2 rounded bg-surface-subtle border border-border-default">
                     <span className="text-[10px] uppercase text-ink-muted block font-sans">
-                      Number Line Detected:
+                      Visual Model Detected:
                     </span>
                     <span className="font-semibold text-ink-primary">
-                      {detail?.visual_evidence?.has_number_line ? "Yes (Horizontal Grid)" : "None / Unreadable"}
+                      {detectedModelLabel}
                     </span>
                   </div>
                   <div className="p-2 rounded bg-surface-subtle border border-border-default">
                     <span className="text-[10px] uppercase text-ink-muted block font-sans">
-                      Final Written Answer:
+                      Final Answer (Extracted / Evaluated):
                     </span>
                     <span className="font-semibold text-ink-primary">
-                      {detail?.visual_evidence?.final_answer_marked ? (
-                        detail.visual_evidence.final_answer_marked
+                      {displayedFinalAnswer ? (
+                        displayedFinalAnswer
                       ) : (
                         <span className="text-amber-800 italic">None / Blank</span>
                       )}
@@ -514,6 +539,79 @@ export function StudentInspectionModal({
 
               {/* Independent Critic Grounding Audit */}
               <CriticAuditCard criticAudit={detail?.critic_audit} />
+
+              {/* Multi-Agent Pipeline Execution Trace & Stage Logs */}
+              {detail?.stage_logs && detail.stage_logs.length > 0 && (
+                <div className="rounded-xl border border-border-default bg-surface-base p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-ink-primary">
+                      <Activity className="w-3.5 h-3.5 text-brand-primary" />
+                      <span>Pipeline Execution Trace ({detail.stage_logs.length} Stages)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowStageLogs(!showStageLogs)}
+                      className="text-[11px] text-brand-primary hover:underline font-medium"
+                    >
+                      {showStageLogs ? "Collapse Trace" : "Expand Trace"}
+                    </button>
+                  </div>
+
+                  {showStageLogs && (
+                    <div className="space-y-2 pt-1">
+                      {detail.stage_logs.map((log, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 rounded-lg bg-surface-subtle border border-border-default text-xs space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-semibold text-ink-primary">
+                              <span className="w-4 h-4 rounded-full bg-surface-base border border-border-default text-[10px] font-mono flex items-center justify-center text-ink-muted">
+                                {idx + 1}
+                              </span>
+                              <span>{log.stage_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {log.duration_ms !== undefined && (
+                                <span className="text-[10px] text-ink-muted font-mono flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  {log.duration_ms}ms
+                                </span>
+                              )}
+                              <span
+                                className={cn(
+                                  "text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase",
+                                  log.status === "completed"
+                                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                    : log.status === "warning"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200"
+                                    : "bg-red-50 text-red-800 border-red-200"
+                                )}
+                              >
+                                {log.status}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] font-medium text-ink-secondary">
+                            {log.summary}
+                          </p>
+                          {log.details && (
+                            <p className="text-[10.5px] text-ink-muted leading-relaxed font-sans">
+                              {log.details}
+                            </p>
+                          )}
+                          {log.provider && (
+                            <div className="pt-0.5 text-[9.5px] text-ink-muted font-mono">
+                              Provider: <span className="text-ink-secondary">{log.provider}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Teacher Review & Override Form */}
               <TeacherReviewPanel

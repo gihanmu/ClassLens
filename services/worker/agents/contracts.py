@@ -267,3 +267,8 @@ class StudentResponseAnalysis(BaseModel):
         default=None,
         description="Live telemetry details including token counts and model location",
     )
+    stage_logs: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Chronological trace logs of each agent stage in the pipeline",
+    )
+

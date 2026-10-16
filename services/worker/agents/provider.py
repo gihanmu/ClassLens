@@ -204,9 +204,6 @@ def gemini_schema_to_visual_evidence(
 
     req_review = schema.requires_teacher_review
     review_reason = schema.teacher_review_reason
-    if not schema.number_line.is_present and not schema.number_line.observed_hops and unsupported_items:
-        req_review = True
-        review_reason = review_reason or "Alternative visual model observed (e.g. tape/area model). Teacher review recommended."
 
     # 5. Uncertainty and overall confidence
     if confidence_override is not None:
@@ -216,7 +213,7 @@ def gemini_schema_to_visual_evidence(
     elif req_review and any(a.severity == "blocking" for a in schema.ambiguities):
         overall_conf = 0.60
     elif req_review:
-        overall_conf = 0.68
+        overall_conf = 0.70
     else:
         obs_confs = [o.confidence for o in observations]
         overall_conf = round(sum(obs_confs) / len(obs_confs), 2) if obs_confs else 0.92

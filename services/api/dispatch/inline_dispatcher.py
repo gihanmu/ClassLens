@@ -104,6 +104,10 @@ class InlineDispatcher(BaseDispatcher):
 
             target_val = 2.0
             rule_str = "-6 + 12 - 4"
+            math_topic = asm.math_topic if asm else None
+            question_text = asm.question.question_text if (asm and asm.question) else None
+            prob_ref = asm.question.problem_reference_id if (asm and asm.question) else None
+
             if asm and asm.question:
                 if asm.question.latex_formula:
                     rule_str = asm.question.latex_formula
@@ -113,11 +117,36 @@ class InlineDispatcher(BaseDispatcher):
                     except ValueError:
                         pass
 
+            # Check if we already have a persisted visual extraction that can be safely reused
+            cached_ve = None
+            if resp.analysis_data and isinstance(resp.analysis_data, dict):
+                ve_dict = resp.analysis_data.get("visual_evidence")
+                if ve_dict and isinstance(ve_dict, dict):
+                    raw_data = ve_dict.get("raw_extraction")
+                    if raw_data and isinstance(raw_data, dict):
+                        try:
+                            from services.worker.evaluation.contracts import GeminiVisualEvidenceSchema
+                            from services.worker.agents.provider import gemini_schema_to_visual_evidence
+                            schema = GeminiVisualEvidenceSchema(**raw_data)
+                            cached_ve = gemini_schema_to_visual_evidence(schema, model_id=schema.response_id)
+                        except Exception:
+                            cached_ve = None
+                    elif ve_dict.get("observations"):
+                        try:
+                            from services.worker.agents.contracts import VisualEvidenceOutput
+                            cached_ve = VisualEvidenceOutput(**ve_dict)
+                        except Exception:
+                            cached_ve = None
+
             analysis = MultiAgentPipeline.analyze_response(
                 response_id=resp_id,
                 image_source=image_source,
                 rule_expr=rule_str,
                 target_value=target_val,
+                math_topic=math_topic,
+                question_text=question_text,
+                problem_reference_id=prob_ref,
+                cached_visual_evidence=cached_ve,
             )
 
             resp.task_status = "COMPLETED"
@@ -145,11 +174,23 @@ class InlineDispatcher(BaseDispatcher):
             logger.exception(f"Error processing response {resp_id}: {exc}")
             resp.task_status = "FAILED"
             existing_quality = (resp.analysis_data or {}).get("intake_quality", {})
+            stage_logs = [
+                {
+                    "stage": "visual_evidence",
+                    "stage_name": "Visual Evidence Extraction",
+                    "status": "failed",
+                    "duration_ms": 0,
+                    "provider": settings.gemini_model if settings.is_live_authorized() else "offline",
+                    "summary": f"Inference execution failed: {type(exc).__name__}",
+                    "details": str(exc),
+                }
+            ]
             resp.analysis_data = {
                 "error": str(exc),
                 "failed_at_step": "VisualEvidenceAgent",
                 "truthfulness_mode": "live_failure",
                 "intake_quality": existing_quality,
+                "stage_logs": stage_logs,
             }
             memory_repo.update_response(resp)
             memory_repo.increment_job_progress(job_id, success=False)

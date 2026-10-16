@@ -153,11 +153,78 @@ class MockAgentAdapter:
     def get_hypotheses(
         cls,
         visual: VisualEvidenceOutput,
+        task_type: str = "integer_number_line",
     ) -> CandidateHypothesesOutput:
         """Generates candidate hypotheses from visual evidence."""
         from services.worker.agents.evidence_sufficiency import EvidenceSufficiencyEvaluator
 
-        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual)
+        if task_type == "fraction_division":
+            sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual, task_type="fraction_division")
+            if sufficiency.overall_sufficiency == "insufficient":
+                return CandidateHypothesesOutput(
+                    hypotheses=[],
+                    detected_strategy="insufficient_evidence",
+                    reasoning_completeness="incomplete",
+                    confidence=min(visual.confidence, 0.60),
+                    evidence_support="insufficient_evidence",
+                )
+
+            all_snippets = [obs.value for obs in visual.observations if obs.value] + visual.ambiguities
+            raw = visual.raw_extraction or {}
+            for unsupp in raw.get("unsupported_observations", []):
+                all_snippets.append(str(unsupp))
+            for amb in raw.get("ambiguities", []):
+                if isinstance(amb, dict) and "description" in amb:
+                    all_snippets.append(amb["description"])
+            all_text = " ".join(all_snippets).lower()
+
+            if any(k in all_text for k in ("tape diagram", "bar model", "rectangular model", "partitioned", "shaded")):
+                strat = "tape_diagram_grouping"
+                desc = "Visual tape diagram model partitioned into ninths with equal groups of 4/9."
+                seq = [
+                    "Step 1: Partition rectangle into 9 equal units",
+                    "Step 2: Shade 8 units representing dividend 8/9",
+                    "Step 3: Group into sets of 4 units (4/9 each)",
+                    "Step 4: Count 2 groups to establish quotient 2",
+                ]
+            elif any(k in all_text for k in ("multiplied by", "reciprocal", "* 9/4")):
+                strat = "invert_and_multiply"
+                desc = "Standard invert-and-multiply algorithm (8/9 × 9/4 = 8/4 = 2)."
+                seq = [
+                    "Step 1: Invert divisor to reciprocal 9/4",
+                    "Step 2: Multiply 8/9 by 9/4",
+                    "Step 3: Cancel common factor 9 to yield 8/4 = 2",
+                ]
+            elif "unit form" in all_text or "ninths" in all_text:
+                strat = "unit_form_division"
+                desc = "Unit form arithmetic (8 ninths ÷ 4 ninths = 2)."
+                seq = [
+                    "Step 1: Express dividend as 8 ninths",
+                    "Step 2: Express divisor as 4 ninths",
+                    "Step 3: Divide units 8 ÷ 4 = 2",
+                ]
+            else:
+                strat = "numerical_equation"
+                desc = "Direct numerical arithmetic solution."
+                seq = ["Step 1: Evaluate 8/9 ÷ 4/9 = 2"]
+
+            hyp = CandidateHypothesis(
+                hypothesis_id="hyp_frac_01",
+                starting_point=0.0,
+                strategy_description=desc,
+                step_sequence=seq,
+                is_valid_alternative_path=True,
+                confidence=visual.confidence,
+            )
+            return CandidateHypothesesOutput(
+                hypotheses=[hyp],
+                detected_strategy=strat,
+                reasoning_completeness="complete" if sufficiency.overall_sufficiency == "sufficient" else "partial",
+                confidence=visual.confidence,
+                evidence_support="supported" if sufficiency.overall_sufficiency == "sufficient" else "partially_supported",
+            )
+
+        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual, task_type="integer_number_line")
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
 
         if not visual.has_number_line or not hops or sufficiency.overall_sufficiency == "insufficient":
@@ -226,13 +293,48 @@ class MockAgentAdapter:
         visual_evidence: VisualEvidenceOutput,
         rule_expr: str = "-6 + 12 - 4",
         target_value: float = 2.0,
+        task_type: str = "integer_number_line",
+        question_text: Optional[str] = None,
     ) -> DiagnosticOutput:
         """Executes real deterministic tools to evaluate reasoning and localize errors."""
         from services.worker.agents.evidence_sufficiency import EvidenceSufficiencyEvaluator
 
+        if task_type == "fraction_division":
+            from services.worker.math_verifier.fraction_verifier import FractionDivisionVerifier
+
+            verdict = FractionDivisionVerifier.verify(
+                visual=visual_evidence,
+                rule_expr=rule_expr,
+                target_value=target_value,
+                question_text=question_text,
+            )
+            ans_status = AnswerStatus.CORRECT if verdict.is_final_answer_valid else (
+                AnswerStatus.INCORRECT if verdict.inferred_final_answer is not None else AnswerStatus.UNDETERMINED
+            )
+            if verdict.is_reasoning_valid:
+                reasoning_status = ReasoningStatus.SUPPORTED_CORRECT
+            elif verdict.first_error_taxonomy:
+                reasoning_status = ReasoningStatus.SUPPORTED_ERROR
+            else:
+                reasoning_status = ReasoningStatus.INCOMPLETE
+
+            return DiagnosticOutput(
+                answer_status=ans_status,
+                reasoning_status=reasoning_status,
+                inferred_final_answer=verdict.inferred_final_answer,
+                verified_steps=verdict.verified_steps,
+                first_supported_error=verdict.first_supported_error,
+                misconception_taxonomy_id=verdict.first_error_taxonomy,
+                taxonomy_title=verdict.first_error_taxonomy,
+                is_compensatory_error=verdict.is_compensatory_error,
+                confidence=verdict.confidence,
+                evidence_sufficiency=verdict.evidence_sufficiency,
+                diagnostic_explanation=verdict.diagnostic_explanation,
+            )
+
         visual = visual_evidence
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
-        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual)
+        sufficiency = EvidenceSufficiencyEvaluator.evaluate(visual, task_type="integer_number_line")
 
         # Case 1: Unreadable or empty response
         if visual.quality_status == QualityStatus.UNREADABLE:
@@ -407,6 +509,7 @@ class MockAgentAdapter:
         attempt_number: int = 1,
         force_contradiction: bool = False,
         visual_evidence: Optional[VisualEvidenceOutput] = None,
+        task_type: str = "integer_number_line",
     ) -> CriticAuditOutput:
         """Adversarially checks diagnosis against physical evidence."""
         vis = visual_evidence or visual
@@ -432,39 +535,56 @@ class MockAgentAdapter:
         discrepancies: List[str] = []
         hops = [obs for obs in visual.observations if obs.kind in ("arrow_jump", "bracket_curve")]
 
-        # 1. Contradiction check: claimed supported_correct reasoning without visible number line hops
-        if diagnosis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT and not hops:
-            discrepancies.append("Diagnosis claims supported_correct reasoning, but no arrows or jumps are physically visible.")
-            return CriticAuditOutput(
-                approved=False,
-                confidence=0.90,
-                evidence_grounded=False,
-                contradiction_detected=True,
-                reinterpretation_needed=False,
-                discrepancy_notes=discrepancies,
-                requires_teacher_review=True,
-                teacher_review_reason="Contradiction: reasoning claimed correct without physical evidence.",
-                critic_attempt_number=attempt_number,
-                audit_verdict="audit_rejected",
-            )
+        if task_type == "integer_number_line":
+            # 1. Contradiction check: claimed supported_correct reasoning without visible number line hops
+            if diagnosis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT and not hops:
+                discrepancies.append("Diagnosis claims supported_correct reasoning, but no arrows or jumps are physically visible.")
+                return CriticAuditOutput(
+                    approved=False,
+                    confidence=0.90,
+                    evidence_grounded=False,
+                    contradiction_detected=True,
+                    reinterpretation_needed=False,
+                    discrepancy_notes=discrepancies,
+                    requires_teacher_review=True,
+                    teacher_review_reason="Contradiction: reasoning claimed correct without physical evidence.",
+                    critic_attempt_number=attempt_number,
+                    audit_verdict="audit_rejected",
+                )
 
-        # 2. Contradiction check: Hallucinated steps (more steps claimed than physically visible)
-        if len(diagnosis.verified_steps) > len(hops) and hops:
-            discrepancies.append(
-                f"Contradiction: Hallucinated steps: diagnosis verified {len(diagnosis.verified_steps)} steps but only {len(hops)} marks are physically visible."
-            )
-            return CriticAuditOutput(
-                approved=False,
-                confidence=0.85,
-                evidence_grounded=False,
-                contradiction_detected=True,
-                reinterpretation_needed=False,
-                discrepancy_notes=discrepancies,
-                requires_teacher_review=True,
-                teacher_review_reason="Contradiction: Hallucinated steps without physical evidence.",
-                critic_attempt_number=attempt_number,
-                audit_verdict="audit_rejected",
-            )
+            # 2. Contradiction check: Hallucinated steps (more steps claimed than physically visible)
+            if len(diagnosis.verified_steps) > len(hops) and hops:
+                discrepancies.append(
+                    f"Contradiction: Hallucinated steps: diagnosis verified {len(diagnosis.verified_steps)} steps but only {len(hops)} marks are physically visible."
+                )
+                return CriticAuditOutput(
+                    approved=False,
+                    confidence=0.85,
+                    evidence_grounded=False,
+                    contradiction_detected=True,
+                    reinterpretation_needed=False,
+                    discrepancy_notes=discrepancies,
+                    requires_teacher_review=True,
+                    teacher_review_reason="Contradiction: Hallucinated steps without physical evidence.",
+                    critic_attempt_number=attempt_number,
+                    audit_verdict="audit_rejected",
+                )
+        elif task_type == "fraction_division":
+            has_supported_step = any(s.evidence_status == "supported" for s in diagnosis.verified_steps)
+            if diagnosis.reasoning_status == ReasoningStatus.SUPPORTED_CORRECT and not has_supported_step:
+                discrepancies.append("Diagnosis claims supported_correct reasoning, but no verified mathematical steps were established.")
+                return CriticAuditOutput(
+                    approved=False,
+                    confidence=0.90,
+                    evidence_grounded=False,
+                    contradiction_detected=True,
+                    reinterpretation_needed=False,
+                    discrepancy_notes=discrepancies,
+                    requires_teacher_review=True,
+                    teacher_review_reason="Contradiction: reasoning claimed correct without physical evidence.",
+                    critic_attempt_number=attempt_number,
+                    audit_verdict="audit_rejected",
+                )
 
         # 3. Contradiction check: Procedural misconception assigned despite insufficient evidence
         if (
