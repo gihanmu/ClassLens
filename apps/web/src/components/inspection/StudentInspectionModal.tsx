@@ -86,11 +86,36 @@ export function StudentInspectionModal({
     };
   }, [responseId, isOpen]);
 
-  // Handle ESC key to dismiss
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  // Handle ESC key to dismiss and accessible focus trapping
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen && !auditDrawerOpen) {
         onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && isOpen && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            last.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === last) {
+            first.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -146,35 +171,41 @@ export function StudentInspectionModal({
       role="dialog"
       aria-modal="true"
       aria-label={`Student inspection: ${detail?.pseudonym_label || responseId}`}
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 lg:p-6"
+      className="fixed inset-0 z-50 overflow-hidden bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 lg:p-6"
     >
-      <div className="bg-surface-canvas rounded-2xl w-full max-w-7xl h-[94vh] flex flex-col shadow-2xl border border-border-default overflow-hidden">
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-surface-canvas rounded-2xl w-full max-w-[1240px] max-h-[92dvh] h-[92dvh] sm:max-h-[90dvh] sm:h-[90dvh] flex flex-col shadow-2xl border border-border-default overflow-hidden focus-visible:outline-none"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 bg-surface-base border-b border-border-default shrink-0">
-          <div className="flex items-center gap-3">
-            <h2 className="text-base sm:text-lg font-bold text-ink-primary">
+        <div className="flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 bg-surface-base border-b border-border-default shrink-0 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <h2 className="text-sm sm:text-base md:text-lg font-bold text-ink-primary truncate">
               {detail?.pseudonym_label || `Student ${responseId}`}
             </h2>
-            <span className="text-xs font-mono text-ink-muted bg-surface-subtle px-2 py-0.5 rounded border border-border-default">
+            <span className="text-[10px] sm:text-xs font-mono text-ink-muted bg-surface-subtle px-1.5 sm:px-2 py-0.5 rounded border border-border-default shrink-0 hidden sm:inline">
               ID: {responseId}
             </span>
             {detail && (
-              <AnalysisProvenancePill
-                provenance={
-                  detail.teacher_review_status === "overridden"
-                    ? "teacher_overridden"
-                    : detail.teacher_review_status === "approved_as_is" ||
-                      detail.teacher_review_status === "reviewed"
-                    ? "teacher_confirmed"
-                    : "offline_simulated"
-                }
-              />
+              <div className="hidden md:block shrink-0">
+                <AnalysisProvenancePill
+                  provenance={
+                    detail.teacher_review_status === "overridden"
+                      ? "teacher_overridden"
+                      : detail.teacher_review_status === "approved_as_is" ||
+                        detail.teacher_review_status === "reviewed"
+                      ? "teacher_confirmed"
+                      : "offline_simulated"
+                  }
+                />
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Prev / Next Response Navigation */}
-            <div className="flex items-center gap-1 border border-border-default rounded-lg p-0.5 bg-surface-subtle">
+            <div className="flex items-center gap-0.5 sm:gap-1 border border-border-default rounded-lg p-0.5 bg-surface-subtle">
               <button
                 type="button"
                 onClick={onNavigatePrev}

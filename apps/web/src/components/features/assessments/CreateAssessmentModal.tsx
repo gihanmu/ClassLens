@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Typography } from "@/components/ui/typography";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert } from "@/components/ui/alert";
 import { api, Assessment, CreateAssessmentInput } from "@/lib/api";
-import { BookOpen, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import { BookOpen, Sparkles, AlertCircle } from "lucide-react";
 
 interface CreateAssessmentModalProps {
   isOpen: boolean;
@@ -68,110 +67,126 @@ export function CreateAssessmentModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
+      size="lg"
       title="Create New Mathematics Assessment"
       description="Configure a diagnostic checkpoint for student handwritten worksheets."
+      noPadding
     >
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-        {error && (
-          <Alert variant="error">
-            <AlertCircle className="w-4 h-4 mr-2" />
-            {error}
-          </Alert>
-        )}
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <DialogBody className="space-y-4 sm:space-y-5 text-xs sm:text-sm">
+          {error && (
+            <Alert variant="error">
+              <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
+              <span>{error}</span>
+            </Alert>
+          )}
 
-        <div className="p-3 rounded-xl bg-brand-light/30 border border-brand-primary/20 space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-brand-primary">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Singapore Secondary 1 Math Scope (Gate 5)</span>
+          {/* Scope and Architecture Badge */}
+          <div className="p-3 sm:p-3.5 rounded-xl bg-brand-light/40 border border-brand-primary/20 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-brand-primary">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary shrink-0" />
+              <span>Singapore Secondary 1 Math Scope</span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-ink-secondary leading-relaxed">
+              Specialized for <strong>integer operations on number lines</strong> with deterministic SymPy verification and misconception classification.
+            </p>
           </div>
-          <p className="text-[11px] text-ink-muted leading-relaxed">
-            ClassLens currently specializes in <strong>integer operations represented on number lines</strong> with deterministic SymPy verification.
-          </p>
-        </div>
 
-        <div className="space-y-1.5">
-          <label className="font-semibold text-ink-primary block">
-            Assessment Title <span className="text-accent-coral">*</span>
-          </label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Integers on Number Line: Checkpoint 2"
-            required
-            className="text-xs"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Assessment Title */}
           <div className="space-y-1.5">
-            <label className="font-semibold text-ink-primary block">
-              Mathematics Topic
+            <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+              Assessment Title <span className="text-accent-coral">*</span>
             </label>
             <Input
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Integer operations on number lines"
-              className="text-xs"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Integers on Number Line: Checkpoint 2"
+              required
+              className="text-xs sm:text-sm h-9 sm:h-10"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="font-semibold text-ink-primary block">
-              Grade / Level
-            </label>
-            <Input
-              value={gradeLevel}
-              onChange={(e) => setGradeLevel(e.target.value)}
-              placeholder="e.g. Secondary 1"
-              className="text-xs"
-            />
-          </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <label className="font-semibold text-ink-primary block">
-            Question / Task Instructions
-          </label>
-          <Textarea
-            value={questionText}
-            onChange={(e) => setQuestionText(e.target.value)}
-            rows={2}
-            placeholder="e.g. Use the number line to evaluate -6 + 12 - 4"
-            className="text-xs resize-none"
-          />
-        </div>
+          {/* Topic and Grade Level */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1.5">
+              <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+                Curricular Topic
+              </label>
+              <Input
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Integer operations on number lines"
+                className="text-xs sm:text-sm h-9 sm:h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+                Grade / Level
+              </label>
+              <Input
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+                placeholder="e.g. Secondary 1"
+                className="text-xs sm:text-sm h-9 sm:h-10"
+              />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Task Instructions */}
           <div className="space-y-1.5">
-            <label className="font-semibold text-ink-primary block">
-              Mathematical Expression
+            <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+              Question / Task Instructions
             </label>
-            <Input
-              value={latexFormula}
-              onChange={(e) => setLatexFormula(e.target.value)}
-              placeholder="-6 + 12 - 4"
-              className="font-mono text-xs"
+            <Textarea
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              rows={2}
+              placeholder="e.g. Use the number line to evaluate -6 + 12 - 4"
+              className="text-xs sm:text-sm resize-none py-2"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="font-semibold text-ink-primary block">
-              Expected Canonical Answer
-            </label>
-            <Input
-              value={expectedAnswer}
-              onChange={(e) => setExpectedAnswer(e.target.value)}
-              placeholder="2"
-              className="font-mono text-xs"
-            />
-          </div>
-        </div>
 
-        <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-default">
+          {/* Formula and Expected Answer */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1.5">
+              <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+                Mathematical Expression
+              </label>
+              <Input
+                value={latexFormula}
+                onChange={(e) => setLatexFormula(e.target.value)}
+                placeholder="-6 + 12 - 4"
+                className="font-mono text-xs sm:text-sm h-9 sm:h-10"
+              />
+              <span className="text-[10px] text-ink-muted block">
+                Evaluated deterministically via SymPy engine
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-semibold text-ink-primary block text-xs sm:text-sm">
+                Expected Canonical Answer
+              </label>
+              <Input
+                value={expectedAnswer}
+                onChange={(e) => setExpectedAnswer(e.target.value)}
+                placeholder="2"
+                className="font-mono text-xs sm:text-sm h-9 sm:h-10"
+              />
+              <span className="text-[10px] text-ink-muted block">
+                Target value for correctness verification
+              </span>
+            </div>
+          </div>
+        </DialogBody>
+
+        <DialogFooter>
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={onClose}
             disabled={loading}
+            className="px-4 py-2"
           >
             Cancel
           </Button>
@@ -180,6 +195,7 @@ export function CreateAssessmentModal({
             variant="primary"
             size="sm"
             disabled={loading}
+            className="px-4 py-2"
           >
             {loading ? (
               <>
@@ -188,12 +204,12 @@ export function CreateAssessmentModal({
               </>
             ) : (
               <>
-                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                <BookOpen className="w-4 h-4 mr-1.5" />
                 Create Assessment
               </>
             )}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

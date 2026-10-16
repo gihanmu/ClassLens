@@ -1251,65 +1251,11 @@ export default function ClassLensApp() {
       <Dialog
         isOpen={showAssessmentModal}
         onClose={() => setShowAssessmentModal(false)}
+        size="md"
         title="Select Assessment Checkpoint"
         description="Switch between curricular checkpoints or create a new assessment."
-      >
-        <div className="space-y-3 text-xs">
-          <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-            {(assessmentsList.length > 0
-              ? assessmentsList
-              : [
-                  {
-                    id: "asm_1065658",
-                    title: "Checkpoint 1 — Integers & Number Lines",
-                    math_topic: "Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)",
-                    is_demo: true,
-                  },
-                  {
-                    id: "asm_synthetic_cases",
-                    title: "Synthetic Feasibility Benchmark: Cases 1–3",
-                    math_topic: "3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous & Incomplete",
-                    is_demo: true,
-                  },
-                ]
-            ).map((asm) => {
-              const isSelected = currentAssessmentId === asm.id;
-              const isDemo = ("is_demo" in asm && Boolean(asm.is_demo)) || asm.id === "asm_1065658" || asm.id === "asm_synthetic_cases";
-              return (
-                <div
-                  key={asm.id}
-                  onClick={() => handleSelectAssessment(asm.id)}
-                  className={cn(
-                    "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
-                    isSelected
-                      ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
-                      : "border-border-default bg-surface-base hover:bg-surface-subtle"
-                  )}
-                >
-                  <div className="pr-2">
-                    <p className="font-bold text-ink-primary text-sm flex items-center gap-1.5">
-                      {asm.title}
-                      {isDemo && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                          Demo
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-1">
-                      {asm.math_topic || ("question" in asm ? asm.question?.question_text : undefined) || "Mathematics Checkpoint"}
-                    </p>
-                  </div>
-                  {isSelected && (
-                    <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
-                      Active
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="pt-2 border-t border-border-default flex items-center justify-between">
+        footer={
+          <div className="w-full flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
@@ -1326,6 +1272,60 @@ export default function ClassLensApp() {
               Close
             </Button>
           </div>
+        }
+      >
+        <div className="space-y-2 text-xs">
+          {(assessmentsList.length > 0
+            ? assessmentsList
+            : [
+                {
+                  id: "asm_1065658",
+                  title: "Checkpoint 1 — Integers & Number Lines",
+                  math_topic: "Curated cohort of 13 student responses • Problem #1065658 (-6 + 12 - 4)",
+                  is_demo: true,
+                },
+                {
+                  id: "asm_synthetic_cases",
+                  title: "Synthetic Feasibility Benchmark: Cases 1–3",
+                  math_topic: "3 Authorized Worksheets: Canonical Correct, Off-by-One Error, Ambiguous & Incomplete",
+                  is_demo: true,
+                },
+              ]
+          ).map((asm) => {
+            const isSelected = currentAssessmentId === asm.id;
+            const isDemo = ("is_demo" in asm && Boolean(asm.is_demo)) || asm.id === "asm_1065658" || asm.id === "asm_synthetic_cases";
+            return (
+              <div
+                key={asm.id}
+                onClick={() => handleSelectAssessment(asm.id)}
+                className={cn(
+                  "p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between",
+                  isSelected
+                    ? "border-brand-primary bg-brand-light/30 ring-1 ring-brand-primary"
+                    : "border-border-default bg-surface-base hover:bg-surface-subtle"
+                )}
+              >
+                <div className="pr-2">
+                  <p className="font-bold text-ink-primary text-sm flex items-center gap-1.5">
+                    {asm.title}
+                    {isDemo && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        Demo
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-1">
+                    {asm.math_topic || ("question" in asm ? asm.question?.question_text : undefined) || "Mathematics Checkpoint"}
+                  </p>
+                </div>
+                {isSelected && (
+                  <span className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                    Active
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Dialog>
 

@@ -1,22 +1,18 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { api, StudentResponse } from "@/lib/api";
 import {
   UploadCloud,
-  FileImage,
   X,
-  CheckCircle2,
   AlertTriangle,
-  Info,
   ShieldCheck,
-  Plus,
+  FileImage,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -163,124 +159,136 @@ export function WorksheetUploadModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
+      size="lg"
       title="Upload Handwritten Student Worksheets"
       description={`Add student worksheets to: ${assessmentTitle}`}
+      noPadding
     >
-      <div className="space-y-4 text-xs">
-        {generalError && (
-          <Alert variant="error">
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            {generalError}
-          </Alert>
-        )}
-
-        {/* Security & Truthfulness Notice */}
-        <div className="p-3 rounded-xl bg-surface-subtle border border-border-default space-y-1.5">
-          <div className="flex items-center gap-1.5 font-semibold text-ink-primary">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Intake Security &amp; Privacy Verification</span>
-          </div>
-          <p className="text-[11px] text-ink-muted leading-relaxed">
-            All files are scanned for magic-byte authenticity, EXIF privacy metadata is stripped, and fine pencil lines are preserved.
-          </p>
-          <div className="pt-1 flex items-start gap-1.5 text-[11px] text-amber-800 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-            <span>
-              <strong>Offline Mode Notice:</strong> Uploaded worksheets are securely stored and previewable. In offline mode, the system does not fabricate AI vision results—live visual interpretation requires authorized live mode.
-            </span>
-          </div>
-        </div>
-
-        {/* Drag and Drop Upload Zone */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={cn(
-            "border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all",
-            isDragging
-              ? "border-brand-primary bg-brand-light/30 ring-2 ring-brand-primary/20"
-              : "border-border-default hover:border-brand-primary/50 hover:bg-surface-subtle"
+      <div className="flex flex-col flex-1 min-h-0">
+        <DialogBody className="space-y-4 sm:space-y-5 text-xs sm:text-sm">
+          {generalError && (
+            <Alert variant="error">
+              <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
+              <span>{generalError}</span>
+            </Alert>
           )}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <div className="w-12 h-12 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mx-auto mb-2 shadow-2xs">
-            <UploadCloud className="w-6 h-6" />
-          </div>
-          <p className="font-semibold text-ink-primary text-sm">
-            Drag &amp; drop worksheet photos or click to browse
-          </p>
-          <p className="text-[11px] text-ink-muted mt-1">
-            Supports JPG, JPEG, PNG, WebP • Maximum 10 MB per image
-          </p>
-        </div>
 
-        {/* Selected Worksheets List with Student ID Mapping */}
-        {items.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-ink-secondary">
-              <span>Selected Worksheets ({items.length})</span>
-              <button
-                type="button"
-                onClick={() => setItems([])}
-                className="text-[11px] text-ink-muted hover:text-accent-coral"
-              >
-                Clear all
-              </button>
+          {/* Intake Security & Offline Notice Strip */}
+          <div className="p-3 sm:p-3.5 rounded-xl bg-surface-subtle border border-border-default space-y-1.5">
+            <div className="flex items-center gap-1.5 font-semibold text-xs sm:text-sm text-ink-primary">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Intake Security &amp; Privacy Verification</span>
             </div>
+            <p className="text-[11px] sm:text-xs text-ink-muted leading-relaxed">
+              Magic-byte verified, EXIF stripped, and fine pencil detail preserved. In offline mode, worksheets are stored securely without synthetic AI hallucinations.
+            </p>
+          </div>
 
-            <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "p-2.5 rounded-xl border flex items-center gap-3 transition-colors",
-                    item.error
-                      ? "border-accent-coral/30 bg-accent-coral/5"
-                      : "border-border-default bg-surface-base"
-                  )}
+          {/* Drag and Drop Upload Zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "border-2 border-dashed rounded-2xl p-5 sm:p-7 text-center cursor-pointer transition-all duration-150",
+              isDragging
+                ? "border-brand-primary bg-brand-light/30 ring-2 ring-brand-primary/20"
+                : "border-border-default hover:border-brand-primary/60 hover:bg-surface-subtle"
+            )}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mx-auto mb-2.5 shadow-2xs">
+              <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <p className="font-semibold text-ink-primary text-xs sm:text-sm">
+              Drag &amp; drop worksheet photos, or click to browse
+            </p>
+            <p className="text-[11px] sm:text-xs text-ink-muted mt-1">
+              Supports JPG, PNG, and WebP • Up to 10 MB per image
+            </p>
+          </div>
+
+          {/* Selected Worksheets List with Student ID Mapping */}
+          {items.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-ink-secondary">
+                <span>Selected Worksheets ({items.length})</span>
+                <button
+                  type="button"
+                  onClick={() => setItems([])}
+                  className="text-[11px] text-ink-muted hover:text-accent-coral transition-colors"
                 >
-                  {/* Thumbnail Preview */}
-                  <div className="w-12 h-12 rounded-lg bg-surface-subtle overflow-hidden border border-border-default shrink-0 flex items-center justify-center">
-                    <img
-                      src={item.previewUrl}
-                      alt={item.file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  Clear all
+                </button>
+              </div>
 
-                  {/* Metadata & Student Mapping */}
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-ink-primary truncate text-xs">
-                        {item.file.name}
-                      </p>
-                      <span className="font-mono text-[10px] text-ink-muted shrink-0">
-                        {formatFileSize(item.file.size)}
-                      </span>
+              <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center gap-3 transition-colors",
+                      item.error
+                        ? "border-accent-coral/30 bg-accent-coral/5"
+                        : "border-border-default bg-surface-base"
+                    )}
+                  >
+                    {/* Top row on mobile: Thumbnail + info + remove */}
+                    <div className="flex items-center gap-3 min-w-0 sm:flex-1">
+                      {/* Thumbnail Preview */}
+                      <div className="w-12 h-12 rounded-lg bg-surface-subtle overflow-hidden border border-border-default shrink-0 flex items-center justify-center">
+                        <img
+                          src={item.previewUrl}
+                          alt={item.file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      {/* File Name & Size */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-ink-primary truncate text-xs sm:text-sm">
+                          {item.file.name}
+                        </p>
+                        <span className="font-mono text-[10px] sm:text-[11px] text-ink-muted block mt-0.5">
+                          {formatFileSize(item.file.size)}
+                        </span>
+                        {item.error && (
+                          <p className="text-[11px] text-accent-coral font-medium mt-0.5">
+                            {item.error}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Remove Button on mobile */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="p-1.5 rounded-lg text-ink-muted hover:text-accent-coral hover:bg-surface-subtle transition-colors shrink-0 sm:hidden"
+                        title="Remove worksheet"
+                        aria-label="Remove worksheet"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    {item.error ? (
-                      <p className="text-[11px] text-accent-coral font-medium">
-                        {item.error}
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2 pt-0.5">
+                    {/* Metadata & Student Mapping */}
+                    {!item.error && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:w-72 shrink-0">
                         <Input
                           value={item.studentId}
                           onChange={(e) =>
                             handleUpdateStudent(item.id, "studentId", e.target.value)
                           }
-                          placeholder="Student ID"
-                          className="h-7 text-[11px] py-1 px-2 font-mono"
+                          placeholder="Student ID (e.g. stu_01)"
+                          className="h-8 text-[11px] sm:text-xs py-1 px-2.5 font-mono"
                         />
                         <Input
                           value={item.studentName}
@@ -288,30 +296,31 @@ export function WorksheetUploadModal({
                             handleUpdateStudent(item.id, "studentName", e.target.value)
                           }
                           placeholder="Student Name"
-                          className="h-7 text-[11px] py-1 px-2"
+                          className="h-8 text-[11px] sm:text-xs py-1 px-2.5"
                         />
                       </div>
                     )}
+
+                    {/* Remove Button on desktop */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="p-1.5 rounded-lg text-ink-muted hover:text-accent-coral hover:bg-surface-subtle transition-colors shrink-0 hidden sm:block"
+                      title="Remove worksheet"
+                      aria-label="Remove worksheet"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-
-                  {/* Remove Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="p-1 rounded text-ink-muted hover:text-accent-coral hover:bg-surface-subtle"
-                    title="Remove worksheet"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </DialogBody>
 
-        {/* Action Buttons */}
-        <div className="pt-2 flex items-center justify-between border-t border-border-default">
-          <span className="text-[11px] text-ink-muted">
+        {/* Action Buttons Sticky Footer */}
+        <DialogFooter className="justify-between flex-wrap gap-2">
+          <span className="text-[11px] sm:text-xs text-ink-muted">
             {items.filter((i) => !i.error).length} valid worksheet(s) ready
           </span>
 
@@ -322,6 +331,7 @@ export function WorksheetUploadModal({
               size="sm"
               onClick={onClose}
               disabled={uploading}
+              className="px-4 py-2"
             >
               Cancel
             </Button>
@@ -331,6 +341,7 @@ export function WorksheetUploadModal({
               size="sm"
               onClick={handleUpload}
               disabled={uploading || items.filter((i) => !i.error).length === 0}
+              className="px-4 py-2"
             >
               {uploading ? (
                 <>
@@ -339,13 +350,13 @@ export function WorksheetUploadModal({
                 </>
               ) : (
                 <>
-                  <UploadCloud className="w-3.5 h-3.5 mr-1.5" />
+                  <UploadCloud className="w-4 h-4 mr-1.5" />
                   Upload Worksheets
                 </>
               )}
             </Button>
           </div>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

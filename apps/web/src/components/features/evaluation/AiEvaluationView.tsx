@@ -774,18 +774,20 @@ export function AiEvaluationView() {
         <Dialog
           isOpen={!!selectedCase}
           onClose={() => setSelectedCase(null)}
+          size="lg"
           title={`Case Audit: ${selectedCase.case_id}`}
+          description={`Category: ${selectedCase.category}`}
+          footer={
+            <Button variant="outline" size="sm" onClick={() => setSelectedCase(null)}>
+              Close Audit
+            </Button>
+          }
         >
-          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-4 text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-border-default">
-              <div>
-                <span className="text-xs text-ink-muted uppercase tracking-wider font-semibold">
-                  Category:
-                </span>
-                <span className="ml-2 font-mono text-xs font-bold text-ink-primary">
-                  {selectedCase.category}
-                </span>
-              </div>
+              <span className="font-mono text-xs font-bold text-ink-primary">
+                Case ID: {selectedCase.case_id}
+              </span>
               <div
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1",
@@ -814,7 +816,7 @@ export function AiEvaluationView() {
               <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
                 Assertion Diff (Expected vs Actual)
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 rounded-xl bg-surface-subtle border border-border-default space-y-2">
                   <p className="font-semibold text-ink-muted uppercase text-[10px]">Ground Truth (Expected)</p>
                   {Object.entries(selectedCase.expected_values).map(([k, v]) => (
@@ -845,12 +847,6 @@ export function AiEvaluationView() {
                 </div>
               </div>
             </div>
-
-            <div className="pt-2 border-t border-border-default flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => setSelectedCase(null)}>
-                Close Audit
-              </Button>
-            </div>
           </div>
         </Dialog>
       )}
@@ -860,9 +856,15 @@ export function AiEvaluationView() {
         <Dialog
           isOpen={showMarkdownModal}
           onClose={() => setShowMarkdownModal(false)}
+          size="xl"
           title="Latest Benchmark Report (Markdown)"
+          footer={
+            <Button variant="outline" size="sm" onClick={() => setShowMarkdownModal(false)}>
+              Close
+            </Button>
+          }
         >
-          <div className="space-y-4 max-h-[75vh] overflow-y-auto">
+          <div className="space-y-4">
             {loadingMarkdown ? (
               <div className="p-12 flex justify-center">
                 <Spinner size="md" />
@@ -872,11 +874,6 @@ export function AiEvaluationView() {
                 {markdownText}
               </pre>
             )}
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => setShowMarkdownModal(false)}>
-                Close
-              </Button>
-            </div>
           </div>
         </Dialog>
       )}

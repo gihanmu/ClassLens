@@ -67,10 +67,35 @@ export function ResponseReviewModal({
   }, [responseId, isOpen]);
 
   // Handle ESC key to dismiss
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && isOpen && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            last.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === last) {
+            first.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -84,20 +109,24 @@ export function ResponseReviewModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="review-modal-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-6"
+      className="fixed inset-0 z-50 overflow-hidden bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-6"
     >
-      <div className="bg-slate-100 rounded-2xl w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden">
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-slate-100 rounded-2xl w-full max-w-[1240px] max-h-[92dvh] h-[92dvh] sm:max-h-[90dvh] sm:h-[90dvh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden focus-visible:outline-none"
+      >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
-          <div className="flex items-center space-x-3">
-            <h2 id="review-modal-title" className="text-lg font-bold text-slate-900">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200 shrink-0 gap-2">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <h2 id="review-modal-title" className="text-sm sm:text-base md:text-lg font-bold text-slate-900 truncate">
               {detail?.pseudonym_label || `Student Response (${responseId})`}
             </h2>
-            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            <span className="text-[10px] sm:text-xs font-mono text-slate-500 bg-slate-100 px-1.5 sm:px-2 py-0.5 rounded border border-slate-200 shrink-0 hidden sm:inline">
               ID: {responseId}
             </span>
             {detail?.is_mock && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-semibold flex items-center space-x-1.5">
+              <span className="text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-semibold items-center space-x-1.5 shrink-0 hidden md:inline-flex">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                 <span>Offline Demo — Simulated AI Analysis</span>
               </span>
@@ -105,7 +134,7 @@ export function ResponseReviewModal({
           </div>
 
           {/* Navigation & Close */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               type="button"
               onClick={onNavigatePrev}
@@ -124,7 +153,7 @@ export function ResponseReviewModal({
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="h-5 w-px bg-slate-200 mx-1" />
+            <div className="h-5 w-px bg-slate-200 mx-0.5 sm:mx-1" />
             <button
               type="button"
               onClick={onClose}
