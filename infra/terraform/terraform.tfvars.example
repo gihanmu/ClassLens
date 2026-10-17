@@ -1,0 +1,23 @@
+# ==============================================================================
+# ClassLens Terraform Configuration Variables Template
+# ==============================================================================
+# Copy this file to terraform.tfvars and populate with your GCP project details.
+# DO NOT commit terraform.tfvars to version control.
+
+project_id      = "your-gcp-project-id"
+region          = "asia-southeast1" # Singapore
+environment     = "production"
+app_name        = "classlens"
+
+# Optional custom domain (leave empty to use Load Balancer IP directly)
+domain_name     = ""
+
+# Vertex AI Gemini model configuration
+gemini_model    = "gemini-3.8-flash"
+
+# Scaling & Cost Optimization (scale-to-zero when idle)
+min_scale       = 0
+max_scale       = 2
+
+# Set true if provisioning managed Cloud SQL PostgreSQL instance (baseline db-f1-micro)
+enable_cloud_sql = false

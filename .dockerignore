@@ -1,0 +1,59 @@
+# Git & VCS
+.git
+.gitignore
+.gitattributes
+
+# Virtual environments & dependencies
+.venv
+venv
+env
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Tests & Coverage
+.pytest_cache
+tests
+evaluation
+automation/reports
+htmlcov
+.coverage
+
+# Local data & uploads (CRITICAL: Never bake in student images or database snapshots)
+local-data/
+local-data/*
+local-data/store/*
+local-data/uploads/*
+dataset/
+dataset/*
+*.db
+*.sqlite3
+*.db.bak*
+*.json.bak*
+*.tar.gz
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+service_account.json
+
+# Documentation screenshots & wireframes
+docs/screenshots/
+docs/wireframes/
+specs/
+
+# Frontend build artifacts
+apps/web/.next
+apps/web/node_modules
+
+# Terraform state
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
