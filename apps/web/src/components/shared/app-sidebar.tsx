@@ -1,20 +1,14 @@
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import {
   Users,
   BarChart3,
-  Lightbulb,
   FileText,
-  Palette,
   LogOut,
   FolderOpen,
   Sparkles,
-  FlaskConical,
   LayoutDashboard,
-  ShieldCheck,
 } from "lucide-react";
 
 export type NavItemKey =
@@ -23,10 +17,7 @@ export type NavItemKey =
   | "insights"
   | "recommendations"
   | "resources"
-  | "assessments"
-  | "design-system"
-  | "gemini-test"
-  | "evaluation";
+  | "assessments";
 
 import { api, UserProfile } from "@/lib/api";
 
@@ -55,8 +46,6 @@ export function AppSidebar({
   user,
   onLogout,
 }: AppSidebarProps) {
-  const pathname = usePathname();
-
   const navItems: NavItem[] = [
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { key: "responses", label: "Student Work", icon: Users },
@@ -65,10 +54,6 @@ export function AppSidebar({
     { key: "resources", label: "Exit Tickets", icon: FileText },
     { key: "assessments", label: "Assessments", icon: FolderOpen },
   ];
-
-  const isDesignSystemRoute = pathname === "/design-system";
-  const isGeminiTestRoute = pathname === "/dev/gemini-test";
-  const isEvaluationRoute = pathname === "/dev/evaluation";
 
   return (
     <aside
@@ -89,7 +74,7 @@ export function AppSidebar({
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = !isDesignSystemRoute && !isGeminiTestRoute && currentTab === item.key;
+          const isActive = currentTab === item.key;
           return (
             <button
               key={item.key}
@@ -125,90 +110,6 @@ export function AppSidebar({
             </button>
           );
         })}
-
-        <div className="pt-6 px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-          Design & Testing
-        </div>
-        <Link
-          href="/design-system"
-          onClick={onCloseMobile}
-          className={cn(
-            "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
-            isDesignSystemRoute
-              ? "bg-brand-primary text-white shadow-xs font-semibold"
-              : "text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Palette
-              className={cn("w-4 h-4", isDesignSystemRoute ? "text-white" : "text-ink-muted")}
-              aria-hidden="true"
-            />
-            <span>Design System</span>
-          </div>
-          <span
-            className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-mono",
-              isDesignSystemRoute ? "bg-white/20 text-white" : "bg-brand-light text-brand-primary font-semibold"
-            )}
-          >
-            Live
-          </span>
-        </Link>
-
-        <Link
-          href="/dev/gemini-test"
-          onClick={onCloseMobile}
-          className={cn(
-            "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary mt-1",
-            isGeminiTestRoute
-              ? "bg-brand-primary text-white shadow-xs font-semibold"
-              : "text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <FlaskConical
-              className={cn("w-4 h-4", isGeminiTestRoute ? "text-white" : "text-ink-muted")}
-              aria-hidden="true"
-            />
-            <span>Gemini Test Lab</span>
-          </div>
-          <span
-            className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-mono",
-              isGeminiTestRoute ? "bg-white/20 text-white" : "bg-semantic-warning-bg text-semantic-warning-text font-semibold"
-            )}
-          >
-            Gate 4A
-          </span>
-        </Link>
-
-        <Link
-          href="/dev/evaluation"
-          onClick={onCloseMobile}
-          className={cn(
-            "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary mt-1",
-            isEvaluationRoute
-              ? "bg-brand-primary text-white shadow-xs font-semibold"
-              : "text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <ShieldCheck
-              className={cn("w-4 h-4", isEvaluationRoute ? "text-white" : "text-ink-muted")}
-              aria-hidden="true"
-            />
-            <span>AI Reliability Lab</span>
-          </div>
-          <span
-            className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-mono",
-              isEvaluationRoute ? "bg-white/20 text-white" : "bg-brand-light text-brand-primary font-semibold"
-            )}
-          >
-            Gate 4C
-          </span>
-        </Link>
       </nav>
 
       {/* Teacher Profile Footer with Logout */}

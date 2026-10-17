@@ -41,7 +41,6 @@ import { StudentInspectionModal } from "@/components/inspection/StudentInspectio
 import { TeachingRecommendationCard } from "@/components/features/cohort/TeachingRecommendationCard";
 import { ClassroomResourcesView } from "@/components/features/cohort/ClassroomResourcesView";
 import { ClassroomHeroIllustration } from "@/components/shared/classroom-illustration";
-import { AiEvaluationView } from "@/components/features/evaluation/AiEvaluationView";
 import { CreateAssessmentModal } from "@/components/features/assessments/CreateAssessmentModal";
 import { WorksheetUploadModal } from "@/components/features/assessments/WorksheetUploadModal";
 import { Button } from "@/components/ui/button";
@@ -1248,13 +1247,6 @@ export default function ClassLensApp() {
             </div>
           );
         })()}
-
-        {/* =========================================================================
-            SCREEN F: AI RELIABILITY & BENCHMARK EVALUATION (GATE 4C)
-           ========================================================================= */}
-        {currentTab === "evaluation" && (
-          <AiEvaluationView />
-        )}
       </div>
 
       {/* =========================================================================

@@ -42,32 +42,32 @@ export function OfflineDemoBanner({ className, onViewDetails }: OfflineDemoBanne
 
   return (
     <aside
-      aria-label={isLive ? "Live Gemini Mode Notice" : "Offline Demonstration Mode Notice"}
+      aria-label="Diagnostic Service Status"
       className={cn(
         "border-b px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 transition-colors",
-        isLive ? "bg-emerald-50/60 border-emerald-200 text-ink-secondary" : "bg-surface-subtle border-border-default text-ink-secondary",
+        isLive ? "bg-emerald-50/70 border-emerald-200 text-ink-secondary" : "bg-surface-subtle border-border-default text-ink-secondary",
         className
       )}
     >
       <div className="flex items-center gap-2 flex-wrap">
         {isLive ? (
           <>
-            <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full text-[11px] border border-emerald-300">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full text-[11px] border border-emerald-300">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" aria-hidden="true" />
-              Live Gemini Mode
+              Live AI Diagnostics
             </span>
-            <span className="text-ink-secondary">
-              Connected to Google Cloud Vertex AI ({modelName}) • Live multimodal vision inference enabled.
+            <span className="text-ink-secondary font-medium">
+              Multimodal Handwriting Evaluation & Formal Verification Active
             </span>
           </>
         ) : (
           <>
-            <span className="inline-flex items-center gap-1 font-semibold text-brand-primary bg-brand-light px-2 py-0.5 rounded-full text-[11px]">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-brand-primary bg-brand-light px-2.5 py-0.5 rounded-full text-[11px] border border-brand-primary/20">
               <Sparkles className="w-3 h-3 text-brand-primary" aria-hidden="true" />
-              Offline Demo Mode
+              Diagnostic Sandbox
             </span>
-            <span className="text-ink-secondary">
-              Offline demo mode ($0.00 spend guarantee) with deterministic SymPy mathematical verification.
+            <span className="text-ink-secondary font-medium">
+              Deterministic Mathematical Verification (Offline Evaluation Mode)
             </span>
           </>
         )}
