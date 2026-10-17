@@ -292,19 +292,20 @@ async def upload_student_worksheet(
             detail=validation_result.error_message or "Invalid or malicious image file",
         )
 
-    # 2. Secure file persistence in uploads directory
-    safe_org = re.sub(r"[^a-zA-Z0-9_-]", "_", user.organization_id)
-    safe_asm = re.sub(r"[^a-zA-Z0-9_-]", "_", assessment_id)
-    upload_dir = get_uploads_dir() / safe_org / safe_asm
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
+    # 2. Secure file persistence via storage backend
     clean_orig_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", file.filename or "worksheet.jpg")
     unique_file_name = f"{uuid.uuid4().hex[:8]}_{clean_orig_name}"
-    target_path = upload_dir / unique_file_name
-
     payload_to_write = sanitized_bytes if sanitized_bytes is not None else raw_bytes
-    with open(target_path, "wb") as f_out:
-        f_out.write(payload_to_write)
+
+    from services.api.repository.file_storage import get_file_storage
+    storage = get_file_storage()
+    storage.save_file(
+        org_id=user.organization_id,
+        assessment_id=assessment_id,
+        filename=unique_file_name,
+        content=payload_to_write,
+        mime_type=validation_result.mime_type,
+    )
 
     # 3. Create student response document
     existing_responses = memory_repo.list_responses(assessment_id)
@@ -398,11 +399,17 @@ async def upload_batch_student_worksheets(
 
         clean_orig_name = re.sub(r"[^a-zA-Z0-9_.-]", "_", f.filename or f"worksheet_{idx}.jpg")
         unique_file_name = f"{uuid.uuid4().hex[:8]}_{clean_orig_name}"
-        target_path = upload_dir / unique_file_name
-
         payload_to_write = sanitized_bytes if sanitized_bytes is not None else raw_bytes
-        with open(target_path, "wb") as out_f:
-            out_f.write(payload_to_write)
+
+        from services.api.repository.file_storage import get_file_storage
+        storage = get_file_storage()
+        storage.save_file(
+            org_id=user.organization_id,
+            assessment_id=assessment_id,
+            filename=unique_file_name,
+            content=payload_to_write,
+            mime_type=validation_result.mime_type,
+        )
 
         file_meta = mappings.get(f.filename, {}) if isinstance(mappings, dict) else {}
         student_idx = existing_count + len(created_docs) + 1

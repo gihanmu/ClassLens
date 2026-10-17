@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from services.api.auth.dependencies import get_current_user, require_csrf
@@ -202,24 +202,19 @@ async def get_response_image(
     """Serves the student response handwritten image file read-only."""
     resp = _get_verified_response(response_id, user.organization_id)
 
-    from services.api.repository.storage_config import get_uploads_dir
+    from services.api.repository.file_storage import get_file_storage
     from services.worker.security.provenance_guard import TRUSTED_SYNTHETIC_DIR
 
-    # Check local uploads directory first
-    uploads_dir = os.path.realpath(str(get_uploads_dir()))
-    upload_candidates = [
-        os.path.join(uploads_dir, user.organization_id, resp.assessment_id, resp.source_filename),
-        os.path.join(uploads_dir, user.organization_id, resp.source_filename),
-        os.path.join(uploads_dir, resp.source_filename),
-    ]
-    for cand in upload_candidates:
-        real_cand = os.path.realpath(cand)
-        if real_cand.startswith(uploads_dir) and os.path.isfile(real_cand):
-            return FileResponse(
-                path=real_cand,
-                media_type=resp.image_mime_type,
-                filename=os.path.basename(real_cand),
-            )
+    # Check storage backend first (local uploads or GCS)
+    storage = get_file_storage()
+    stored_file = storage.get_file_bytes(user.organization_id, resp.assessment_id, resp.source_filename)
+    if stored_file:
+        data_bytes, mime = stored_file
+        return Response(
+            content=data_bytes,
+            media_type=resp.image_mime_type or mime,
+            headers={"Content-Disposition": f'inline; filename="{os.path.basename(resp.source_filename)}"'},
+        )
 
     dataset_dir = os.path.join(os.getcwd(), "dataset", "problem_1065658")
     file_path = os.path.join(dataset_dir, resp.source_filename)

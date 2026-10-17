@@ -55,7 +55,20 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("SECRET_KEY", "classlens-dev-secret-key-32-chars-long!")
     )
     cors_origins: List[str] = Field(
-        default=["http://localhost:3000", "http://127.0.0.1:3000"]
+        default_factory=lambda: [
+            orig.strip()
+            for orig in os.getenv(
+                "CLASSLENS_CORS_ORIGINS",
+                "http://localhost:3000,http://127.0.0.1:3000",
+            ).split(",")
+            if orig.strip()
+        ]
+    )
+    database_url: Optional[str] = Field(
+        default_factory=lambda: os.getenv("CLASSLENS_DATABASE_URL")
+    )
+    gcs_bucket: Optional[str] = Field(
+        default_factory=lambda: os.getenv("CLASSLENS_GCS_BUCKET")
     )
     default_org_id: str = "org_cedar_sec"
     demo_user_id: str = "usr_sarah_lim"
@@ -203,6 +216,22 @@ class Settings(BaseModel):
             if not secrets.compare_digest(provided_key.strip(), self.live_auth_key.strip()):
                 raise ConfigurationError(
                     "Gate 6 Fail-Closed Safeguard: Invalid owner authorization key provided."
+                )
+
+    def validate_production_configuration(self) -> None:
+        """Enforces that required configuration is present and secure in production."""
+        if self.environment == "production":
+            if (
+                not self.secret_key
+                or self.secret_key == "classlens-dev-secret-key-32-chars-long!"
+                or len(self.secret_key) < 32
+            ):
+                raise ConfigurationError(
+                    "Production configuration error: SECRET_KEY must be a secure, non-default string of at least 32 characters."
+                )
+            if not self.google_cloud_project:
+                raise ConfigurationError(
+                    "Production configuration error: GOOGLE_CLOUD_PROJECT must be configured."
                 )
 
 

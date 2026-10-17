@@ -38,19 +38,61 @@ class AuthResponse(BaseModel):
     csrf_token: str
 
 
+import time
+from collections import defaultdict
+
+
+class LoginRateLimiter:
+    """Sliding-window in-memory rate limiter for login attempts."""
+
+    def __init__(self, max_attempts: int = 5, window_seconds: int = 60):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self.attempts: Dict[str, list[float]] = defaultdict(list)
+
+    def is_rate_limited(self, key: str) -> bool:
+        now = time.time()
+        cutoff = now - self.window_seconds
+        self.attempts[key] = [t for t in self.attempts[key] if t > cutoff]
+        return len(self.attempts[key]) >= self.max_attempts
+
+    def record_failure(self, key: str) -> None:
+        self.attempts[key].append(time.time())
+
+    def reset(self, key: str) -> None:
+        self.attempts.pop(key, None)
+
+
+login_rate_limiter = LoginRateLimiter(max_attempts=5, window_seconds=60)
+
+
 @router.post("/login", response_model=AuthResponse)
-async def login(body: LoginRequest, response: Response):
+async def login(request: Request, body: LoginRequest, response: Response):
     """Authenticates the teacher account using Argon2id password verification."""
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if not client_ip and request.client:
+        client_ip = request.client.host
+    rate_key = f"{client_ip or 'unknown'}:{body.username.lower().strip()}"
+
+    if login_rate_limiter.is_rate_limited(rate_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please wait 60 seconds before trying again.",
+        )
+
     try:
         user, session_token, csrf_token = AuthService.authenticate_teacher(
             username=body.username,
             password=body.password,
         )
     except ValueError as exc:
+        login_rate_limiter.record_failure(rate_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(exc),
         )
+
+    login_rate_limiter.reset(rate_key)
 
     is_prod = settings.environment == "production"
     response.set_cookie(

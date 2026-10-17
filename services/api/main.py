@@ -6,16 +6,40 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import uuid
 from services.api.config import settings
 from services.api.routers import assessments, auth, cohort, dashboard, dev, responses
+
+is_dev = settings.environment == "development"
+settings.validate_production_configuration()
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Intelligent multimodal math diagnostic platform for Singapore secondary education",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if is_dev else None,
+    redoc_url="/redoc" if is_dev else None,
 )
+
+
+@app.middleware("http")
+async def correlation_id_and_security_headers(request: Request, call_next):
+    """Enriches requests with correlation IDs and attaches defense-in-depth security headers."""
+    correlation_id = (
+        request.headers.get("X-Correlation-ID")
+        or request.headers.get("X-Request-ID")
+        or str(uuid.uuid4())
+    )
+    request.state.correlation_id = correlation_id
+
+    response = await call_next(request)
+
+    response.headers["X-Correlation-ID"] = correlation_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 
 # CORS Middleware
 app.add_middleware(
