@@ -1,8 +1,8 @@
 {
-  "run_id": "run_1791890694",
+  "run_id": "run_1792196631",
   "dataset_version": "1.0.0",
-  "timestamp": "2026-10-13T11:24:54.765222+00:00",
-  "git_commit": "c450648",
+  "timestamp": "2026-10-17T00:23:51.600401+00:00",
+  "git_commit": "ce67ff6",
   "pipeline_mode": "mock-offline",
   "total_cases": 18,
   "passed_cases": 18,
@@ -265,7 +265,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.21
+      "latency_ms": 0.24
     },
     {
       "case_id": "case_02_off_by_one_error",
@@ -303,7 +303,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.14
+      "latency_ms": 0.17
     },
     {
       "case_id": "case_03_ambiguous_incomplete",
@@ -341,7 +341,7 @@
         "critic_verdict": "review_required"
       },
       "failure_reasons": [],
-      "latency_ms": 0.12
+      "latency_ms": 0.14
     },
     {
       "case_id": "resp_04255753",
@@ -379,7 +379,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.13
+      "latency_ms": 0.12
     },
     {
       "case_id": "resp_0a70eabf",
@@ -569,7 +569,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.11
+      "latency_ms": 0.12
     },
     {
       "case_id": "resp_8cbadb4e",
@@ -607,7 +607,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.1
+      "latency_ms": 0.11
     },
     {
       "case_id": "resp_8ef9d302",
@@ -683,7 +683,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.11
+      "latency_ms": 0.21
     },
     {
       "case_id": "resp_b4214e02",
@@ -721,7 +721,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.09
+      "latency_ms": 0.1
     },
     {
       "case_id": "resp_d3e07e18",
@@ -759,7 +759,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.31
+      "latency_ms": 0.1
     },
     {
       "case_id": "resp_e33295ea",
@@ -797,7 +797,7 @@
         "critic_verdict": "review_required"
       },
       "failure_reasons": [],
-      "latency_ms": 0.07
+      "latency_ms": 0.06
     },
     {
       "case_id": "resp_f0738571",
@@ -873,7 +873,7 @@
         "critic_verdict": "audit_passed"
       },
       "failure_reasons": [],
-      "latency_ms": 0.13
+      "latency_ms": 0.12
     },
     {
       "case_id": "bench_faint_overlapping",
@@ -911,7 +911,7 @@
         "critic_verdict": "review_required"
       },
       "failure_reasons": [],
-      "latency_ms": 0.12
+      "latency_ms": 0.11
     }
   ],
   "evaluation_mode": "offline_regression",

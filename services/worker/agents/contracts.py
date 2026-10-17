@@ -212,6 +212,19 @@ class DifferentiatedAction(BaseModel):
     title: str
     instructional_steps: List[str]
     student_count_affected: int
+    assessment_id: Optional[str] = None
+    task_type: Optional[str] = None
+    supporting_response_ids: List[str] = Field(default_factory=list)
+    evidence_sufficiency: Optional[str] = "sufficient"
+    status: Literal[
+        "verified_misconception",
+        "possible_misconception",
+        "representation_followup",
+        "insufficient_evidence",
+        "unsupported_task",
+    ] = "verified_misconception"
+    rationale: Optional[str] = None
+    is_mock: bool = False
 
 
 class ExitTicketItem(BaseModel):
@@ -232,6 +245,9 @@ class CohortIntelligenceOutput(BaseModel):
     differentiated_actions: List[DifferentiatedAction]
     formative_exit_ticket: List[ExitTicketItem]
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    assessment_id: Optional[str] = None
+    task_type: Optional[str] = None
+    cohort_status: Optional[str] = "ready"
 
 
 class StudentResponseAnalysis(BaseModel):

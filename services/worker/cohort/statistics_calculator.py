@@ -19,6 +19,15 @@ TAXONOMY_TITLES: Dict[str, str] = {
     "COMPENSATORY_ARITHMETIC_ERROR": "Compensatory Arithmetic Error (Masked Slip)",
     "DIRECTION_SIGN_CONFUSION": "Signed Vector Direction Confusion",
     "REASONING_INCOMPLETE": "Incomplete Reasoning (Answer Only)",
+    "FRAC-DIV-WRONG-GROUP-SIZE": "Fraction Division: Incorrect Divisor Group Size",
+    "FRAC-DIV-RECIPROCAL-INVERSION": "Fraction Division: Divisor Reciprocal Confusion",
+    "FRAC-DIV-UNIT-FORM-DISCONNECT": "Fraction Division: Unit Form & Diagram Disconnect",
+    "REPRESENTATION-MISSING": "Missing Visual Model (Equation Only)",
+    "VISUAL-MODEL-INCOMPLETE": "Incomplete Visual Diagram",
+    "DEC-EST-MAGNITUDE-SLIP": "Decimal Estimation Magnitude Slip",
+    "PLACE-VALUE-COLUMN-MISALIGN": "Place Value Unit Alignment Slip",
+    "ARITHMETIC_SLIP": "Arithmetic Calculation Slip",
+    "UNSUPPORTED_TASK": "Unsupported Mathematical Task Domain",
 }
 
 

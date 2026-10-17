@@ -133,6 +133,7 @@ export default function ClassLensApp() {
           setInsights(ins);
         } catch (e) {
           console.warn("Cohort insights not ready yet:", e);
+          setInsights(null);
         }
       } else {
         setInsights(null);
@@ -146,6 +147,9 @@ export default function ClassLensApp() {
 
   const handleSelectAssessment = async (newAsmId: string) => {
     setCurrentAssessmentId(newAsmId);
+    setAssessment(null);
+    setResponses([]);
+    setInsights(null);
     setShowAssessmentModal(false);
     if (typeof window !== "undefined") {
       try {
@@ -941,91 +945,78 @@ export default function ClassLensApp() {
         {/* =========================================================================
             SCREEN E: TEACHING ACTIONS & RECOMMENDATIONS
            ========================================================================= */}
-        {currentTab === "recommendations" && (
-          <div className="space-y-6">
-            <PageHeader
-              title="Differentiated Teaching Action Plans"
-              subtitle="Actionable, tiered intervention blueprints targeting localized number-line misconceptions."
-              badge={
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent-yellow/30 text-amber-950 border border-amber-300">
-                  Pedagogical Recommendations
-                </span>
-              }
-            />
+        {currentTab === "recommendations" && (() => {
+          const actions = insights?.intelligence?.differentiated_actions || [];
+          const cohortStatus = insights?.intelligence?.cohort_status;
+          const topicName = assessment?.math_topic || "Mathematics";
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {(
-                insights?.intelligence?.differentiated_actions || [
-                  {
-                    action_type: "concrete_manipulative",
-                    target_misconception_id: "START_POINT_ZERO_MISUNDERSTANDING",
-                    title: "Floor Number Line Walkway",
-                    student_count_affected: 2,
-                    instructional_steps: [
-                      "Lay painter's tape across classroom floor marked from -10 to +10.",
-                      "Ask student to physically stand on 0 as the 'home base' origin.",
-                      "Demonstrate taking 6 steps backward to land on -6, reinforcing that origin is where motion begins.",
-                    ],
-                  },
-                  {
-                    action_type: "worked_example",
-                    target_misconception_id: "INCORRECT_INTERVAL_MAGNITUDE",
-                    title: "Side-by-Side Hop Comparison",
-                    student_count_affected: 3,
-                    instructional_steps: [
-                      "Present an incorrect +6 jump next to the correct +12 jump on whiteboard.",
-                      "Prompt class: 'Why does jumping 12 units land on +6 rather than 0?'",
-                      "Guide students to count intervals between tick marks, not the tick marks themselves.",
-                    ],
-                  },
-                  {
-                    action_type: "guided_inquiry",
-                    target_misconception_id: "COMPENSATORY_ARITHMETIC_ERROR",
-                    title: "Reasoning vs. Answer Audit",
-                    student_count_affected: 1,
-                    instructional_steps: [
-                      "Examine why getting the right answer (+2) with wrong hops creates confusion on advanced algebra.",
-                      "Have students verify each hop with SymPy rules independently.",
-                    ],
-                  },
-                ]
-              ).map((action, idx) => (
-                <TeachingRecommendationCard key={idx} action={action} />
-              ))}
+          let emptyTitle = "No Evidence-Supported Interventions Available";
+          let emptyDescription = "No recurring misconception patterns met the threshold for intervention assignment across analyzed submissions.";
+
+          if (responses.length === 0) {
+            emptyTitle = "No Student Work Submitted Yet";
+            emptyDescription = "Upload and analyze student worksheets to generate evidence-grounded teaching action plans.";
+          } else if (!responses.some((r) => r.task_status === "COMPLETED")) {
+            emptyTitle = "Analysis Pending or Not Yet Run";
+            emptyDescription = "Run analysis on submitted worksheets to diagnose student reasoning and synthesize localized intervention blueprints.";
+          } else if (cohortStatus === "all_insufficient") {
+            emptyTitle = "Manual Teacher Review Required";
+            emptyDescription = "Submitted responses require manual verification due to image clarity or unreadable handwriting.";
+          } else if (cohortStatus === "unsupported_task") {
+            emptyTitle = "Automated Recommendations Not Supported";
+            emptyDescription = `Assessment topic '${topicName}' is outside supported automated diagnostic domains. Generic number-line plans are suppressed.`;
+          } else if (cohortStatus === "no_misconceptions" || (insights?.statistics && insights.statistics.correct_percentage === 100)) {
+            emptyTitle = "Full Cohort Mastery Demonstrated";
+            emptyDescription = `All analyzed students achieved correct answers with mathematically sound reasoning in ${topicName.toLowerCase()}. No systemic misconceptions were detected.`;
+          }
+
+          return (
+            <div className="space-y-6">
+              <PageHeader
+                title="Differentiated Teaching Action Plans"
+                subtitle={
+                  assessment?.math_topic
+                    ? `Actionable, tiered intervention blueprints targeting diagnosed misconceptions in ${assessment.math_topic.toLowerCase()}.`
+                    : "Actionable, tiered intervention blueprints targeting diagnosed student misconceptions."
+                }
+                badge={
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent-yellow/30 text-amber-950 border border-amber-300">
+                    Pedagogical Recommendations
+                  </span>
+                }
+              />
+
+              {actions.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-surface-base border border-dashed border-border-default text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-surface-subtle border border-border-default flex items-center justify-center mx-auto text-ink-muted">
+                    <Sparkles className="w-6 h-6 text-brand-primary" />
+                  </div>
+                  <Typography variant="h3" className="text-base font-bold text-ink-primary">
+                    {emptyTitle}
+                  </Typography>
+                  <Typography variant="body-sm" className="text-ink-secondary max-w-lg mx-auto">
+                    {emptyDescription}
+                  </Typography>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {actions.map((action, idx) => (
+                    <TeachingRecommendationCard key={idx} action={action} />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* =========================================================================
             SCREEN F: CLASSROOM RESOURCES / EXIT TICKET
            ========================================================================= */}
         {currentTab === "resources" && (
           <ClassroomResourcesView
-            exitTicketItems={
-              insights?.intelligence?.formative_exit_ticket || [
-                {
-                  question_number: 1,
-                  prompt: "Evaluate -4 + 9 using the number line. Start at 0.",
-                  target_misconception: "START_POINT_ZERO_MISUNDERSTANDING",
-                  expected_answer: "5",
-                  sympy_verified: true,
-                },
-                {
-                  question_number: 2,
-                  prompt: "Evaluate -7 + 10 - 2 on the number line.",
-                  target_misconception: "INCORRECT_INTERVAL_MAGNITUDE",
-                  expected_answer: "1",
-                  sympy_verified: true,
-                },
-                {
-                  question_number: 3,
-                  prompt: "A student jumps from 0 to -5, then jumps +12. What number do they land on?",
-                  target_misconception: "DIRECTION_SIGN_CONFUSION",
-                  expected_answer: "7",
-                  sympy_verified: true,
-                },
-              ]
-            }
+            exitTicketItems={insights?.intelligence?.formative_exit_ticket || []}
+            mathTopic={assessment?.math_topic}
+            assessmentTitle={assessment?.title}
           />
         )}
 

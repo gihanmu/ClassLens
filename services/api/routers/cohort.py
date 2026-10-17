@@ -30,7 +30,11 @@ async def get_assessment_insights(
     responses = memory_repo.list_responses(assessment_id)
     if not responses:
         stats = CohortStatisticsCalculator.calculate([])
-        intelligence = CohortSynthesizer.synthesize_insights(stats)
+        intelligence = CohortSynthesizer.synthesize_insights(
+            stats,
+            assessment=asm,
+            assessment_id=assessment_id,
+        )
         return {
             "assessment_id": assessment_id,
             "statistics": stats,
@@ -45,12 +49,19 @@ async def get_assessment_insights(
             payload["teacher_review_status"] = r.teacher_review_status
             payload["teacher_override_taxonomy_id"] = r.teacher_override_taxonomy_id
             payload["teacher_notes"] = r.teacher_notes
+            payload["pseudonym_label"] = r.pseudonym_label
             response_payloads.append(payload)
         else:
-            response_payloads.append(r.model_dump())
+            payload = r.model_dump()
+            response_payloads.append(payload)
 
     stats = CohortStatisticsCalculator.calculate(response_payloads)
-    intelligence = CohortSynthesizer.synthesize_insights(stats)
+    intelligence = CohortSynthesizer.synthesize_insights(
+        stats,
+        assessment=asm,
+        assessment_id=assessment_id,
+        responses=response_payloads,
+    )
 
     return {
         "assessment_id": assessment_id,

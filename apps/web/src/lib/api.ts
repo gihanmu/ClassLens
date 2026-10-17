@@ -195,6 +195,13 @@ export interface DifferentiatedAction {
   title: string;
   instructional_steps: string[];
   student_count_affected: number;
+  assessment_id?: string;
+  task_type?: string;
+  supporting_response_ids?: string[];
+  evidence_sufficiency?: string;
+  status?: "verified_misconception" | "possible_misconception" | "representation_followup" | "insufficient_evidence" | "unsupported_task";
+  rationale?: string;
+  is_mock?: boolean;
 }
 
 export interface ExitTicketItem {
@@ -213,6 +220,9 @@ export interface CohortInsights {
     dominant_misconceptions: string[];
     differentiated_actions: DifferentiatedAction[];
     formative_exit_ticket: ExitTicketItem[];
+    assessment_id?: string;
+    task_type?: string;
+    cohort_status?: "ready" | "empty" | "no_misconceptions" | "all_insufficient" | "unsupported_task";
   };
 }
 

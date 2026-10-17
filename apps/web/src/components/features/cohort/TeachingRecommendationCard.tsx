@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Blocks, BookOpen, Compass, Users } from "lucide-react";
+import { Blocks, BookOpen, Compass, Users, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DifferentiatedAction } from "@/lib/api";
 
@@ -27,6 +27,23 @@ export function TeachingRecommendationCard({
   const Icon = actionIcons[action.action_type] || BookOpen;
   const badgeConfig = actionBadges[action.action_type] || actionBadges.worked_example;
 
+  const isRepresentationFollowUp =
+    action.status === "representation_followup" ||
+    action.target_misconception_id.includes("REPRESENTATION") ||
+    action.target_misconception_id.includes("VISUAL-MODEL");
+
+  const statusLabel = isRepresentationFollowUp
+    ? "Visual Model Follow-Up"
+    : action.status === "possible_misconception"
+    ? "Pending Teacher Review"
+    : "Verified Misconception";
+
+  const statusColor = isRepresentationFollowUp
+    ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+    : action.status === "possible_misconception"
+    ? "bg-amber-50 text-amber-800 border-amber-200"
+    : "bg-emerald-50 text-emerald-800 border-emerald-200";
+
   return (
     <div
       className={cn(
@@ -41,9 +58,14 @@ export function TeachingRecommendationCard({
               <Icon className="w-5 h-5 text-brand-primary" />
             </div>
             <div>
-              <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold border", badgeConfig.bg)}>
-                {badgeConfig.label}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold border", badgeConfig.bg)}>
+                  {badgeConfig.label}
+                </span>
+                <span className={cn("px-2 py-0.5 rounded text-[10px] font-semibold border", statusColor)}>
+                  {statusLabel}
+                </span>
+              </div>
               <h4 className="text-sm font-bold text-ink-primary mt-1">
                 {action.title}
               </h4>
@@ -56,7 +78,13 @@ export function TeachingRecommendationCard({
           </span>
         </div>
 
-        <div className="mt-4 space-y-2">
+        {action.rationale && (
+          <p className="text-[11px] text-ink-muted italic mb-3">
+            {action.rationale}
+          </p>
+        )}
+
+        <div className="mt-3 space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
             Instructional Sequence
           </div>
@@ -73,8 +101,34 @@ export function TeachingRecommendationCard({
         </div>
       </div>
 
-      <div className="mt-5 pt-3 border-t border-border-subtle flex items-center justify-between text-[11px] text-ink-muted">
-        <span>Target: <strong className="text-ink-secondary font-mono">{action.target_misconception_id.replace(/_/g, " ")}</strong></span>
+      <div className="mt-5 pt-3 border-t border-border-subtle flex flex-col gap-1.5 text-[11px] text-ink-muted">
+        <div className="flex items-center justify-between">
+          <span>Target: <strong className="text-ink-secondary font-mono">{action.target_misconception_id.replace(/_/g, " ")}</strong></span>
+          {action.task_type && (
+            <span className="font-mono text-[10px] text-ink-muted capitalize">
+              {action.task_type.replace(/_/g, " ")}
+            </span>
+          )}
+        </div>
+        {action.supporting_response_ids && action.supporting_response_ids.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap pt-1 text-[10px]">
+            <span className="text-ink-muted font-medium">Evidence:</span>
+            {action.supporting_response_ids.slice(0, 4).map((id) => (
+              <span
+                key={id}
+                className="px-1.5 py-0.2 rounded bg-surface-subtle border border-border-default font-mono text-[10px] text-ink-secondary"
+                title={`Supporting Response: ${id}`}
+              >
+                {id.replace("resp_", "res_")}
+              </span>
+            ))}
+            {action.supporting_response_ids.length > 4 && (
+              <span className="text-ink-muted font-mono">
+                +{action.supporting_response_ids.length - 4} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

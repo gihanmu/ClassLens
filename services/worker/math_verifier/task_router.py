@@ -15,6 +15,8 @@ class TaskType(str, Enum):
 
     INTEGER_NUMBER_LINE = "integer_number_line"
     FRACTION_DIVISION = "fraction_division"
+    DECIMAL_OPERATIONS = "decimal_operations"
+    PLACE_VALUE = "place_value"
     UNSUPPORTED_TASK = "unsupported_task"
 
 
@@ -72,6 +74,32 @@ class TaskRouter:
         if is_fraction and has_division:
             return TaskType.FRACTION_DIVISION
 
+        # Check Place Value indicators
+        is_place_value = (
+            "place value" in topic_lower
+            or "place value" in q_lower
+            or "disks" in topic_lower
+            or "disks" in q_lower
+            or "disk" in q_lower
+            or "hundreds, tens" in topic_lower
+            or "base ten" in topic_lower
+            or "expanded form" in topic_lower
+            or ref_id in ("012a1f01", "place_value")
+        )
+        if is_place_value:
+            return TaskType.PLACE_VALUE
+
+        # Check Decimal Operations indicators
+        is_decimal = (
+            "decimal" in topic_lower
+            or "decimal" in q_lower
+            or "estimation" in topic_lower
+            or (latex_formula and "." in latex_formula and "/" not in latex_formula)
+            or ref_id in ("decimal", "decimals")
+        )
+        if is_decimal:
+            return TaskType.DECIMAL_OPERATIONS
+
         # Check Integer Number Line indicators
         is_number_line = (
             "number line" in topic_lower
@@ -84,7 +112,12 @@ class TaskRouter:
             return TaskType.INTEGER_NUMBER_LINE
 
         # Default fallback for simple arithmetic expressions with add/subtract
-        if latex_formula and any(op in latex_formula for op in ("+", "-")) and "/" not in latex_formula:
+        if (
+            latex_formula
+            and any(op in latex_formula for op in ("+", "-"))
+            and "/" not in latex_formula
+            and (not topic_lower or any(w in topic_lower for w in ("integer", "number", "arithmetic", "addition", "subtraction", "checkpoint", "demo")))
+        ):
             return TaskType.INTEGER_NUMBER_LINE
 
         return TaskType.UNSUPPORTED_TASK
