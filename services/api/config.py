@@ -233,6 +233,14 @@ class Settings(BaseModel):
                 raise ConfigurationError(
                     "Production configuration error: GOOGLE_CLOUD_PROJECT must be configured."
                 )
+            if not self.database_url or not (
+                self.database_url.startswith("postgres://")
+                or self.database_url.startswith("postgresql://")
+            ):
+                raise ConfigurationError(
+                    "Production configuration error: CLASSLENS_DATABASE_URL must be configured with a durable PostgreSQL connection in production. "
+                    "Container-local SQLite is not permitted in multi-instance production."
+                )
 
 
 settings = Settings()

@@ -67,3 +67,18 @@ resource "google_secret_manager_secret_iam_member" "backend_live_auth_key" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.backend.email}"
 }
+
+resource "google_secret_manager_secret_iam_member" "backend_database_url" {
+  count     = var.enable_cloud_sql ? 1 : 0
+  secret_id = google_secret_manager_secret.database_url[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
+# 7. Cloud SQL Client Role for Backend Service Account
+resource "google_project_iam_member" "backend_cloudsql" {
+  count   = var.enable_cloud_sql ? 1 : 0
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.backend.email}"
+}

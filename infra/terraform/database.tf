@@ -75,3 +75,24 @@ resource "google_secret_manager_secret_version" "db_password" {
   secret      = google_secret_manager_secret.db_password[0].id
   secret_data = random_password.db_password[0].result
 }
+
+# Store complete PostgreSQL connection URL in Secret Manager for Cloud Run mounting
+resource "google_secret_manager_secret" "database_url" {
+  count     = var.enable_cloud_sql ? 1 : 0
+  secret_id = "${var.app_name}-${var.environment}-database-url"
+
+  replication {
+    auto {}
+  }
+
+  labels = {
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}
+
+resource "google_secret_manager_secret_version" "database_url" {
+  count       = var.enable_cloud_sql ? 1 : 0
+  secret      = google_secret_manager_secret.database_url[0].id
+  secret_data = "postgresql://classlens_app:${random_password.db_password[0].result}@/classlens?host=/cloudsql/${google_sql_database_instance.postgres[0].connection_name}"
+}

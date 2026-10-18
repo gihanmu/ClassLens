@@ -1,136 +1,86 @@
 # ClassLens Google Cloud Platform Deployment Guide
 
-## Target Architecture
+## Target Production Architecture
 
 - **Region**: `asia-southeast1` (Singapore)
-- **Frontend**: Next.js Standalone on Google Cloud Run (Autoscaling 0-5 instances)
-- **Backend**: FastAPI Python 3.12 on Google Cloud Run (Autoscaling 0-10 instances)
-- **Ingress Strategy**: `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` on both Cloud Run services.
-- **Routing**: Global HTTPS External Load Balancer with Serverless NEGs:
+- **Frontend**: Next.js Standalone on Google Cloud Run (Autoscaling 0–2 instances, non-root `nextjs` UID 1001)
+- **Backend**: FastAPI Python 3.12 on Google Cloud Run (Autoscaling 0–2 instances, non-root `appuser` UID 10001)
+- **Ingress Lockdown**: `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` on both Cloud Run services (blocks direct `.run.app` access).
+- **Routing**: Global HTTPS External Application Load Balancer with Serverless NEGs:
   - Default path `/*` -> Frontend Cloud Run NEG
-  - API path `/api/*` and `/health` -> Backend Cloud Run NEG
-- **Object Storage**: Private Google Cloud Storage Bucket with Uniform Bucket-Level Access.
-- **Secrets**: Google Cloud Secret Manager for sensitive environment variables.
-- **Container Registry**: Google Cloud Artifact Registry (`docker.pkg.dev/{PROJECT_ID}/classlens-repo`).
+  - API paths `/api/*`, `/api`, and `/health` -> Backend Cloud Run NEG
+- **Relational Database**: Managed Google Cloud SQL for PostgreSQL 15 (`db-f1-micro` baseline tier) mounted via Cloud SQL Auth Proxy Unix socket (`/cloudsql/...`). Container-local SQLite is strictly prohibited in production.
+- **Object Storage**: Private Google Cloud Storage Bucket (`${PROJECT_ID}-classlens-worksheets`) with Uniform Bucket-Level Access and public access prevention enforced.
+- **Secrets**: Google Cloud Secret Manager (`classlens-production-session-secret`, `classlens-production-teacher-password`, `classlens-production-live-auth-key`, `classlens-production-database-url`).
+- **Container Registry**: Google Cloud Artifact Registry (`${REGION}-docker.pkg.dev/${PROJECT_ID}/classlens-repo`) using immutable Git commit SHA tags (`sha-<commit>`).
 
 ---
 
-## Deployment Prerequisites
+## One-Command Master Deployment (`scripts/gcp/deploy-all.sh`)
 
-1. **Google Cloud SDK (`gcloud`)**: Installed and authenticated (`gcloud auth login` and `gcloud auth application-default login`).
-2. **Terraform / OpenTofu**: Version 1.5.0 or higher.
-3. **Docker**: Running locally for container building and pushing.
-4. **Permissions**: The deploying principal requires:
-   - `roles/run.admin`
-   - `roles/compute.loadBalancerAdmin`
-   - `roles/storage.admin`
-   - `roles/secretmanager.admin`
-   - `roles/artifactregistry.admin`
-   - `roles/iam.serviceAccountAdmin`
+ClassLens provides a single, repeatable master deployment command that orchestrates all 13 validation, bootstrap, packaging, infrastructure provisioning, database migration, and verification stages.
 
----
-
-## Deployment Workflow (via `scripts/gcp/`)
-
-ClassLens includes a complete, battle-tested deployment automation suite in `scripts/gcp/`.
-
-### Step 1: Preflight Verification
-
-Verify local tools, active GCP project, and required API enablement:
+### 1. Safe Dry-Run Preview (Zero Cloud Changes, $0.00 Cost)
 
 ```bash
-./scripts/gcp/preflight.sh
+./scripts/gcp/deploy-all.sh --dry-run PROJECT_ID asia-southeast1
 ```
 
-This verifies:
-- `gcloud`, `docker`, `terraform` binaries.
-- Current active GCP project ID.
-- Enablement of `run.googleapis.com`, `compute.googleapis.com`, `storage.googleapis.com`, `secretmanager.googleapis.com`, `artifactregistry.googleapis.com`, and `aiplatform.googleapis.com`.
-
-### Step 2: Build & Push Container Images
-
-Build production multi-stage Docker images for both frontend and backend, tag them with git commit SHA and `latest`, and push to Artifact Registry:
+### 2. Speculative Plan Generation Only
 
 ```bash
-# Dry-run build locally without pushing:
-./scripts/gcp/build.sh
-
-# Build and push to Artifact Registry:
-./scripts/gcp/build.sh --push
+./scripts/gcp/deploy-all.sh --plan PROJECT_ID asia-southeast1
 ```
 
-### Step 3: Configure Terraform Variables
-
-Create `infra/terraform/terraform.tfvars`:
-
-```hcl
-project_id  = "your-gcp-project-id"
-region      = "asia-southeast1"
-environment = "production"
-
-# Optional domain name for managed SSL certificate:
-domain_name = "classlens.yourdomain.edu"
-
-# Cloud SQL PostgreSQL (Set to true for multi-instance production):
-enable_cloud_sql = false
-```
-
-### Step 4: Plan Terraform Infrastructure
-
-Generate a speculative execution plan:
+### 3. Full Production Deployment
 
 ```bash
-./scripts/gcp/plan.sh
-```
-
-Inspect the generated `tfplan` to confirm exact resource additions, modifications, or deletions.
-
-### Step 5: Deploy Infrastructure and Workloads
-
-Apply the planned configuration. This script enforces safety checks and requires explicit typing of `DEPLOY` or passing `--confirm`:
-
-```bash
-./scripts/gcp/deploy.sh --confirm
-```
-
-Outputs will display:
-- `load_balancer_ip`: External static IPv4 address.
-- `gcs_bucket_name`: Storage bucket for worksheet uploads.
-- `frontend_url`: Load balancer frontend endpoint.
-- `backend_internal_url`: Cloud Run backend address.
-
-### Step 6: Post-Deployment Verification
-
-Smoke-test the newly deployed environment:
-
-```bash
-./scripts/gcp/verify.sh <LOAD_BALANCER_IP_OR_HOSTNAME>
-```
-
-The script verifies:
-1. Backend `/health` responds with `{"status": "healthy"}`.
-2. Frontend `/` loads HTML document.
-3. API authentication `/api/v1/auth/me` rejects unauthenticated access with HTTP 401.
-4. Security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`) are present.
-
-### Step 7: Rollback (Emergency Only)
-
-If an issue is detected post-deployment, roll back traffic immediately to a prior stable revision:
-
-```bash
-# Roll back backend to previous revision:
-./scripts/gcp/rollback.sh --service backend
-
-# Roll back frontend to specific revision:
-./scripts/gcp/rollback.sh --service frontend --revision classlens-web-00003-abc
+./scripts/gcp/deploy-all.sh --confirm PROJECT_ID asia-southeast1
 ```
 
 ---
 
-## Cloud SQL Migration Path
+## The 13-Stage Automated Workflow
 
-For multi-instance autoscaling backend deployments:
-1. Set `enable_cloud_sql = true` in `infra/terraform/terraform.tfvars`.
-2. Apply Terraform to provision a Cloud SQL PostgreSQL instance and service account permissions.
-3. Store database URL in Secret Manager (`classlens-database-url`).
-4. Set `CLASSLENS_DATABASE_URL` in backend Cloud Run environment variables.
+1. **Stage 1 — Tooling, Credentials, Billing & API Validation**: Verifies `gcloud`, `docker`, `terraform`, `python3`, `node`, active GCP identity, billing enablement, and required GCP APIs (`run`, `compute`, `aiplatform`, `storage`, `secretmanager`, `artifactregistry`, `sqladmin`).
+2. **Stage 2 — Terraform Static Validation & Billable Resource Audit**: Runs `terraform fmt -check` and `terraform validate` and lists all billable resources before creation.
+3. **Stage 3 — PostgreSQL Integration & Migration Readiness**: Verifies `scripts/migrate.py` and schema integrity. Enforces fail-closed protection against container-local SQLite in production.
+4. **Stage 4 — Secret Manager Verification**: Checks required secret descriptors in Secret Manager without exposing secret payloads.
+5. **Stage 5 — Artifact Registry Bootstrap**: Solves the first-time deployment chicken-and-egg dependency by bootstrapping `google_project_service.required_apis` and `google_artifact_registry_repository.classlens` before pushing images.
+6. **Stage 6 — Immutable Container Image Builds**: Builds multi-stage production images for Next.js frontend and FastAPI backend tagged with immutable `sha-<git_commit>` tags (mutable `:latest` tags are rejected by Terraform variable validation).
+7. **Stage 7 — Artifact Registry Push**: Authenticates Docker with `${REGION}-docker.pkg.dev` and pushes immutable frontend and backend images.
+8. **Stage 8 — Terraform Speculative Plan**: Generates `infra/terraform/tfplan` binding exact immutable image URIs and `enable_cloud_sql=true`.
+9. **Stage 9 — Explicit Confirmation Gate**: Requires `--confirm` or interactive `DEPLOY` confirmation before applying infrastructure changes.
+10. **Stage 10 — Infrastructure Provisioning**: Applies the verified `tfplan` to provision Cloud SQL PostgreSQL, Cloud Storage, Secret Manager bindings, Cloud Run services, Serverless NEGs, and the HTTPS Load Balancer.
+11. **Stage 11 — Idempotent Database Migrations**: Executes `python3 scripts/migrate.py` to initialize and verify all 8 production tables (`users`, `classes`, `students`, `assessments`, `responses`, `audit_events`, `analysis_jobs`, `app_metadata`) non-destructively.
+12. **Stage 12 — Post-Deployment Security & Routing Verification**: Runs `scripts/gcp/verify.sh` using strict TLS validation (never `curl -k` in production) to verify `/health`, `/`, `/api/v1/auth/me` (HTTP 401), security headers, and Cloud Run direct-ingress lockdown (HTTP 403).
+13. **Stage 13 — Deployment Summary & Handover**: Outputs the static Load Balancer IP, application URL, Cloud SQL connection name, deployed Git SHA revision, and operational runbook commands.
+
+---
+
+## Modular Scripts Reference (`scripts/gcp/`)
+
+Each stage can also be invoked independently:
+
+| Script | Purpose | Safe Preview Command |
+|---|---|---|
+| `scripts/gcp/preflight.sh` | Non-destructive prerequisite, billing, API, secret, and schema check | `./scripts/gcp/preflight.sh --dry-run PROJECT_ID asia-southeast1` |
+| `scripts/gcp/build.sh` | Multi-stage Docker build & optional Artifact Registry push with immutable SHA tag | `./scripts/gcp/build.sh --dry-run PROJECT_ID asia-southeast1` |
+| `scripts/gcp/plan.sh` | Speculative Terraform plan generation (`tfplan`) | `./scripts/gcp/plan.sh --dry-run PROJECT_ID asia-southeast1` |
+| `scripts/gcp/deploy.sh` | Applies verified `tfplan` with `--confirm` guard | `./scripts/gcp/deploy.sh --dry-run PROJECT_ID asia-southeast1` |
+| `scripts/gcp/verify.sh` | Strict TLS smoke tests, auth checks, security headers, and ingress lockdown probe | `./scripts/gcp/verify.sh --dry-run https://classlens.yourdomain.edu` |
+| `scripts/gcp/rollback.sh` | Instantaneous Cloud Run traffic rollback to previous revision | `./scripts/gcp/rollback.sh --dry-run PROJECT_ID asia-southeast1` |
+| `scripts/migrate.py` | Idempotent ANSI SQL / PostgreSQL schema migration & verification CLI | `python3 scripts/migrate.py --dry-run` |
+
+---
+
+## Prerequisites Checklist Before Live Execution (`--confirm`)
+
+1. **Docker Daemon Running**: Ensure Docker Desktop / Docker Engine is running locally before executing a live build (`docker info`).
+2. **Populate Secret Manager Versions**: After initial secret container creation (or prior to live student intake), populate secret versions without committing plaintext values:
+   ```bash
+   echo -n "$(openssl rand -hex 32)" | gcloud secrets versions add classlens-production-session-secret --data-file=- --project=PROJECT_ID
+   echo -n "<STRONG_TEACHER_PASSWORD>" | gcloud secrets versions add classlens-production-teacher-password --data-file=- --project=PROJECT_ID
+   echo -n "$(openssl rand -hex 32)" | gcloud secrets versions add classlens-production-live-auth-key --data-file=- --project=PROJECT_ID
+   ```
+3. **Custom Domain & TLS Certificate Validation**: For production HTTPS with a Google-managed certificate, set `domain_name` in `infra/terraform/terraform.tfvars` and point your DNS A-record to the `load_balancer_ip` output.

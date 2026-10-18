@@ -145,8 +145,13 @@ class SqliteAssessmentRepository:
             self.db_path = self.data_dir / "classlens.db"
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize SQLite database manager
-        self.db_manager = SqliteDatabaseManager(self.db_path)
+        # Initialize database manager (PostgreSQL if CLASSLENS_DATABASE_URL is configured, else SQLite)
+        db_url = os.getenv("CLASSLENS_DATABASE_URL")
+        if db_url and (db_url.startswith("postgres://") or db_url.startswith("postgresql://")):
+            from services.api.repository.postgres_storage import PostgresDatabaseManager
+            self.db_manager = PostgresDatabaseManager(db_url)
+        else:
+            self.db_manager = SqliteDatabaseManager(self.db_path)
         self.persistence = LocalStatePersistence(data_dir=self.data_dir)
 
         # In-memory working cache
@@ -158,9 +163,10 @@ class SqliteAssessmentRepository:
         self.idempotency_keys: Dict[str, str] = {}
 
         # 1. Attempt non-destructive migration from JSON if SQLite is empty
-        migrated = self.db_manager.migrate_from_json_if_needed(self.data_dir, "org_cedar_sec")
+        if hasattr(self.db_manager, "migrate_from_json_if_needed"):
+            migrated = self.db_manager.migrate_from_json_if_needed(self.data_dir, "org_cedar_sec")
 
-        # 2. Load all state from SQLite into in-memory cache
+        # 2. Load all state from database into in-memory cache
         self._load_from_sqlite()
 
         # 3. Check demo seeding status in metadata:
@@ -177,7 +183,12 @@ class SqliteAssessmentRepository:
             self.data_dir = data_dir or get_data_dir()
             self.data_dir.mkdir(parents=True, exist_ok=True)
             self.db_path = self.data_dir / "classlens.db"
-            self.db_manager = SqliteDatabaseManager(self.db_path)
+            db_url = os.getenv("CLASSLENS_DATABASE_URL")
+            if db_url and (db_url.startswith("postgres://") or db_url.startswith("postgresql://")):
+                from services.api.repository.postgres_storage import PostgresDatabaseManager
+                self.db_manager = PostgresDatabaseManager(db_url)
+            else:
+                self.db_manager = SqliteDatabaseManager(self.db_path)
             self.persistence = LocalStatePersistence(data_dir=self.data_dir)
             self.users.clear()
             self.assessments.clear()

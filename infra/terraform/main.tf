@@ -4,6 +4,23 @@
 
 locals {
   name_prefix = "${var.app_name}-${var.environment}"
+  required_apis = [
+    "run.googleapis.com",
+    "compute.googleapis.com",
+    "aiplatform.googleapis.com",
+    "storage.googleapis.com",
+    "secretmanager.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "sqladmin.googleapis.com",
+  ]
+}
+
+# 0. Enable Required Google Cloud Services
+resource "google_project_service" "required_apis" {
+  for_each           = toset(local.required_apis)
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
 }
 
 # 1. Artifact Registry Repository for OCI Container Images
@@ -18,6 +35,8 @@ resource "google_artifact_registry_repository" "classlens" {
     managed_by  = "terraform"
     application = var.app_name
   }
+
+  depends_on = [google_project_service.required_apis]
 }
 
 # 2. Private Google Cloud Storage Bucket for Uploaded Student Worksheets

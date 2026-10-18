@@ -41,3 +41,18 @@ output "cloud_run_frontend_service" {
   description = "Next.js frontend Cloud Run service name."
   value       = google_cloud_run_v2_service.frontend.name
 }
+
+output "cloud_sql_instance_name" {
+  description = "Cloud SQL PostgreSQL instance connection name."
+  value       = var.enable_cloud_sql ? google_sql_database_instance.postgres[0].connection_name : "none"
+}
+
+output "cloud_run_backend_url" {
+  description = "Direct Cloud Run backend URL (internal ingress)."
+  value       = google_cloud_run_v2_service.backend.uri
+}
+
+output "cloud_run_frontend_url" {
+  description = "Direct Cloud Run frontend URL (internal ingress)."
+  value       = google_cloud_run_v2_service.frontend.uri
+}

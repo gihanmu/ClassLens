@@ -21,16 +21,37 @@ variable "app_name" {
   default     = "classlens"
 }
 
+variable "image_tag" {
+  type        = string
+  description = "Immutable container image tag (e.g. sha-<git_commit>). Mutable 'latest' is prohibited."
+  default     = "sha-initial"
+
+  validation {
+    condition     = var.image_tag != "latest" && length(trimspace(var.image_tag)) > 0
+    error_message = "Mutable 'latest' image tag is prohibited in production. Provide an immutable Git SHA tag."
+  }
+}
+
 variable "frontend_image" {
   type        = string
-  description = "Container image URI for the Next.js frontend."
+  description = "Container image URI for the Next.js frontend (must use immutable tag or @sha256 digest)."
   default     = ""
+
+  validation {
+    condition     = var.frontend_image == "" || !endswith(var.frontend_image, ":latest")
+    error_message = "frontend_image must not use a mutable ':latest' tag."
+  }
 }
 
 variable "backend_image" {
   type        = string
-  description = "Container image URI for the FastAPI backend."
+  description = "Container image URI for the FastAPI backend (must use immutable tag or @sha256 digest)."
   default     = ""
+
+  validation {
+    condition     = var.backend_image == "" || !endswith(var.backend_image, ":latest")
+    error_message = "backend_image must not use a mutable ':latest' tag."
+  }
 }
 
 variable "domain_name" {
@@ -59,6 +80,6 @@ variable "max_scale" {
 
 variable "enable_cloud_sql" {
   type        = bool
-  description = "Set to true to provision a Cloud SQL PostgreSQL instance; false to use local SQLite or external DB."
-  default     = false
+  description = "Provisions a managed Cloud SQL PostgreSQL instance (required for durable production persistence)."
+  default     = true
 }

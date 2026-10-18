@@ -17,7 +17,7 @@ resource "google_cloud_run_v2_service" "frontend" {
     }
 
     containers {
-      image = var.frontend_image != "" ? var.frontend_image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.classlens.repository_id}/frontend:latest"
+      image = var.frontend_image != "" ? var.frontend_image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.classlens.repository_id}/frontend:${var.image_tag}"
 
       ports {
         container_port = 3000
@@ -40,7 +40,7 @@ resource "google_cloud_run_v2_service" "frontend" {
       }
       env {
         name  = "INTERNAL_API_URL"
-        value = "http://127.0.0.1:8000"
+        value = google_cloud_run_v2_service.backend.uri
       }
     }
   }
@@ -78,7 +78,7 @@ resource "google_cloud_run_v2_service" "backend" {
     }
 
     containers {
-      image = var.backend_image != "" ? var.backend_image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.classlens.repository_id}/backend:latest"
+      image = var.backend_image != "" ? var.backend_image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.classlens.repository_id}/backend:${var.image_tag}"
 
       ports {
         container_port = 8000
@@ -144,6 +144,37 @@ resource "google_cloud_run_v2_service" "backend" {
             secret  = google_secret_manager_secret.live_auth_key.secret_id
             version = "latest"
           }
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.enable_cloud_sql ? [1] : []
+        content {
+          name = "CLASSLENS_DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url[0].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      dynamic "volume_mounts" {
+        for_each = var.enable_cloud_sql ? [1] : []
+        content {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+      }
+    }
+
+    dynamic "volumes" {
+      for_each = var.enable_cloud_sql ? [1] : []
+      content {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.postgres[0].connection_name]
         }
       }
     }
