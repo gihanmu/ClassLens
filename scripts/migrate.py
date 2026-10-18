@@ -125,11 +125,71 @@ def run_migrations(dry_run: bool = False, verify_only: bool = False) -> int:
     return 0
 
 
+def verify_remote_postgres(app_url: str, max_attempts: int = 12, delay_seconds: int = 10) -> int:
+    """Verifies that the remote production backend is connected to healthy PostgreSQL with schema v1.0.0."""
+    import json
+    import ssl
+    import time
+    import urllib.request
+
+    health_url = f"{app_url.rstrip('/')}/health"
+    logger.info(f"Verifying remote Cloud SQL PostgreSQL migration status via {health_url}...")
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            req = urllib.request.Request(health_url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                if resp.status == 200:
+                    payload = json.loads(resp.read().decode("utf-8"))
+                    db_backend = payload.get("database_backend")
+                    db_healthy = payload.get("database_healthy")
+                    schema_ver = payload.get("schema_version")
+                    storage_backend = payload.get("storage_backend")
+                    logger.info(
+                        f"Remote health response: database_backend={db_backend}, "
+                        f"database_healthy={db_healthy}, schema_version={schema_ver}, "
+                        f"storage_backend={storage_backend}"
+                    )
+                    if db_backend == "postgresql" and db_healthy is True and schema_ver == SCHEMA_VERSION:
+                        logger.info(
+                            f"Remote Cloud SQL PostgreSQL 15 schema v{SCHEMA_VERSION} verified and healthy."
+                        )
+                        return 0
+                    else:
+                        logger.error(
+                            f"Remote database check failed: expected postgresql/healthy/v{SCHEMA_VERSION}, "
+                            f"got backend={db_backend}, healthy={db_healthy}, version={schema_ver}"
+                        )
+                        return 1
+        except Exception as exc:
+            logger.info(
+                f"Attempt {attempt}/{max_attempts}: waiting for Load Balancer / Cloud Run readiness ({exc})..."
+            )
+            if attempt < max_attempts:
+                time.sleep(delay_seconds)
+
+    logger.error(f"Timed out waiting for remote health endpoint {health_url}")
+    return 1
+
+
 def main():
     parser = argparse.ArgumentParser(description="ClassLens Database Migration Engine")
     parser.add_argument("--dry-run", action="store_true", help="Preview migrations without applying")
     parser.add_argument("--verify", action="store_true", help="Audit schema integrity and table existence")
+    parser.add_argument(
+        "--verify-remote",
+        type=str,
+        default="",
+        help="Verify remote production PostgreSQL schema initialization via application URL",
+    )
     args = parser.parse_args()
+
+    if args.verify_remote:
+        sys.exit(verify_remote_postgres(args.verify_remote))
 
     exit_code = run_migrations(dry_run=args.dry_run, verify_only=args.verify)
     sys.exit(exit_code)

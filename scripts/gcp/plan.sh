@@ -74,13 +74,13 @@ if [ "$IS_DRY_RUN" = true ]; then
   echo -e "      -var=\"backend_image=${BACKEND_IMAGE}\" \\"
   echo -e "      -var=\"enable_cloud_sql=true\" \\"
   echo -e "      -out=\"tfplan\""
-  echo -e "\n  Expected Billable Resources:"
+  echo -e "\n  Expected Billable Resources (Cost-Optimized Cloud Run BFF Architecture):"
   echo -e "    - google_sql_database_instance.postgres (db-f1-micro, PostgreSQL 15)"
-  echo -e "    - google_cloud_run_v2_service.frontend (0-2 instances, scale-to-zero)"
-  echo -e "    - google_cloud_run_v2_service.backend (0-2 instances, scale-to-zero)"
-  echo -e "    - google_compute_global_forwarding_rule.https (External HTTPS Load Balancer)"
+  echo -e "    - google_cloud_run_v2_service.frontend (Public Google-managed HTTPS + BFF, 0-2 instances)"
+  echo -e "    - google_cloud_run_v2_service.backend (Private IAM-restricted service, 0-2 instances)"
   echo -e "    - google_storage_bucket.worksheets (Uniform bucket-level access)"
   echo -e "    - google_artifact_registry_repository.classlens (Docker OCI repository)"
+  echo -e "    - google_secret_manager_secret.* (4 runtime secrets)"
   echo -e "\n${GREEN}[DRY-RUN] Terraform planning pre-check passed successfully.${NC}"
   exit 0
 fi

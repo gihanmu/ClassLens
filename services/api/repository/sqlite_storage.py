@@ -199,6 +199,14 @@ class SqliteDatabaseManager:
                     if "school" not in user_cols:
                         conn.execute("ALTER TABLE users ADD COLUMN school TEXT DEFAULT 'Cedar Secondary School';")
 
+                    conn.execute(
+                        """
+                        INSERT INTO app_metadata (key, value, updated_at) VALUES (?, ?, ?)
+                        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;
+                        """,
+                        ("schema_version", "1.0.0", utc_now_iso()),
+                    )
+
                     conn.execute("COMMIT;")
                 except Exception as exc:
                     conn.execute("ROLLBACK;")
@@ -222,6 +230,17 @@ class SqliteDatabaseManager:
                 """,
                 (key, value, utc_now_iso()),
             )
+
+    def check_health(self) -> bool:
+        """Verifies active SQLite connection."""
+        try:
+            with self.get_connection() as conn:
+                cur = conn.execute("SELECT 1;")
+                row = cur.fetchone()
+                return bool(row and row[0] == 1)
+        except Exception as exc:
+            logger.warning(f"SQLite health check failed: {exc}")
+            return False
 
     def migrate_from_json_if_needed(self, data_dir: Path, org_id: str = "org_cedar_sec") -> bool:
         """Non-destructively migrates records from existing JSON state file into SQLite if tables are empty."""

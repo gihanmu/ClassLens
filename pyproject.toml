@@ -25,6 +25,8 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "google-cloud-storage>=2.14.0",
     "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.0",
+    "numpy>=2.0.0",
 ]
 
 [project.optional-dependencies]

@@ -50,7 +50,7 @@ class InlineDispatcher(BaseDispatcher):
 
             is_live_auth = settings.is_live_authorized()
 
-            # Locate source image if available
+            # Locate source image if available (local filesystem first, then GCS / configured file storage)
             image_source = None
             if resp.source_filename:
                 uploads_dir = get_uploads_dir().resolve()
@@ -66,6 +66,17 @@ class InlineDispatcher(BaseDispatcher):
                     if cand.is_file():
                         image_source = cand
                         break
+
+                if image_source is None:
+                    from services.api.repository.file_storage import get_file_storage
+
+                    stored_file = get_file_storage().get_file_bytes(
+                        org_id=org_id or "org_cedar_sec",
+                        assessment_id=resp.assessment_id,
+                        filename=resp.source_filename,
+                    )
+                    if stored_file is not None:
+                        image_source = stored_file[0] if isinstance(stored_file, tuple) else stored_file
 
             if not is_known_fixture and not is_live_auth:
                 # Truthfulness Principle (Gate 5 & 6):

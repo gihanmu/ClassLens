@@ -7,6 +7,7 @@ resource "google_service_account" "backend" {
   account_id   = "${var.app_name}-backend-sa"
   display_name = "ClassLens Backend Runtime Service Account"
   description  = "Dedicated least-privilege identity for ClassLens FastAPI backend service"
+  depends_on   = [google_project_service.required_apis]
 }
 
 # 2. Dedicated Service Account for Next.js Frontend
@@ -14,6 +15,7 @@ resource "google_service_account" "frontend" {
   account_id   = "${var.app_name}-frontend-sa"
   display_name = "ClassLens Frontend Runtime Service Account"
   description  = "Dedicated least-privilege identity for ClassLens Next.js frontend service"
+  depends_on   = [google_project_service.required_apis]
 }
 
 # 3. Vertex AI Access for Backend (Gemini Multimodal Vision Inference)

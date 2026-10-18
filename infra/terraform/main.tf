@@ -73,6 +73,8 @@ resource "google_storage_bucket" "worksheets" {
     managed_by  = "terraform"
     application = var.app_name
   }
+
+  depends_on = [google_project_service.required_apis]
 }
 
 # 3. Google Secret Manager Secrets for Runtime Protection
@@ -87,6 +89,8 @@ resource "google_secret_manager_secret" "session_secret" {
     environment = var.environment
     managed_by  = "terraform"
   }
+
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "teacher_password" {
@@ -100,6 +104,8 @@ resource "google_secret_manager_secret" "teacher_password" {
     environment = var.environment
     managed_by  = "terraform"
   }
+
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "live_auth_key" {
@@ -113,4 +119,6 @@ resource "google_secret_manager_secret" "live_auth_key" {
     environment = var.environment
     managed_by  = "terraform"
   }
+
+  depends_on = [google_project_service.required_apis]
 }

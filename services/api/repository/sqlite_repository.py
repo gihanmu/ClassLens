@@ -177,6 +177,9 @@ class SqliteAssessmentRepository:
             self.seed_demo_data(force=False)
             self._save_all_to_sqlite("org_cedar_sec")
 
+        # 4. Ensure default teacher user exists and syncs with CLASSLENS_DEMO_PASSWORD when configured
+        self._ensure_default_teacher_account()
+
     def reconfigure(self, data_dir: Optional[Path] = None) -> None:
         """Reconfigures the repository to use a specified or newly resolved data directory."""
         with self._lock:
@@ -201,6 +204,35 @@ class SqliteAssessmentRepository:
             if demo_seeded is None and not self.assessments:
                 self.seed_demo_data(force=False)
                 self._save_all_to_sqlite("org_cedar_sec")
+            self._ensure_default_teacher_account()
+
+    def _ensure_default_teacher_account(self) -> None:
+        """Ensures usr_sarah_lim exists and has a valid password_hash (syncing Secret Manager password in production)."""
+        from services.api.auth.security import hash_password, verify_password
+
+        env_pwd = os.getenv("CLASSLENS_DEMO_PASSWORD", "").strip()
+        is_prod = os.getenv("ENVIRONMENT", "development").lower() == "production"
+        existing = self.users.get("usr_sarah_lim")
+        if existing is None:
+            pwd_to_use = env_pwd if env_pwd else "classlens-demo-2026"
+            default_user = UserDoc(
+                id="usr_sarah_lim",
+                email="teacher@classlens.demo",
+                name="Ms. Sarah Lim",
+                role="Secondary 1 Mathematics Teacher",
+                organization_id="org_cedar_sec",
+                school="Cedar Secondary School",
+                password_hash=hash_password(pwd_to_use),
+            )
+            self.save_user(default_user)
+        elif not existing.password_hash:
+            pwd_to_use = env_pwd if env_pwd else "classlens-demo-2026"
+            existing.password_hash = hash_password(pwd_to_use)
+            self.save_user(existing)
+        elif is_prod and env_pwd:
+            if not verify_password(env_pwd, existing.password_hash):
+                existing.password_hash = hash_password(env_pwd)
+                self.save_user(existing)
 
     def _row_to_assessment(self, row: Any) -> AssessmentDoc:
         q_data = json.loads(row["question_json"]) if row["question_json"] else {}
@@ -434,10 +466,19 @@ class SqliteAssessmentRepository:
         with self.db_manager.get_connection() as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO audit_events (
+                INSERT INTO audit_events (
                     id, assessment_id, response_id, teacher_id, action,
                     old_state_json, new_state_json, notes, timestamp
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    assessment_id = excluded.assessment_id,
+                    response_id = excluded.response_id,
+                    teacher_id = excluded.teacher_id,
+                    action = excluded.action,
+                    old_state_json = excluded.old_state_json,
+                    new_state_json = excluded.new_state_json,
+                    notes = excluded.notes,
+                    timestamp = excluded.timestamp
                 """,
                 (
                     evt.id,
@@ -461,8 +502,15 @@ class SqliteAssessmentRepository:
                     for u in self.users.values():
                         conn.execute(
                             """
-                            INSERT OR REPLACE INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
+                            INSERT INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(id) DO UPDATE SET
+                                email = excluded.email,
+                                name = excluded.name,
+                                role = excluded.role,
+                                organization_id = excluded.organization_id,
+                                school = excluded.school,
+                                password_hash = excluded.password_hash
                             """,
                             (
                                 u.id,
@@ -582,10 +630,19 @@ class SqliteAssessmentRepository:
                         if ev.assessment_id in asm_ids or (ev.response_id in self.responses and self.responses[ev.response_id].assessment_id in asm_ids):
                             conn.execute(
                                 """
-                                INSERT OR REPLACE INTO audit_events (
+                                INSERT INTO audit_events (
                                     id, assessment_id, response_id, teacher_id, action,
                                     old_state_json, new_state_json, notes, timestamp
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                ON CONFLICT(id) DO UPDATE SET
+                                    assessment_id = excluded.assessment_id,
+                                    response_id = excluded.response_id,
+                                    teacher_id = excluded.teacher_id,
+                                    action = excluded.action,
+                                    old_state_json = excluded.old_state_json,
+                                    new_state_json = excluded.new_state_json,
+                                    notes = excluded.notes,
+                                    timestamp = excluded.timestamp
                                 """,
                                 (
                                     ev.id,
@@ -846,8 +903,15 @@ class SqliteAssessmentRepository:
             with self.db_manager.get_connection() as conn:
                 conn.execute(
                     """
-                    INSERT OR REPLACE INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
+                    INSERT INTO users (id, email, name, role, organization_id, school, password_hash, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        email = excluded.email,
+                        name = excluded.name,
+                        role = excluded.role,
+                        organization_id = excluded.organization_id,
+                        school = excluded.school,
+                        password_hash = excluded.password_hash
                     """,
                     (
                         user.id,
@@ -1036,9 +1100,16 @@ class SqliteAssessmentRepository:
             with self.db_manager.get_connection() as conn:
                 conn.execute(
                     """
-                    INSERT OR REPLACE INTO analysis_jobs (
+                    INSERT INTO analysis_jobs (
                         id, assessment_id, status, total_items, completed_items, failed_items, idempotency_key, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        assessment_id = excluded.assessment_id,
+                        status = excluded.status,
+                        total_items = excluded.total_items,
+                        completed_items = excluded.completed_items,
+                        failed_items = excluded.failed_items,
+                        idempotency_key = excluded.idempotency_key
                     """,
                     (
                         job.id,

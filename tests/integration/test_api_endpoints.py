@@ -33,6 +33,19 @@ def authenticated_session(client):
     }
 
 
+def test_health_endpoints(client):
+    """Verifies /health and /api/v1/health return database and storage readiness fields."""
+    for path in ("/health", "/api/v1/health"):
+        resp = client.get(path)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["database_backend"] in ("sqlite", "postgresql")
+        assert data["database_healthy"] is True
+        assert data["schema_version"] == "1.0.0"
+        assert data["storage_backend"] in ("local", "gcs")
+
+
 def test_tc_004_01_demo_login(client):
     """TC-004.01: Verifies demo login sets cookies and returns user profile."""
     resp = client.post(

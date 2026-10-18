@@ -195,13 +195,14 @@ echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 2/13] Validating Terraform Configuration 
   echo -e "  ${GREEN}[PASS]${NC} Terraform static syntax and module schema are valid."
 )
 
-echo -e "  ${CYAN}[AUDIT] Billable Infrastructure Components in Plan:${NC}"
-echo -e "    1. Cloud SQL PostgreSQL (PostgreSQL 15, baseline db-f1-micro tier)"
-echo -e "    2. Google Cloud Run Backend (FastAPI, 0-2 instances, scale-to-zero)"
-echo -e "    3. Google Cloud Run Frontend (Next.js, 0-2 instances, scale-to-zero)"
-echo -e "    4. External HTTPS Application Load Balancer with Serverless NEGs"
-echo -e "    5. Google Cloud Storage Bucket (${PROJECT_ID}-${APP_NAME}-worksheets)"
-echo -e "    6. Artifact Registry OCI Repository (${REPO_NAME})"
+echo -e "  ${CYAN}[AUDIT] Billable Infrastructure Components in Plan (Cost-Optimized Cloud Run BFF Architecture):${NC}"
+echo -e "    1. Cloud SQL PostgreSQL (PostgreSQL 15, baseline db-f1-micro tier, 10 GB SSD)"
+echo -e "    2. Google Cloud Run Frontend (Next.js BFF + Google-Managed HTTPS, 0-2 instances, scale-to-zero)"
+echo -e "    3. Google Cloud Run Backend (FastAPI, Private IAM-Restricted Invoker, 0-2 instances, scale-to-zero)"
+echo -e "    4. Google Cloud Storage Bucket (${PROJECT_ID}-${APP_NAME}-worksheets)"
+echo -e "    5. Artifact Registry OCI Repository (${REPO_NAME})"
+echo -e "    6. Google Secret Manager (4 active secrets)"
+echo -e "    * External HTTPS Load Balancer eliminated (saves ~\$18.15/mo; uses native Cloud Run Google-managed TLS)"
 
 # ------------------------------------------------------------------------------
 # STAGE 3: Verify PostgreSQL Integration & Fail Closed on Ephemeral SQLite
@@ -235,69 +236,106 @@ REQUIRED_SECRETS=(
   "${APP_NAME}-${ENVIRONMENT}-live-auth-key"
 )
 
-if ! echo "$ENABLED_SERVICES" | grep -Fxq "secretmanager.googleapis.com"; then
-  echo -e "  ${YELLOW}[INFO]${NC} Secret Manager API (secretmanager.googleapis.com) is not enabled yet."
-  echo -e "         Terraform will enable the API and declare secret containers:"
-  for sec in "${REQUIRED_SECRETS[@]}"; do
-    echo -e "           - ${sec}"
-  done
-  echo -e "         Secret versions must be populated prior to live traffic."
-else
-  for sec in "${REQUIRED_SECRETS[@]}"; do
-    if gcloud secrets describe "$sec" --project="$PROJECT_ID" --quiet >/dev/null 2>&1; then
-      ACTIVE_VER=$(gcloud secrets versions list "$sec" --project="$PROJECT_ID" --filter="state:ENABLED" --format="value(name)" --quiet 2>/dev/null || true)
-      if [ -n "$ACTIVE_VER" ]; then
-        echo -e "  ${GREEN}[PASS]${NC} Secret '${sec}' exists with enabled version."
+if [ "$IS_DRY_RUN" = true ]; then
+  if ! echo "$ENABLED_SERVICES" | grep -Fxq "secretmanager.googleapis.com"; then
+    echo -e "  ${YELLOW}[INFO]${NC} Secret Manager API (secretmanager.googleapis.com) is not enabled yet."
+    echo -e "         In live mode, Stage 4 (init-secrets.sh) will enable the API, create secret containers, and ensure ENABLED versions exist for:"
+    for sec in "${REQUIRED_SECRETS[@]}"; do
+      echo -e "           - ${sec}"
+    done
+  else
+    for sec in "${REQUIRED_SECRETS[@]}"; do
+      if gcloud secrets describe "$sec" --project="$PROJECT_ID" --quiet >/dev/null 2>&1; then
+        ACTIVE_VER=$(gcloud secrets versions list "$sec" --project="$PROJECT_ID" --filter="state=ENABLED" --limit=1 --format="value(name)" --quiet 2>/dev/null || true)
+        if [ -n "$ACTIVE_VER" ]; then
+          echo -e "  ${GREEN}[PASS]${NC} Secret '${sec}' exists with ENABLED version."
+        else
+          echo -e "  ${YELLOW}[WARN]${NC} Secret '${sec}' exists but lacks an ENABLED version (will be initialized by init-secrets.sh)."
+        fi
       else
-        echo -e "  ${YELLOW}[WARN]${NC} Secret '${sec}' exists but lacks an active version."
+        echo -e "  ${YELLOW}[INFO]${NC} Secret '${sec}' will be bootstrapped and populated by init-secrets.sh before Cloud Run provisioning."
       fi
-    else
-      echo -e "  ${YELLOW}[INFO]${NC} Secret '${sec}' will be declared by Terraform; version must be added prior to live traffic."
-    fi
-  done
+    done
+  fi
+else
+  ./scripts/gcp/init-secrets.sh "$PROJECT_ID"
 fi
 
 # ------------------------------------------------------------------------------
-# STAGE 5: Bootstrap Artifact Registry Repository (Targeted Stage)
+# STAGE 5: Bootstrap Artifact Registry Repository & Sync Terraform State
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 5/13] Bootstrapping Artifact Registry Docker Repository...${NC}"
+echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 5/13] Bootstrapping Artifact Registry & Synchronizing Terraform State...${NC}"
 
-if echo "$ENABLED_SERVICES" | grep -Fxq "artifactregistry.googleapis.com" && \
-   gcloud artifacts repositories describe "$REPO_NAME" --project="$PROJECT_ID" --location="$REGION" --quiet >/dev/null 2>&1; then
-  echo -e "  ${GREEN}[PASS]${NC} Artifact Registry repository '${REPO_NAME}' is active in ${REGION}."
-else
-  echo -e "  ${YELLOW}[BOOTSTRAP]${NC} Artifact Registry repository '${REPO_NAME}' does not exist yet in ${REGION}."
-  if [ "$IS_DRY_RUN" = true ]; then
-    echo -e "  ${CYAN}[DRY-RUN] Would execute targeted Terraform bootstrap:${NC}"
-    echo -e "    terraform apply -target=google_project_service.required_apis -target=google_artifact_registry_repository.classlens -auto-approve"
+if [ "$IS_DRY_RUN" = true ]; then
+  if echo "$ENABLED_SERVICES" | grep -Fxq "artifactregistry.googleapis.com" && \
+     gcloud artifacts repositories describe "$REPO_NAME" --project="$PROJECT_ID" --location="$REGION" --quiet >/dev/null 2>&1; then
+    echo -e "  ${GREEN}[PASS]${NC} Artifact Registry repository '${REPO_NAME}' is active in ${REGION}."
   else
-    echo -e "  Bootstrapping Artifact Registry via targeted Terraform stage..."
-    (
-      cd "$TF_DIR"
-      terraform init
+    echo -e "  ${YELLOW}[BOOTSTRAP]${NC} Artifact Registry repository '${REPO_NAME}' does not exist yet in ${REGION}."
+    echo -e "  ${CYAN}[DRY-RUN] Would execute targeted Terraform bootstrap & secret state sync:${NC}"
+    echo -e "    terraform apply -target=google_project_service.required_apis -target=google_artifact_registry_repository.classlens -auto-approve"
+  fi
+else
+  (
+    cd "$TF_DIR"
+    terraform init
+    TF_STATE_LIST=$(terraform state list 2>/dev/null || echo "")
+
+    # Import pre-created Secret Manager secret containers into Terraform state if not yet tracked
+    sync_secret_state() {
+      local tf_res="$1"
+      local sec_id="$2"
+      if ! echo "$TF_STATE_LIST" | grep -Fxq "$tf_res"; then
+        if gcloud secrets describe "$sec_id" --project="$PROJECT_ID" --quiet >/dev/null 2>&1; then
+          echo -e "  Importing existing secret container '${sec_id}' into Terraform state (${tf_res})..."
+          terraform import \
+            -var="project_id=${PROJECT_ID}" \
+            -var="region=${REGION}" \
+            "$tf_res" "projects/${PROJECT_ID}/secrets/${sec_id}" >/dev/null
+        fi
+      fi
+    }
+
+    sync_secret_state "google_secret_manager_secret.session_secret" "${APP_NAME}-${ENVIRONMENT}-session-secret"
+    sync_secret_state "google_secret_manager_secret.teacher_password" "${APP_NAME}-${ENVIRONMENT}-teacher-password"
+    sync_secret_state "google_secret_manager_secret.live_auth_key" "${APP_NAME}-${ENVIRONMENT}-live-auth-key"
+
+    if echo "$ENABLED_SERVICES" | grep -Fxq "artifactregistry.googleapis.com" && \
+       gcloud artifacts repositories describe "$REPO_NAME" --project="$PROJECT_ID" --location="$REGION" --quiet >/dev/null 2>&1; then
+      if ! echo "$TF_STATE_LIST" | grep -Fxq "google_artifact_registry_repository.classlens"; then
+        echo -e "  Importing existing Artifact Registry '${REPO_NAME}' into Terraform state..."
+        terraform import \
+          -var="project_id=${PROJECT_ID}" \
+          -var="region=${REGION}" \
+          "google_artifact_registry_repository.classlens" \
+          "projects/${PROJECT_ID}/locations/${REGION}/repositories/${REPO_NAME}" >/dev/null
+      fi
+      echo -e "  ${GREEN}[PASS]${NC} Artifact Registry repository '${REPO_NAME}' is active in ${REGION}."
+    else
+      echo -e "  Bootstrapping required GCP APIs and Artifact Registry via targeted Terraform stage..."
       terraform apply \
         -var="project_id=${PROJECT_ID}" \
         -var="region=${REGION}" \
         -target=google_project_service.required_apis \
         -target=google_artifact_registry_repository.classlens \
         -auto-approve
-    )
-    echo -e "  ${GREEN}[PASS]${NC} Artifact Registry repository created."
-  fi
+      echo -e "  ${GREEN}[PASS]${NC} Artifact Registry repository created."
+    fi
+  )
 fi
 
 # ------------------------------------------------------------------------------
 # STAGE 6: Build Container Images with Immutable Git Commit SHA Tags
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 6/13] Building Multi-Stage Production Images with Immutable Git SHA Tags...${NC}"
+echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 6/13] Building Multi-Stage Production Images (linux/amd64) with Immutable Git SHA Tags...${NC}"
 
 echo -e "  Frontend Target: ${FRONTEND_IMAGE}"
 echo -e "  Backend Target:  ${BACKEND_IMAGE}"
 
 if [ "$IS_DRY_RUN" = true ]; then
-  echo -e "  ${CYAN}[DRY-RUN] Simulating image builds:${NC}"
-  echo -e "    docker build -t ${FRONTEND_IMAGE} -f apps/web/Dockerfile apps/web/"
-  echo -e "    docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
+  echo -e "  ${CYAN}[DRY-RUN] Simulating linux/amd64 image builds:${NC}"
+  echo -e "    docker build --platform linux/amd64 -t ${FRONTEND_IMAGE} -f apps/web/Dockerfile apps/web/"
+  echo -e "    docker build --platform linux/amd64 -t ${BACKEND_IMAGE} -f Dockerfile ."
 else
   ./scripts/gcp/build.sh "$PROJECT_ID" "$REGION" "$IMMUTABLE_TAG"
 fi
@@ -337,6 +375,7 @@ if [ "$IS_DRY_RUN" = true ]; then
   echo -e "      -var=\"image_tag=${IMMUTABLE_TAG}\" \\"
   echo -e "      -var=\"frontend_image=${FRONTEND_IMAGE}\" \\"
   echo -e "      -var=\"backend_image=${BACKEND_IMAGE}\" \\"
+  echo -e "      -var=\"domain_name=${CLASSLENS_DOMAIN:-}\" \\"
   echo -e "      -var=\"enable_cloud_sql=true\" \\"
   echo -e "      -out=\"tfplan\""
 else
@@ -347,6 +386,7 @@ else
     -var="image_tag=${IMMUTABLE_TAG}" \
     -var="frontend_image=${FRONTEND_IMAGE}" \
     -var="backend_image=${BACKEND_IMAGE}" \
+    -var="domain_name=${CLASSLENS_DOMAIN:-}" \
     -var="enable_cloud_sql=true" \
     -out="tfplan"
   echo -e "  ${GREEN}[PASS]${NC} Execution plan generated and saved to ${TF_DIR}/tfplan."
@@ -390,49 +430,48 @@ fi
 # ------------------------------------------------------------------------------
 # STAGE 10: Provision Infrastructure via Terraform Apply
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 10/13] Provisioning Cloud Infrastructure (Cloud SQL, Storage, Cloud Run, LB)...${NC}"
+echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 10/13] Provisioning Cloud Infrastructure (Cloud SQL, Storage, Cloud Run BFF & Private Backend)...${NC}"
 
 if [ "$IS_DRY_RUN" = true ]; then
   echo -e "  ${CYAN}[DRY-RUN] Simulating terraform apply of verified plan tfplan...${NC}"
-  LB_IP="34.120.45.67 (Simulated)"
-  APP_URL="https://34.120.45.67 (Simulated)"
+  APP_URL="https://classlens-frontend-simulated-as.a.run.app (Simulated)"
+  BACKEND_URL="https://classlens-backend-simulated-as.a.run.app (Simulated - Private IAM)"
   SQL_INSTANCE="${APP_NAME}-${ENVIRONMENT}-pg (Simulated)"
 else
   cd "$TF_DIR"
   terraform apply "tfplan"
   rm -f "tfplan"
 
-  LB_IP=$(terraform output -raw load_balancer_ip 2>/dev/null || echo "Pending")
   APP_URL=$(terraform output -raw application_url 2>/dev/null || echo "Pending")
+  BACKEND_URL=$(terraform output -raw cloud_run_backend_url 2>/dev/null || echo "Pending")
   SQL_INSTANCE=$(terraform output -raw cloud_sql_instance_name 2>/dev/null || echo "none")
   cd ../..
   echo -e "  ${GREEN}[PASS]${NC} Infrastructure resources provisioned successfully."
 fi
 
 # ------------------------------------------------------------------------------
-# STAGE 11: Run Idempotent Database Migrations
+# STAGE 11: Verify Cloud SQL PostgreSQL 15 Schema Migration
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 11/13] Executing Idempotent Database Migrations...${NC}"
+echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 11/13] Verifying Idempotent Cloud SQL PostgreSQL 15 Schema Migrations...${NC}"
 
 if [ "$IS_DRY_RUN" = true ]; then
   echo -e "  ${CYAN}[DRY-RUN] Simulating database migration execution (scripts/migrate.py --dry-run):${NC}"
   python3 scripts/migrate.py --dry-run
 else
-  echo -e "  Executing idempotent schema migration..."
-  python3 scripts/migrate.py
-  echo -e "  ${GREEN}[PASS]${NC} Database schema is fully migrated and verified."
+  echo -e "  Verifying remote Cloud SQL PostgreSQL 15 schema initialization via Cloud Run..."
+  python3 scripts/migrate.py --verify-remote "${APP_URL}"
+  echo -e "  ${GREEN}[PASS]${NC} Cloud SQL PostgreSQL 15 schema v1.0.0 is migrated, seeded, and healthy."
 fi
 
 # ------------------------------------------------------------------------------
 # STAGE 12: Verify Routing, Auth, Persistence, TLS, and Ingress Restrictions
 # ------------------------------------------------------------------------------
-echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 12/13] Running Comprehensive Security & Health Verification Probes...${NC}"
+echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 12/13] Running Comprehensive 10-Point Security & Health Verification Probes...${NC}"
 
 if [ "$IS_DRY_RUN" = true ]; then
-  ./scripts/gcp/verify.sh --dry-run "${APP_URL}"
+  ./scripts/gcp/verify.sh --dry-run "${APP_URL}" "${PROJECT_ID}"
 else
-  # Probe health via verify.sh (strict TLS verification)
-  ./scripts/gcp/verify.sh "${APP_URL}"
+  ./scripts/gcp/verify.sh "${APP_URL}" "${PROJECT_ID}"
 fi
 
 # ------------------------------------------------------------------------------
@@ -443,24 +482,20 @@ echo -e "\n${BOLD}${MAGENTA}>>> [STAGE 13/13] Deployment Summary & Operational H
 echo -e "\n${GREEN}==============================================================================${NC}"
 echo -e "${GREEN}${BOLD} CLASSLENS DEPLOYMENT COMPLETED SUCCESSFULLY!${NC}"
 echo -e "${GREEN}==============================================================================${NC}"
-echo -e "  ${BOLD}Application URL:${NC}         ${GREEN}${APP_URL}${NC}"
-echo -e "  ${BOLD}Static Load Balancer IP:${NC} ${GREEN}${LB_IP}${NC}"
+echo -e "  ${BOLD}Public Application URL:${NC}  ${GREEN}${APP_URL}${NC}"
+echo -e "  ${BOLD}Private Backend URL:${NC}     ${GREEN}${BACKEND_URL}${NC} (IAM-Restricted to Frontend SA)"
 echo -e "  ${BOLD}Target GCP Region:${NC}       ${GREEN}${REGION}${NC}"
 echo -e "  ${BOLD}Deployment Revision:${NC}     ${GREEN}${IMMUTABLE_TAG}${NC} (${GIT_SHA})"
 echo -e "  ${BOLD}Cloud SQL Instance:${NC}      ${GREEN}${SQL_INSTANCE}${NC}"
 echo -e "  ${BOLD}Worksheets GCS Bucket:${NC}   ${GREEN}${PROJECT_ID}-${APP_NAME}-worksheets${NC}"
-echo -e "  ${BOLD}Ingress Lockdown:${NC}        ${GREEN}INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER (Strict)${NC}"
-echo -e "  ${BOLD}TLS Mode:${NC}                ${GREEN}Strict Google-Managed Certificate (Zero Insecure Flags)${NC}"
+echo -e "  ${BOLD}Backend Isolation:${NC}       ${GREEN}Cloud Run IAM OIDC Service-to-Service Auth (Direct Public HTTP 403)${NC}"
+echo -e "  ${BOLD}TLS Certificate:${NC}         ${GREEN}Google-Managed Publicly Trusted HTTPS Certificate (*.a.run.app)${NC}"
 echo -e "  ${BOLD}Gemini AI Cost:${NC}          ${GREEN}\$0.00 Incurred During Deployment Pipeline${NC}"
 echo -e "${GREEN}==============================================================================${NC}"
 echo -e "${YELLOW}Operational Handover & Runbook Reminders:${NC}"
-echo -e "  1. If using custom domain, ensure DNS A-Record points to: ${LB_IP}"
-echo -e "  2. Populate Secret Manager secret versions before live student intake:"
-echo -e "       echo -n \"\$(openssl rand -hex 32)\" | gcloud secrets versions add classlens-production-session-secret --data-file=-"
-echo -e "       echo -n \"<STRONG_PASSWORD>\" | gcloud secrets versions add classlens-production-teacher-password --data-file=-"
-echo -e "       echo -n \"\$(openssl rand -hex 32)\" | gcloud secrets versions add classlens-production-live-auth-key --data-file=-"
-echo -e "  3. Smoke test verification tool:"
-echo -e "       ./scripts/gcp/verify.sh ${APP_URL}"
-echo -e "  4. Immediate rollback tool if needed:"
+echo -e "  1. Teacher login credentials: teacher@classlens.demo (password stored in Secret Manager 'classlens-production-teacher-password')"
+echo -e "  2. Smoke test verification tool:"
+echo -e "       ./scripts/gcp/verify.sh ${APP_URL} ${PROJECT_ID}"
+echo -e "  3. Immediate rollback tool if needed:"
 echo -e "       ./scripts/gcp/rollback.sh --confirm ${PROJECT_ID} ${REGION}"
 echo -e "${GREEN}==============================================================================${NC}"

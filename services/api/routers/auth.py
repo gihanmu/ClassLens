@@ -15,8 +15,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., description="Teacher username or email (e.g. teacher@classlens.demo)")
+    username: Optional[str] = Field(default=None, description="Teacher username or email (e.g. teacher@classlens.demo)")
+    email: Optional[str] = Field(default=None, description="Optional alias for username")
     password: str = Field(..., description="Teacher password")
+
+    def resolved_username(self) -> str:
+        return (self.username or self.email or "").strip()
 
 
 class AuthRequest(BaseModel):
@@ -72,7 +76,8 @@ async def login(request: Request, body: LoginRequest, response: Response):
     client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
     if not client_ip and request.client:
         client_ip = request.client.host
-    rate_key = f"{client_ip or 'unknown'}:{body.username.lower().strip()}"
+    uname = body.resolved_username()
+    rate_key = f"{client_ip or 'unknown'}:{uname.lower()}"
 
     if login_rate_limiter.is_rate_limited(rate_key):
         raise HTTPException(
@@ -82,7 +87,7 @@ async def login(request: Request, body: LoginRequest, response: Response):
 
     try:
         user, session_token, csrf_token = AuthService.authenticate_teacher(
-            username=body.username,
+            username=uname,
             password=body.password,
         )
     except ValueError as exc:

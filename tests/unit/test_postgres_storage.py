@@ -53,19 +53,29 @@ def test_postgres_cursor_and_connection_wrapper():
     mock_raw_conn.rollback.assert_called()
 
 
-@patch("psycopg2.connect")
-def test_postgres_database_manager(mock_connect):
+@patch("psycopg2.pool.ThreadedConnectionPool")
+def test_postgres_database_manager(mock_pool_cls):
+    mock_pool = MagicMock()
     mock_raw_conn = MagicMock()
     mock_raw_cur = MagicMock()
-    mock_connect.return_value = mock_raw_conn
+    mock_pool_cls.return_value = mock_pool
+    mock_pool.getconn.return_value = mock_raw_conn
     mock_raw_conn.cursor.return_value = mock_raw_cur
 
     mock_raw_cur.fetchone.return_value = [1]
 
     manager = PostgresDatabaseManager("postgresql://test:test@localhost:5432/testdb")
 
-    # Verify DDL executed on init
+    # Verify DDL + schema_version executed on init
     assert mock_raw_cur.execute.call_count >= len(manager.DDL_STATEMENTS)
+    mock_pool.putconn.assert_called_with(mock_raw_conn)
+
+    # Verify BEGIN IMMEDIATE / COMMIT translation does not send SQLite syntax to PostgreSQL
+    with manager.get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE;")
+        conn.execute("SELECT 1;")
+        conn.execute("COMMIT;")
 
     # Health check
     assert manager.check_health() is True
+

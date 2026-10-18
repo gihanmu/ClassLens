@@ -13,9 +13,13 @@ __pycache__
 *.pyo
 *.pyd
 
-# Tests & Coverage
+# Tests & Coverage (preserve synthetic evaluation fixtures required by provenance_guard)
 .pytest_cache
-tests
+tests/*
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/synthetic_evaluation_cases/
+!tests/fixtures/synthetic_evaluation_cases/**
 evaluation
 automation/reports
 htmlcov
@@ -26,8 +30,9 @@ local-data/
 local-data/*
 local-data/store/*
 local-data/uploads/*
-dataset/
 dataset/*
+!dataset/problem_1065658/
+!dataset/problem_1065658/**
 *.db
 *.sqlite3
 *.db.bak*
@@ -43,10 +48,11 @@ dataset/*
 credentials.json
 service_account.json
 
-# Documentation screenshots & wireframes
-docs/screenshots/
-docs/wireframes/
+# Documentation screenshots, presentations & wireframes
+docs/
 specs/
+*.webp
+*.pptx
 
 # Frontend build artifacts
 apps/web/.next

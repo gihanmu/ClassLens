@@ -81,13 +81,27 @@ class PostgresCursorWrapper:
 class PostgresConnectionWrapper:
     """Wraps a psycopg2 connection to provide sqlite3-like context management and execute() helper."""
 
-    def __init__(self, raw_conn):
+    def __init__(self, raw_conn, pool=None, close_on_exit: bool = False):
         self._conn = raw_conn
+        self._pool = pool
+        self._close_on_exit = close_on_exit
+        self._released = False
 
     def cursor(self):
         return PostgresCursorWrapper(self._conn.cursor())
 
     def execute(self, query: str, params: Optional[Union[tuple, list, dict]] = None) -> PostgresCursorWrapper:
+        stripped = query.strip().upper()
+        if stripped in ("BEGIN", "BEGIN;", "BEGIN IMMEDIATE", "BEGIN IMMEDIATE;"):
+            # psycopg2 with autocommit=False starts a transaction automatically on first query
+            return PostgresCursorWrapper(self._conn.cursor())
+        if stripped in ("COMMIT", "COMMIT;"):
+            self.commit()
+            return PostgresCursorWrapper(self._conn.cursor())
+        if stripped in ("ROLLBACK", "ROLLBACK;"):
+            self.rollback()
+            return PostgresCursorWrapper(self._conn.cursor())
+
         cur = self.cursor()
         cur.execute(query, params)
         return cur
@@ -99,16 +113,33 @@ class PostgresConnectionWrapper:
         self._conn.rollback()
 
     def close(self):
-        self._conn.close()
+        if self._released:
+            return
+        self._released = True
+        if self._pool is not None:
+            try:
+                self._pool.putconn(self._conn)
+            except Exception:
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+        else:
+            self._conn.close()
 
     def __enter__(self):
+        self._released = False
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is not None:
-            self.rollback()
-        else:
-            self.commit()
+        try:
+            if exc_type is not None:
+                self.rollback()
+            else:
+                self.commit()
+        finally:
+            if self._pool is not None or self._close_on_exit:
+                self.close()
 
 
 class PostgresDatabaseManager:
@@ -233,34 +264,57 @@ class PostgresDatabaseManager:
         "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);",
     ]
 
-    def __init__(self, db_url: str):
+    def __init__(self, db_url: str, max_connections: int = 5):
         self.db_url = db_url
+        self.max_connections = max_connections
         self._lock = threading.RLock()
+        self._pool: Optional[Any] = None
         self._init_db()
 
-    def get_connection(self) -> PostgresConnectionWrapper:
-        """Returns a configured PostgreSQL connection with DictCursor."""
-        import psycopg2
-        import psycopg2.extras
-
-        # Clean URL format if needed (e.g. postgresql+psycopg2:// -> postgresql://)
+    def _clean_dsn(self) -> str:
         clean_url = self.db_url
         if clean_url.startswith("postgresql+psycopg2://"):
             clean_url = clean_url.replace("postgresql+psycopg2://", "postgresql://", 1)
+        return clean_url
 
-        raw_conn = psycopg2.connect(clean_url, cursor_factory=psycopg2.extras.DictCursor)
+    def _get_pool(self) -> Any:
+        if self._pool is None:
+            with self._lock:
+                if self._pool is None:
+                    import psycopg2.extras
+                    import psycopg2.pool
+
+                    self._pool = psycopg2.pool.ThreadedConnectionPool(
+                        minconn=1,
+                        maxconn=self.max_connections,
+                        dsn=self._clean_dsn(),
+                        cursor_factory=psycopg2.extras.DictCursor,
+                    )
+        return self._pool
+
+    def get_connection(self) -> PostgresConnectionWrapper:
+        """Returns a pooled PostgreSQL connection with DictCursor (safe for db-f1-micro connection limits)."""
+        pool = self._get_pool()
+        raw_conn = pool.getconn()
         raw_conn.autocommit = False
-        return PostgresConnectionWrapper(raw_conn)
+        return PostgresConnectionWrapper(raw_conn, pool=pool, close_on_exit=True)
 
     def _init_db(self) -> None:
-        """Idempotently initializes PostgreSQL schema, tables, and indexes."""
+        """Idempotently initializes PostgreSQL schema, tables, indexes, and schema_version metadata."""
         with self._lock:
             with self.get_connection() as conn:
                 try:
                     for stmt in self.DDL_STATEMENTS:
                         conn.execute(stmt)
+                    conn.execute(
+                        """
+                        INSERT INTO app_metadata (key, value, updated_at) VALUES (%s, %s, %s)
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at;
+                        """,
+                        ("schema_version", "1.0.0", utc_now_iso()),
+                    )
                     conn.commit()
-                    logger.info("PostgreSQL schema initialized successfully.")
+                    logger.info("PostgreSQL schema (v1.0.0) initialized successfully.")
                 except Exception as exc:
                     conn.rollback()
                     logger.error(f"Failed to initialize PostgreSQL schema: {exc}")
@@ -295,3 +349,4 @@ class PostgresDatabaseManager:
         except Exception as exc:
             logger.warning(f"PostgreSQL health check failed: {exc}")
             return False
+

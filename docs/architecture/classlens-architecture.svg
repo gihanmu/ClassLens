@@ -1,0 +1,887 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3840 2160" width="3840" height="2160" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <!-- Subtle Drop Shadows -->
+    <filter id="shadow-lg" x="-3%" y="-3%" width="106%" height="108%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.07"/>
+    </filter>
+    <filter id="shadow-md" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.06"/>
+    </filter>
+    <filter id="shadow-sm" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.05"/>
+    </filter>
+
+    <!-- Linear Gradients -->
+    <linearGradient id="header-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="55%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <linearGradient id="zone-edge-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EFF6FF"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+
+    <linearGradient id="zone-api-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F0FDFA"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+
+    <linearGradient id="zone-ai-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EEF2FF"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+
+    <linearGradient id="zone-data-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECFDF5"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+
+    <linearGradient id="zone-devops-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="50%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+
+    <linearGradient id="vertex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+
+    <linearGradient id="sympy-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+
+    <!-- Arrowhead Markers -->
+    <marker id="arrow-blue" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#1D4ED8"/>
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#0F766E"/>
+    </marker>
+    <marker id="arrow-indigo" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#4F46E5"/>
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#047857"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#B45309"/>
+    </marker>
+    <marker id="arrow-crimson" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#B91C1C"/>
+    </marker>
+    <marker id="arrow-slate" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 1 2 L 10 6 L 1 10 z" fill="#475569"/>
+    </marker>
+
+    <!-- Background Dot Grid Pattern -->
+    <pattern id="dot-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#CBD5E1" opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="3840" height="2160" fill="#F8FAFC"/>
+  <rect width="3840" height="2160" fill="url(#dot-grid)"/>
+
+  <!-- ===================================================================== -->
+  <!-- TOP HEADER BANNER (Y: 24 to 152)                                      -->
+  <!-- ===================================================================== -->
+  <rect x="36" y="24" width="3768" height="126" rx="18" fill="url(#header-grad)" filter="url(#shadow-lg)"/>
+
+  <!-- Google Cloud & Team Badge -->
+  <rect x="68" y="46" width="224" height="34" rx="8" fill="#3B82F6" fill-opacity="0.28" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="180" y="69" fill="#EFF6FF" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="1.2">AI BUILDER CUP 2026</text>
+
+  <rect x="306" y="46" width="236" height="34" rx="8" fill="#10B981" fill-opacity="0.25" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="424" y="69" fill="#ECFDF5" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="1">TEAM TOKEN TITANS</text>
+
+  <text x="68" y="120" fill="#FFFFFF" font-size="38" font-weight="800" letter-spacing="-0.5">ClassLens — Production Solution Architecture</text>
+  <text x="950" y="120" fill="#BFDBFE" font-size="22.5" font-weight="500">Multimodal Handwritten Mathematics Diagnostics, Symbolic Verification &amp; Differentiated Pedagogy on Google Cloud</text>
+
+  <!-- Legend Box inside Header -->
+  <rect x="2420" y="38" width="1356" height="96" rx="12" fill="#0F172A" fill-opacity="0.55" stroke="#60A5FA" stroke-opacity="0.4" stroke-width="1.5"/>
+  <text x="2448" y="66" fill="#93C5FD" font-size="15" font-weight="700" letter-spacing="1">ARCHITECTURE DATA FLOW &amp; ENVIRONMENT LEGEND</text>
+
+  <!-- Legend Row 1 -->
+  <line x1="2448" y1="90" x2="2508" y2="90" stroke="#60A5FA" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <text x="2520" y="95" fill="#F8FAFC" font-size="15" font-weight="600">HTTPS / REST Request Flow</text>
+
+  <line x1="2760" y1="90" x2="2820" y2="90" stroke="#818CF8" stroke-width="4" marker-end="url(#arrow-indigo)"/>
+  <text x="2832" y="95" fill="#F8FAFC" font-size="15" font-weight="600">Multimodal AI &amp; Agent Pipeline</text>
+
+  <line x1="3105" y1="90" x2="3165" y2="90" stroke="#34D399" stroke-width="4" marker-end="url(#arrow-emerald)"/>
+  <text x="3177" y="95" fill="#F8FAFC" font-size="15" font-weight="600">Deterministic Math &amp; Storage I/O</text>
+
+  <line x1="3460" y1="90" x2="3520" y2="90" stroke="#F87171" stroke-width="3.5" stroke-dasharray="8,5" marker-end="url(#arrow-crimson)"/>
+  <text x="3532" y="95" fill="#F8FAFC" font-size="15" font-weight="600">Critic Retry / Secret Injection</text>
+
+  <!-- Legend Row 2 -->
+  <circle cx="2460" cy="116" r="11" fill="#1D4ED8"/>
+  <text x="2460" y="121" fill="#FFFFFF" font-size="13" font-weight="800" text-anchor="middle">1</text>
+  <text x="2480" y="121" fill="#CBD5E1" font-size="14" font-weight="500">Numbered End-to-End Execution Sequence (1 → 10)</text>
+
+  <rect x="2860" y="104" width="165" height="22" rx="5" fill="#059669"/>
+  <text x="2942" y="120" fill="#FFFFFF" font-size="12" font-weight="700" text-anchor="middle">PROD: GCP MANAGED</text>
+
+  <rect x="3040" y="104" width="175" height="22" rx="5" fill="#475569"/>
+  <text x="3127" y="120" fill="#F8FAFC" font-size="12" font-weight="700" text-anchor="middle">LOCAL DEV FALLBACK</text>
+
+  <text x="3235" y="121" fill="#E2E8F0" font-size="14" font-weight="600">Region: asia-southeast1 (Singapore) • IaC: Terraform</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- OUTER GOOGLE CLOUD BOUNDARY (X: 460 to 3804, Y: 172 to 2134)          -->
+  <!-- ===================================================================== -->
+  <rect x="460" y="172" width="3344" height="1962" rx="22" fill="#FFFFFF" fill-opacity="0.55" stroke="#94A3B8" stroke-width="2.5" stroke-dasharray="12,8"/>
+  <rect x="484" y="158" width="540" height="30" rx="6" fill="#1E293B"/>
+  <text x="754" y="178" fill="#F8FAFC" font-size="14" font-weight="700" text-anchor="middle" letter-spacing="1">GOOGLE CLOUD PLATFORM • PROJECT BOUNDARY (asia-southeast1)</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- LEFT ACTOR COLUMN: EDUCATOR & DOMAINS (X: 36 to 396, Y: 196 to 1600)  -->
+  <!-- ===================================================================== -->
+
+  <!-- Educator / Teacher Box -->
+  <rect x="36" y="196" width="360" height="674" rx="18" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2.5" filter="url(#shadow-lg)"/>
+  <rect x="36" y="196" width="360" height="56" rx="18" fill="#1E3A8A"/>
+  <rect x="36" y="232" width="360" height="20" fill="#1E3A8A"/>
+  <text x="216" y="232" fill="#FFFFFF" font-size="20" font-weight="800" text-anchor="middle">Educator / Mathematics Teacher</text>
+
+  <!-- Teacher Icon & Role -->
+  <circle cx="216" cy="306" r="36" fill="#EFF6FF" stroke="#2563EB" stroke-width="2.5"/>
+  <circle cx="216" cy="294" r="13" fill="#1D4ED8"/>
+  <path d="M 190 330 C 190 312, 242 312, 242 330" fill="#1D4ED8"/>
+  <text x="216" y="368" fill="#0F172A" font-size="17.5" font-weight="700" text-anchor="middle">Web Browser (Desktop / Tablet)</text>
+  <text x="216" y="390" fill="#475569" font-size="13.5" font-weight="500" text-anchor="middle">Authenticated via Signed HttpOnly Cookie</text>
+
+  <!-- Teacher Workflows List -->
+  <rect x="56" y="410" width="320" height="96" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="72" y="436" fill="#1E3A8A" font-size="15.5" font-weight="700">1. Assessment &amp; Worksheet Intake</text>
+  <text x="72" y="460" fill="#334155" font-size="13">• Define math prompt, rubric &amp; expected answer</text>
+  <text x="72" y="482" fill="#334155" font-size="13">• Batch upload student scans (PNG/JPG/WEBP)</text>
+
+  <rect x="56" y="520" width="320" height="106" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="72" y="546" fill="#1E3A8A" font-size="15.5" font-weight="700">2. Diagnostic Inspection &amp; HITL Review</text>
+  <text x="72" y="570" fill="#334155" font-size="13">• Inspect extracted steps &amp; symbolic verification</text>
+  <text x="72" y="592" fill="#334155" font-size="13">• Review Independent Critic flags &amp; confidence</text>
+  <text x="72" y="614" fill="#334155" font-size="13">• Approve or override misconception diagnosis</text>
+
+  <rect x="56" y="640" width="320" height="106" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="72" y="666" fill="#1E3A8A" font-size="15.5" font-weight="700">3. Instructional Action &amp; Exit Tickets</text>
+  <text x="72" y="690" fill="#334155" font-size="13">• View class-wide misconception distributions</text>
+  <text x="72" y="712" fill="#334155" font-size="13">• Execute topic-isolated re-teaching action plans</text>
+  <text x="72" y="734" fill="#334155" font-size="13">• Assign targeted follow-up exit tickets</text>
+
+  <rect x="56" y="762" width="320" height="86" rx="10" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="72" y="788" fill="#92400E" font-size="14.5" font-weight="700">Human-in-the-Loop (HITL) Guarantee</text>
+  <text x="72" y="810" fill="#78350F" font-size="13">Teacher overrides immediately recalculate</text>
+  <text x="72" y="830" fill="#78350F" font-size="13">cohort insights, action plans &amp; audit logs.</text>
+
+  <!-- Supported Math Domains Box (Bottom Left X: 36 to 396, Y: 894 to 1600) -->
+  <rect x="36" y="894" width="360" height="706" rx="18" fill="#FFFFFF" stroke="#0F766E" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="36" y="894" width="360" height="52" rx="18" fill="#0F766E"/>
+  <rect x="36" y="926" width="360" height="20" fill="#0F766E"/>
+  <text x="216" y="927" fill="#FFFFFF" font-size="18.5" font-weight="800" text-anchor="middle">Supported Pedagogical Domains</text>
+
+  <rect x="56" y="966" width="320" height="202" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="72" y="992" fill="#115E59" font-size="15.5" font-weight="800">Domain A: Fraction Division</text>
+  <text x="72" y="1014" fill="#0F766E" font-size="13" font-weight="600">TaskType: FRACTION_DIVISION</text>
+  <text x="72" y="1038" fill="#334155" font-size="12.5">• Unit-form rewriting (8/9 ÷ 4/9 = 8 ninths ÷ 4 ninths)</text>
+  <text x="72" y="1060" fill="#334155" font-size="12.5">• Common-denominator &amp; reciprocal strategies</text>
+  <text x="72" y="1082" fill="#334155" font-size="12.5">• Tape diagram &amp; area model partition check</text>
+  <text x="72" y="1108" fill="#0F172A" font-size="12.5" font-weight="700">Tracked Misconceptions:</text>
+  <text x="72" y="1128" fill="#475569" font-size="12" font-family="monospace">MISC-FRAC-DIV-INVERT-DIVIDEND</text>
+  <text x="72" y="1148" fill="#475569" font-size="12" font-family="monospace">MISC-FRAC-DIV-NUM-ONLY / KEEP-MULT</text>
+
+  <rect x="56" y="1184" width="320" height="202" rx="10" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="72" y="1210" fill="#1E3A8A" font-size="15.5" font-weight="800">Domain B: Integer Number Lines</text>
+  <text x="72" y="1232" fill="#1D4ED8" font-size="13" font-weight="600">TaskType: INTEGER_OPERATIONS_NUMBER_LINE</text>
+  <text x="72" y="1256" fill="#334155" font-size="12.5">• Multi-step directed vector jumps (-6 + 12 - 4)</text>
+  <text x="72" y="1278" fill="#334155" font-size="12.5">• Origin anchor, arrow direction &amp; interval count</text>
+  <text x="72" y="1300" fill="#334155" font-size="12.5">• Landing coordinate vs symbolic expression</text>
+  <text x="72" y="1326" fill="#0F172A" font-size="12.5" font-weight="700">Tracked Misconceptions:</text>
+  <text x="72" y="1346" fill="#475569" font-size="12" font-family="monospace">MISC-DIR-INV • MISC-MAG-COUNT</text>
+  <text x="72" y="1366" fill="#475569" font-size="12" font-family="monospace">MISC-ARITH-OFF-BY-ONE • MISC-START-POS</text>
+
+  <rect x="56" y="1402" width="320" height="176" rx="10" fill="#FFF1F2" stroke="#FDA4AF" stroke-width="1.5"/>
+  <text x="72" y="1428" fill="#9F1239" font-size="15.5" font-weight="800">Anti-Hallucination &amp; Isolation Guards</text>
+  <text x="72" y="1454" fill="#334155" font-size="13">• Strict topic isolation prevents cross-domain</text>
+  <text x="72" y="1474" fill="#334155" font-size="13">  leakage in teaching plans &amp; exit tickets</text>
+  <text x="72" y="1498" fill="#334155" font-size="13">• Blank, illegible, or off-topic scans fail closed to</text>
+  <text x="72" y="1518" fill="#9F1239" font-size="13" font-weight="700">  Insufficient Evidence &amp; Needs Review</text>
+  <text x="72" y="1542" fill="#475569" font-size="12.5">• Enforced by TaskRouter + EvidenceSufficiency</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- ZONE 1 (INSIDE GCP): EDGE INGRESS & NEXT.JS FRONTEND (X: 484 to 1054) -->
+  <!-- ===================================================================== -->
+  <rect x="484" y="196" width="570" height="1404" rx="18" fill="url(#zone-edge-grad)" stroke="#3B82F6" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="484" y="196" width="570" height="52" rx="18" fill="#1D4ED8"/>
+  <rect x="484" y="228" width="570" height="20" fill="#1D4ED8"/>
+  <text x="769" y="230" fill="#FFFFFF" font-size="19.5" font-weight="800" text-anchor="middle">1. Edge Ingress &amp; Next.js Teacher Frontend</text>
+
+  <!-- Global HTTPS Load Balancer Card -->
+  <rect x="508" y="268" width="522" height="262" rx="14" fill="#FFFFFF" stroke="#2563EB" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="526" y="286" width="155" height="24" rx="6" fill="#059669"/>
+  <text x="603" y="303" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">PROD: GCP MANAGED</text>
+  <text x="694" y="304" fill="#64748B" font-size="12.5" font-family="monospace">infra/terraform/load_balancer.tf</text>
+
+  <text x="526" y="336" fill="#0F172A" font-size="19.5" font-weight="800">Global External HTTPS Load Balancer</text>
+  <text x="526" y="360" fill="#475569" font-size="13.5">Anycast Global Static IP • Google-Managed TLS Cert (Port 443)</text>
+  <text x="526" y="380" fill="#475569" font-size="13.5">Port 80 HTTP → Port 443 HTTPS Redirect Forwarding Rule</text>
+
+  <!-- URL Map Routing Sub-boxes -->
+  <rect x="526" y="396" width="486" height="54" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="542" y="418" fill="#1E3A8A" font-size="14" font-weight="700">Path Rule 1: /* (Default Web Route)</text>
+  <text x="542" y="438" fill="#334155" font-size="13">Routes to Frontend Serverless NEG → Cloud Run (classlens-frontend)</text>
+
+  <rect x="526" y="460" width="486" height="54" rx="8" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="542" y="482" fill="#115E59" font-size="14" font-weight="700">Path Rule 2: /api/*, /api, /health (API Route)</text>
+  <text x="542" y="502" fill="#334155" font-size="13">Routes to Backend Serverless NEG → Cloud Run (classlens-backend)</text>
+
+  <!-- Cloud Run Frontend Card -->
+  <rect x="508" y="556" width="522" height="1022" rx="14" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="526" y="574" width="155" height="24" rx="6" fill="#1D4ED8"/>
+  <text x="603" y="591" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">CLOUD RUN SERVICE</text>
+  <text x="694" y="592" fill="#64748B" font-size="12.5" font-family="monospace">apps/web (Next.js 14.2 App Router)</text>
+
+  <text x="526" y="624" fill="#0F172A" font-size="20" font-weight="800">Frontend Service: classlens-frontend</text>
+  <text x="526" y="646" fill="#475569" font-size="13.5">React 18 • TypeScript • Tailwind CSS • Standalone Node.js 20</text>
+  <text x="526" y="668" fill="#0F766E" font-size="13" font-weight="700">Ingress: INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER • Non-Root 1001</text>
+
+  <!-- 6 Teacher Views Grid inside Next.js -->
+  <text x="526" y="702" fill="#1E3A8A" font-size="15.5" font-weight="800">Teacher Workspace Views &amp; Interactive Components</text>
+
+  <!-- View 1 & 2 -->
+  <rect x="526" y="718" width="234" height="118" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="540" y="742" fill="#0F172A" font-size="14.5" font-weight="700">Dashboard &amp; KPIs</text>
+  <text x="540" y="762" fill="#64748B" font-size="12" font-family="monospace">/dashboard</text>
+  <text x="540" y="782" fill="#334155" font-size="12.5">• Active assessments summary</text>
+  <text x="540" y="802" fill="#334155" font-size="12.5">• Pending review queue alerts</text>
+  <text x="540" y="822" fill="#334155" font-size="12.5">• Class mastery snapshot</text>
+
+  <rect x="776" y="718" width="236" height="118" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="790" y="742" fill="#0F172A" font-size="14.5" font-weight="700">Assessment &amp; Upload</text>
+  <text x="790" y="762" fill="#64748B" font-size="12" font-family="monospace">/assessments</text>
+  <text x="790" y="782" fill="#334155" font-size="12.5">• Prompt &amp; answer key builder</text>
+  <text x="790" y="802" fill="#334155" font-size="12.5">• Multi-file drag &amp; drop intake</text>
+  <text x="790" y="822" fill="#334155" font-size="12.5">• Live batch analysis progress</text>
+
+  <!-- View 3 (Full width highlight: Student Inspection & Review) -->
+  <rect x="526" y="850" width="486" height="224" rx="10" fill="#EFF6FF" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="540" y="876" fill="#1E3A8A" font-size="15.5" font-weight="800">Student Responses &amp; Inspection Workbench</text>
+  <text x="540" y="896" fill="#2563EB" font-size="12" font-family="monospace">/responses • StudentInspectionModal.tsx</text>
+  <text x="540" y="920" fill="#334155" font-size="13">• <tspan font-weight="700">ImageViewerCanvas:</tspan> Zoom/pan scan with visual evidence</text>
+  <text x="540" y="942" fill="#334155" font-size="13">• <tspan font-weight="700">StepBreakdownList:</tspan> Extracted steps &amp; SymPy verification</text>
+  <text x="540" y="964" fill="#334155" font-size="13">• <tspan font-weight="700">CriticAuditCard:</tspan> Critic grounding score &amp; audit notes</text>
+  <text x="540" y="986" fill="#334155" font-size="13">• <tspan font-weight="700">TeacherReviewForm:</tspan> Approve or override AI diagnosis</text>
+  <text x="540" y="1008" fill="#334155" font-size="13">• <tspan font-weight="700">AuditTrailDrawer:</tspan> Immutable log of AI &amp; human actions</text>
+  <text x="540" y="1030" fill="#334155" font-size="13">• <tspan font-weight="700">UncertaintyBanner:</tspan> Flags Needs Review submissions</text>
+
+  <!-- View 4 & 5 -->
+  <rect x="526" y="1088" width="234" height="140" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="540" y="1112" fill="#0F172A" font-size="14.5" font-weight="700">Cohort Insights</text>
+  <text x="540" y="1132" fill="#64748B" font-size="12" font-family="monospace">/insights</text>
+  <text x="540" y="1152" fill="#334155" font-size="12.5">• MisconceptionBarChart</text>
+  <text x="540" y="1172" fill="#334155" font-size="12.5">• Error prevalence clusters</text>
+  <text x="540" y="1192" fill="#334155" font-size="12.5">• Student roster drill-down</text>
+  <text x="540" y="1212" fill="#334155" font-size="12.5">• Real-time review sync</text>
+
+  <rect x="776" y="1088" width="236" height="140" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="790" y="1112" fill="#0F172A" font-size="14.5" font-weight="700">Teaching Action Plans</text>
+  <text x="790" y="1132" fill="#64748B" font-size="12" font-family="monospace">/recommendations</text>
+  <text x="790" y="1152" fill="#334155" font-size="12.5">• ReteachingActionCards</text>
+  <text x="790" y="1172" fill="#334155" font-size="12.5">• Targeted student groups</text>
+  <text x="790" y="1192" fill="#334155" font-size="12.5">• Concrete-Representational-</text>
+  <text x="790" y="1212" fill="#334155" font-size="12.5">  Abstract (CRA) pedagogy</text>
+
+  <!-- View 6 & API Client Layer -->
+  <rect x="526" y="1242" width="486" height="122" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="540" y="1268" fill="#0F172A" font-size="14.5" font-weight="700">Targeted Resources &amp; Printable Exit Tickets (/resources)</text>
+  <text x="540" y="1292" fill="#334155" font-size="13">• Misconception-aligned follow-up checks for understanding</text>
+  <text x="540" y="1314" fill="#334155" font-size="13">• Validated against assessment domain by ExitTicketValidator</text>
+  <text x="540" y="1336" fill="#334155" font-size="13">• Printable student cards with teacher answer keys &amp; watch-fors</text>
+
+  <rect x="526" y="1378" width="486" height="176" rx="10" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="540" y="1404" fill="#0F172A" font-size="15" font-weight="800">Typed API Client &amp; Next.js Proxy Layer (src/lib/api.ts)</text>
+  <text x="540" y="1428" fill="#334155" font-size="13">• Forwards credentials: 'include' (HttpOnly session cookie)</text>
+  <text x="540" y="1450" fill="#334155" font-size="13">• Propagates X-Correlation-ID header for end-to-end tracing</text>
+  <text x="540" y="1472" fill="#334155" font-size="13">• Prod: Load Balancer routes /api/* directly to Backend NEG</text>
+  <text x="540" y="1494" fill="#475569" font-size="12.5">• Local Dev Fallback: Next.js rewrite proxy to 127.0.0.1:8000</text>
+  <text x="540" y="1516" fill="#0F766E" font-size="12.5" font-weight="700">• Zero API keys or secrets bundled into browser client code</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- ZONE 2: FASTAPI BACKEND, AUTH & INTAKE ENGINE (X: 1134 to 1734)       -->
+  <!-- ===================================================================== -->
+  <rect x="1134" y="196" width="600" height="1404" rx="18" fill="url(#zone-api-grad)" stroke="#0D9488" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="1134" y="196" width="600" height="52" rx="18" fill="#0F766E"/>
+  <rect x="1134" y="228" width="600" height="20" fill="#0F766E"/>
+  <text x="1434" y="230" fill="#FFFFFF" font-size="19.5" font-weight="800" text-anchor="middle">2. FastAPI Backend, Security &amp; Intake Engine</text>
+
+  <!-- Cloud Run Backend Service Header -->
+  <rect x="1158" y="268" width="552" height="128" rx="14" fill="#FFFFFF" stroke="#0D9488" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="1176" y="284" width="155" height="24" rx="6" fill="#0F766E"/>
+  <text x="1253" y="301" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">CLOUD RUN SERVICE</text>
+  <text x="1344" y="302" fill="#64748B" font-size="12.5" font-family="monospace">services/api (FastAPI / Python 3.12)</text>
+  <text x="1176" y="334" fill="#0F172A" font-size="20" font-weight="800">Backend Service: classlens-backend</text>
+  <text x="1176" y="356" fill="#475569" font-size="13.5">Uvicorn ASGI Server • Startup Fail-Closed Production Guard (main.py)</text>
+  <text x="1176" y="378" fill="#0F766E" font-size="13" font-weight="700">Ingress: INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER • Non-Root 10001</text>
+
+  <!-- Security, Auth & Middleware Card -->
+  <rect x="1158" y="412" width="552" height="302" rx="14" fill="#FFFFFF" stroke="#0D9488" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <text x="1176" y="440" fill="#0F172A" font-size="17.5" font-weight="800">Authentication, Security &amp; Tenant Governance</text>
+  <text x="1176" y="460" fill="#64748B" font-size="12" font-family="monospace">services/api/security.py • services/api/middleware/</text>
+
+  <rect x="1176" y="474" width="516" height="50" rx="8" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1.2"/>
+  <text x="1190" y="495" fill="#115E59" font-size="14" font-weight="700">Argon2id Password Auth &amp; Signed Session Cookies</text>
+  <text x="1190" y="514" fill="#334155" font-size="12.5">argon2-cffi verification • HMAC-SHA256 HttpOnly, Secure, SameSite=Lax cookie</text>
+
+  <rect x="1176" y="534" width="516" height="50" rx="8" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1.2"/>
+  <text x="1190" y="555" fill="#115E59" font-size="14" font-weight="700">LoginRateLimiter &amp; SecurityHeadersMiddleware</text>
+  <text x="1190" y="574" fill="#334155" font-size="12.5">5 failed attempts / 60s lockout • X-Frame-Options: DENY, nosniff, strict referrer</text>
+
+  <rect x="1176" y="594" width="516" height="50" rx="8" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1.2"/>
+  <text x="1190" y="615" fill="#115E59" font-size="14" font-weight="700">CorrelationIdMiddleware &amp; Tenant Isolation (org_id)</text>
+  <text x="1190" y="634" fill="#334155" font-size="12.5">Propagates X-Correlation-ID • Enforces org_id boundary on all DB &amp; storage ops</text>
+
+  <rect x="1176" y="654" width="516" height="44" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1.2"/>
+  <text x="1190" y="681" fill="#991B1B" font-size="13" font-weight="700">Fail-Closed Startup Guard: Blocks SQLite or default secrets in production</text>
+
+  <!-- Core REST API Routers Card -->
+  <rect x="1158" y="730" width="552" height="384" rx="14" fill="#FFFFFF" stroke="#0D9488" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <text x="1176" y="758" fill="#0F172A" font-size="17.5" font-weight="800">REST API Routers &amp; Domain Controllers</text>
+  <text x="1176" y="778" fill="#64748B" font-size="12" font-family="monospace">services/api/routers/ • Prefix: /api/v1</text>
+
+  <rect x="1176" y="794" width="250" height="86" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1190" y="818" fill="#0F766E" font-size="14" font-weight="700">auth.py &amp; dashboard.py</text>
+  <text x="1190" y="838" fill="#334155" font-size="12">• POST /auth/login &amp; /logout</text>
+  <text x="1190" y="856" fill="#334155" font-size="12">• GET /auth/me session check</text>
+  <text x="1190" y="872" fill="#334155" font-size="12">• GET /dashboard/summary KPIs</text>
+
+  <rect x="1440" y="794" width="252" height="86" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1454" y="818" fill="#0F766E" font-size="14" font-weight="700">assessments.py</text>
+  <text x="1454" y="838" fill="#334155" font-size="12">• POST /assessments (create)</text>
+  <text x="1454" y="856" fill="#334155" font-size="12">• POST /assessments/{id}/upload</text>
+  <text x="1454" y="872" fill="#334155" font-size="12">• POST /assessments/{id}/analyze</text>
+
+  <rect x="1176" y="894" width="516" height="98" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1190" y="918" fill="#0F766E" font-size="14" font-weight="700">responses.py (Student Work, Image Stream &amp; Teacher Review)</text>
+  <text x="1190" y="940" fill="#334155" font-size="12.5">• GET /responses/{id} &amp; GET /responses/{id}/image (authenticated image stream)</text>
+  <text x="1190" y="960" fill="#334155" font-size="12.5">• POST /responses/{id}/review (saves TeacherReview + AuditEvent &amp; syncs cohort)</text>
+  <text x="1190" y="980" fill="#334155" font-size="12.5">• GET /responses/{id}/audit-trail (immutable lineage of AI &amp; human decisions)</text>
+
+  <rect x="1176" y="1006" width="516" height="92" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1190" y="1030" fill="#0F766E" font-size="14" font-weight="700">cohort.py (Class Analytics, Action Plans &amp; Exit Tickets)</text>
+  <text x="1190" y="1050" fill="#334155" font-size="12.5">• GET /cohort/{assessment_id}/overview (mastery &amp; misconception breakdown)</text>
+  <text x="1190" y="1070" fill="#334155" font-size="12.5">• GET /cohort/{assessment_id}/recommendations (topic-isolated re-teaching cards)</text>
+  <text x="1190" y="1088" fill="#334155" font-size="12.5">• GET /cohort/{assessment_id}/exit-tickets (targeted follow-up micro-assessments)</text>
+
+  <!-- Worksheet Intake & Sanitization Pipeline Card -->
+  <rect x="1158" y="1130" width="552" height="448" rx="14" fill="#FFFFFF" stroke="#0D9488" stroke-width="2" filter="url(#shadow-sm)"/>
+  <text x="1176" y="1158" fill="#0F172A" font-size="17.5" font-weight="800">Worksheet Intake, Privacy &amp; Quality Pipeline</text>
+  <text x="1176" y="1178" fill="#64748B" font-size="12" font-family="monospace">services/worker/intake/ (validator.py • sanitizer.py • quality_service.py)</text>
+
+  <rect x="1176" y="1194" width="516" height="108" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="1190" y="1220" fill="#115E59" font-size="15" font-weight="700">Step A: Strict Payload &amp; Magic-Byte Validation (validator.py)</text>
+  <text x="1190" y="1244" fill="#334155" font-size="13">• Verifies allowed MIME types (image/png, image/jpeg, image/webp)</text>
+  <text x="1190" y="1266" fill="#334155" font-size="13">• Inspects file header magic bytes &amp; enforces max file size limits (10 MB)</text>
+  <text x="1190" y="1286" fill="#334155" font-size="13">• Rejects corrupt, zero-byte, or non-image payloads before storage</text>
+
+  <rect x="1176" y="1316" width="516" height="114" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="1190" y="1342" fill="#115E59" font-size="15" font-weight="700">Step B: EXIF Stripping &amp; SHA-256 Content Hashing (sanitizer.py)</text>
+  <text x="1190" y="1366" fill="#334155" font-size="13">• Decodes via Pillow &amp; strips EXIF/GPS/camera metadata (student privacy)</text>
+  <text x="1190" y="1388" fill="#334155" font-size="13">• Normalizes color space (RGB) &amp; computes SHA-256 content hash</text>
+  <text x="1190" y="1410" fill="#334155" font-size="13">• Persists sanitized bytes to Private Cloud Storage Bucket via StorageBackend</text>
+
+  <rect x="1176" y="1444" width="516" height="110" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="1190" y="1470" fill="#115E59" font-size="15" font-weight="700">Step C: Image Legibility &amp; Quality Pre-Check (quality_service.py)</text>
+  <text x="1190" y="1494" fill="#334155" font-size="13">• Evaluates dimensions, aspect ratio, contrast &amp; blur metrics</text>
+  <text x="1190" y="1516" fill="#334155" font-size="13">• Flags unreadable scans early &amp; attaches quality metadata for Stage 1 AI</text>
+  <text x="1190" y="1538" fill="#334155" font-size="13">• Dispatches validated SubmissionContext to MultiAgentPipeline</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- ZONE 3: NEURO-SYMBOLIC MULTI-AGENT AI & MATH ENGINE (X: 1814 to 2964) -->
+  <!-- ===================================================================== -->
+  <rect x="1814" y="196" width="1150" height="1404" rx="18" fill="url(#zone-ai-grad)" stroke="#4F46E5" stroke-width="2.5" filter="url(#shadow-lg)"/>
+  <rect x="1814" y="196" width="1150" height="52" rx="18" fill="#4338CA"/>
+  <rect x="1814" y="228" width="1150" height="20" fill="#4338CA"/>
+  <text x="2389" y="230" fill="#FFFFFF" font-size="19.5" font-weight="800" text-anchor="middle">3. Neuro-Symbolic Multi-Agent Diagnostic &amp; Cohort Intelligence Engine (services/worker)</text>
+
+  <!-- Orchestrator & Gate 6 Banner -->
+  <rect x="1838" y="264" width="1102" height="80" rx="12" fill="#FFFFFF" stroke="#6366F1" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="1856" y="280" width="210" height="24" rx="6" fill="#4F46E5"/>
+  <text x="1961" y="297" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">GOOGLE ADK + GENAI SDK</text>
+  <text x="2080" y="298" fill="#64748B" font-size="12.5" font-family="monospace">services/worker/agents/pipeline.py • services/worker/gemini/client.py</text>
+  <text x="1856" y="328" fill="#0F172A" font-size="16" font-weight="800">MultiAgentPipeline Orchestrator &amp; Gate 6 Guard:</text>
+  <text x="2275" y="328" fill="#475569" font-size="13.5">Enforces CLASSLENS_AI_MODE=live + Secret Manager live-auth-key (Mock in CI)</text>
+
+  <!-- Stage 1: Visual Evidence Extraction (Left) + Vertex AI Gemini Box (Right) -->
+  <rect x="1838" y="362" width="644" height="220" rx="14" fill="#FFFFFF" stroke="#4F46E5" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="1856" y="380" width="104" height="26" rx="6" fill="#4F46E5"/>
+  <text x="1908" y="398" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 1</text>
+  <text x="1974" y="399" fill="#0F172A" font-size="17.5" font-weight="800">VisualEvidenceAgent (Multimodal Perception)</text>
+  <text x="1856" y="422" fill="#64748B" font-size="12" font-family="monospace">services/worker/agents/visual_agent.py • gemini/adapter.py</text>
+  <text x="1856" y="446" fill="#334155" font-size="13.5">• Sends sanitized worksheet bytes + assessment prompt &amp; expected answer</text>
+  <text x="1856" y="470" fill="#334155" font-size="13.5">• Enforces strict Pydantic JSON schema (<tspan font-family="monospace" font-size="12.5">VisualEvidenceOutput</tspan>)</text>
+  <text x="1856" y="494" fill="#334155" font-size="13.5">• Extracts raw handwritten equations, unit-form text &amp; crossed-out work</text>
+  <text x="1856" y="518" fill="#334155" font-size="13.5">• Captures number-line start, directional arrows, jump ticks &amp; landing marks</text>
+  <text x="1856" y="542" fill="#334155" font-size="13.5">• Captures fraction tape/area model partitions, shading &amp; confidence score</text>
+  <text x="1856" y="566" fill="#4F46E5" font-size="12.5" font-weight="700">• Separates raw visual observation from diagnosis (zero premature labeling)</text>
+
+  <!-- Vertex AI Gemini Managed Service Card -->
+  <rect x="2518" y="362" width="422" height="220" rx="14" fill="url(#vertex-grad)" stroke="#312E81" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="2538" y="380" width="172" height="24" rx="6" fill="#FFFFFF" fill-opacity="0.22"/>
+  <text x="2624" y="397" fill="#FFFFFF" font-size="11.5" font-weight="800" text-anchor="middle">GOOGLE CLOUD VERTEX AI</text>
+  <text x="2538" y="430" fill="#FFFFFF" font-size="21" font-weight="800">Vertex AI Gemini API</text>
+  <text x="2538" y="456" fill="#E0E7FF" font-size="14.5" font-weight="600">Model: gemini-2.5-flash / gemini-3.8-flash</text>
+  <text x="2538" y="484" fill="#F8FAFC" font-size="13">• Regional Endpoint: asia-southeast1</text>
+  <text x="2538" y="506" fill="#F8FAFC" font-size="13">• Authenticated via Cloud Run Service Account</text>
+  <text x="2538" y="526" fill="#F8FAFC" font-size="13">  (roles/aiplatform.user ADC)</text>
+  <text x="2538" y="550" fill="#F8FAFC" font-size="13">• Multimodal Vision + Structured JSON Output</text>
+  <text x="2538" y="570" fill="#C7D2FE" font-size="12" font-family="monospace">SDK: google-genai (v1.16+)</text>
+
+  <!-- Bi-directional Arrow between Stage 1 and Vertex AI -->
+  <line x1="2482" y1="454" x2="2516" y2="454" stroke="#4F46E5" stroke-width="4" marker-end="url(#arrow-indigo)"/>
+  <line x1="2516" y1="496" x2="2482" y2="496" stroke="#4F46E5" stroke-width="4" marker-end="url(#arrow-indigo)"/>
+  <circle cx="2499" cy="422" r="15" fill="#4F46E5"/>
+  <text x="2499" y="427" fill="#FFFFFF" font-size="14" font-weight="800" text-anchor="middle">5</text>
+
+  <!-- Stage 2: TaskRouter & MethodMatcher (Left) + Stage 3: MathInterpretationAgent (Right) -->
+  <rect x="1838" y="604" width="534" height="206" rx="14" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <rect x="1856" y="622" width="104" height="26" rx="6" fill="#4F46E5"/>
+  <text x="1908" y="640" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 2</text>
+  <text x="1974" y="641" fill="#0F172A" font-size="17" font-weight="800">TaskRouter &amp; MethodMatcher</text>
+  <text x="1856" y="664" fill="#64748B" font-size="12" font-family="monospace">services/worker/math_verifier/task_router.py • method_matcher.py</text>
+  <text x="1856" y="688" fill="#334155" font-size="13">• Classifies assessment &amp; visual evidence into canonical TaskType:</text>
+  <text x="1872" y="710" fill="#1E3A8A" font-size="12.5" font-weight="700" font-family="monospace">1. FRACTION_DIVISION</text>
+  <text x="1872" y="730" fill="#1E3A8A" font-size="12.5" font-weight="700" font-family="monospace">2. INTEGER_OPERATIONS_NUMBER_LINE</text>
+  <text x="1872" y="750" fill="#991B1B" font-size="12.5" font-weight="700" font-family="monospace">3. UNSUPPORTED_TASK (Fail-Closed Guard)</text>
+  <text x="1856" y="772" fill="#334155" font-size="13">• Matches student method (Unit Form, Reciprocal, Common Denom, Vector)</text>
+  <text x="1856" y="794" fill="#334155" font-size="13">• Selects domain-specific symbolic verifier &amp; misconception taxonomy</text>
+
+  <rect x="2400" y="604" width="540" height="206" rx="14" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <rect x="2418" y="622" width="104" height="26" rx="6" fill="#4F46E5"/>
+  <text x="2470" y="640" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 3</text>
+  <text x="2536" y="641" fill="#0F172A" font-size="17" font-weight="800">MathInterpretationAgent</text>
+  <text x="2418" y="664" fill="#64748B" font-size="12" font-family="monospace">services/worker/agents/interpretation_agent.py</text>
+  <text x="2418" y="688" fill="#334155" font-size="13">• Reconstructs ordered student reasoning steps (<tspan font-family="monospace" font-size="12">extracted_steps</tspan>)</text>
+  <text x="2418" y="712" fill="#334155" font-size="13">• Normalizes handwritten fractions &amp; signed integer expressions</text>
+  <text x="2418" y="736" fill="#334155" font-size="13">• Maps visual number-line jumps or model partitions to algebraic steps</text>
+  <text x="2418" y="760" fill="#334155" font-size="13">• Evaluates multi-part rubric completion (Parts A, B, C)</text>
+  <text x="2418" y="784" fill="#334155" font-size="13">• Generates structured candidate hypotheses for symbolic checking</text>
+
+  <!-- Arrow Stage 2 -> Stage 3 -->
+  <line x1="2372" y1="706" x2="2398" y2="706" stroke="#4F46E5" stroke-width="3.5" marker-end="url(#arrow-indigo)"/>
+
+  <!-- Stage 4: Deterministic Symbolic & Geometric Verification -->
+  <rect x="1838" y="832" width="1102" height="252" rx="14" fill="#ECFDF5" stroke="#059669" stroke-width="2.5" filter="url(#shadow-md)"/>
+  <circle cx="1866" cy="862" r="14" fill="#059669"/>
+  <text x="1866" y="867" fill="#FFFFFF" font-size="13" font-weight="800" text-anchor="middle">6</text>
+  <rect x="1888" y="849" width="104" height="26" rx="6" fill="#059669"/>
+  <text x="1940" y="867" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 4</text>
+  <text x="2006" y="868" fill="#064E3B" font-size="18.5" font-weight="800">DiagnosticAgent &amp; Deterministic Mathematical Verification Engine</text>
+  <text x="2638" y="868" fill="#047857" font-size="12.5" font-family="monospace" font-weight="700">services/worker/math_verifier/</text>
+
+  <!-- 4 Sub-modules inside Stage 4 -->
+  <rect x="1856" y="888" width="258" height="178" rx="10" fill="#FFFFFF" stroke="#34D399" stroke-width="1.5"/>
+  <rect x="1870" y="902" width="230" height="26" rx="5" fill="url(#sympy-grad)"/>
+  <text x="1985" y="920" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">SymPy Symbolic Engine</text>
+  <text x="1870" y="944" fill="#64748B" font-size="11.5" font-family="monospace">sympy_checker.py</text>
+  <text x="1870" y="966" fill="#334155" font-size="12.5">• Exact Rational &amp; Integer AST</text>
+  <text x="1870" y="986" fill="#334155" font-size="12.5">• Step-to-step equivalence proof</text>
+  <text x="1870" y="1006" fill="#334155" font-size="12.5">• Pinpoints exact step where</text>
+  <text x="1870" y="1026" fill="#334155" font-size="12.5">  equality breaks down</text>
+  <text x="1870" y="1048" fill="#047857" font-size="12" font-weight="700">• Zero LLM arithmetic guessing</text>
+
+  <rect x="2128" y="888" width="258" height="178" rx="10" fill="#FFFFFF" stroke="#34D399" stroke-width="1.5"/>
+  <rect x="2142" y="902" width="230" height="26" rx="5" fill="url(#sympy-grad)"/>
+  <text x="2257" y="920" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">FractionDivisionVerifier</text>
+  <text x="2142" y="944" fill="#64748B" font-size="11.5" font-family="monospace">fraction_division.py</text>
+  <text x="2142" y="966" fill="#334155" font-size="12.5">• Verifies unit-form numerator</text>
+  <text x="2142" y="986" fill="#334155" font-size="12.5">  division (8 ninths ÷ 4 ninths = 2)</text>
+  <text x="2142" y="1006" fill="#334155" font-size="12.5">• Detects dividend inversion vs</text>
+  <text x="2142" y="1026" fill="#334155" font-size="12.5">  divisor reciprocal errors</text>
+  <text x="2142" y="1048" fill="#047857" font-size="12" font-weight="700">• Validates visual model groups</text>
+
+  <rect x="2400" y="888" width="258" height="178" rx="10" fill="#FFFFFF" stroke="#34D399" stroke-width="1.5"/>
+  <rect x="2414" y="902" width="230" height="26" rx="5" fill="url(#sympy-grad)"/>
+  <text x="2529" y="920" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">NumberLineGeometry</text>
+  <text x="2414" y="944" fill="#64748B" font-size="11.5" font-family="monospace">number_line.py</text>
+  <text x="2414" y="966" fill="#334155" font-size="12.5">• Verifies starting coordinate</text>
+  <text x="2414" y="986" fill="#334155" font-size="12.5">• Checks vector sign direction</text>
+  <text x="2414" y="1006" fill="#334155" font-size="12.5">  (left = negative, right = positive)</text>
+  <text x="2414" y="1026" fill="#334155" font-size="12.5">• Detects tick-mark vs interval</text>
+  <text x="2414" y="1048" fill="#047857" font-size="12" font-weight="700">  off-by-one counting errors</text>
+
+  <rect x="2672" y="888" width="250" height="178" rx="10" fill="#FFFFFF" stroke="#34D399" stroke-width="1.5"/>
+  <rect x="2686" y="902" width="222" height="26" rx="5" fill="url(#sympy-grad)"/>
+  <text x="2797" y="920" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">TaxonomyMapper</text>
+  <text x="2686" y="944" fill="#64748B" font-size="11.5" font-family="monospace">taxonomy_mapper.py</text>
+  <text x="2686" y="966" fill="#334155" font-size="12.5">• Maps symbolic failure signatures</text>
+  <text x="2686" y="986" fill="#334155" font-size="12.5">  to canonical Misconception IDs</text>
+  <text x="2686" y="1006" fill="#334155" font-size="12.5">• Assigns classification:</text>
+  <text x="2686" y="1026" fill="#047857" font-size="12" font-weight="700">  Correct / Partially Correct /</text>
+  <text x="2686" y="1046" fill="#B91C1C" font-size="12" font-weight="700">  Misconception / Insufficient</text>
+
+  <!-- Stage 5: Adversarial Critic & Evidence Sufficiency Gate -->
+  <rect x="1838" y="1106" width="1102" height="202" rx="14" fill="#FFFFFF" stroke="#DC2626" stroke-width="2" filter="url(#shadow-sm)"/>
+  <circle cx="1866" cy="1136" r="14" fill="#DC2626"/>
+  <text x="1866" y="1141" fill="#FFFFFF" font-size="13" font-weight="800" text-anchor="middle">7</text>
+  <rect x="1888" y="1123" width="104" height="26" rx="6" fill="#DC2626"/>
+  <text x="1940" y="1141" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 5</text>
+  <text x="2006" y="1142" fill="#0F172A" font-size="17.5" font-weight="800">IndependentCriticAgent &amp; Evidence Sufficiency Gate (Anti-Hallucination)</text>
+  <text x="1856" y="1166" fill="#64748B" font-size="12" font-family="monospace">services/worker/agents/critic_agent.py • services/worker/math_verifier/evidence_sufficiency.py</text>
+
+  <rect x="1856" y="1182" width="526" height="108" rx="10" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+  <text x="1872" y="1206" fill="#991B1B" font-size="14.5" font-weight="700">Adversarial Grounding Audit &amp; Bounded Self-Correction</text>
+  <text x="1872" y="1228" fill="#334155" font-size="13">• Cross-checks diagnosis against raw Stage 1 visual observations</text>
+  <text x="1872" y="1250" fill="#334155" font-size="13">• Rejects unsupported claims; triggers <tspan font-weight="700" fill="#B91C1C">bounded re-interpretation (max 1 retry)</tspan></text>
+  <text x="1872" y="1272" fill="#334155" font-size="13">• Computes alignment score &amp; attaches CriticAuditResult to student record</text>
+
+  <rect x="2398" y="1182" width="524" height="108" rx="10" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="2414" y="1206" fill="#92400E" font-size="14.5" font-weight="700">EvidenceSufficiency &amp; Uncertainty Propagation</text>
+  <text x="2414" y="1228" fill="#334155" font-size="13">• Evaluates work legibility, step completeness &amp; model-verifier agreement</text>
+  <text x="2414" y="1250" fill="#334155" font-size="13">• If evidence is sparse/contradictory → forces <tspan font-weight="700" fill="#B45309">Insufficient Evidence</tspan></text>
+  <text x="2414" y="1272" fill="#334155" font-size="13">• Sets <tspan font-family="monospace" font-size="12" font-weight="700">needs_teacher_review = True</tspan> to guarantee educator oversight</text>
+
+  <!-- Bounded Retry Dashed Loop from Stage 5 back to Stage 3 -->
+  <path d="M 2940 1200 L 2954 1200 L 2954 706 L 2942 706" fill="none" stroke="#DC2626" stroke-width="3" stroke-dasharray="7,5" marker-end="url(#arrow-crimson)"/>
+  <rect x="2806" y="1116" width="120" height="22" rx="4" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/>
+  <text x="2866" y="1131" fill="#B91C1C" font-size="11" font-weight="700" text-anchor="middle">MAX 1 RETRY LOOP</text>
+
+  <!-- Stage 6: Cohort Intelligence & Differentiated Action Synthesis -->
+  <rect x="1838" y="1330" width="1102" height="248" rx="14" fill="#FFFBEB" stroke="#D97706" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="1856" y="1348" width="104" height="26" rx="6" fill="#D97706"/>
+  <text x="1908" y="1366" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">STAGE 6</text>
+  <text x="1974" y="1367" fill="#78350F" font-size="18" font-weight="800">CohortIntelligenceAgent, Topic-Isolated Action Plans &amp; Exit Tickets</text>
+  <text x="2638" y="1367" fill="#92400E" font-size="12.5" font-family="monospace" font-weight="700">services/worker/cohort/</text>
+
+  <rect x="1856" y="1388" width="348" height="170" rx="10" fill="#FFFFFF" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="1872" y="1414" fill="#92400E" font-size="14.5" font-weight="800">Cohort Aggregation &amp; Stats</text>
+  <text x="1872" y="1434" fill="#64748B" font-size="11.5" font-family="monospace">statistics_calculator.py • synthesizer.py</text>
+  <text x="1872" y="1458" fill="#334155" font-size="12.5">• Merges AI diagnoses + Teacher Reviews</text>
+  <text x="1872" y="1478" fill="#334155" font-size="12.5">  (teacher override takes precedence)</text>
+  <text x="1872" y="1498" fill="#334155" font-size="12.5">• Computes class mastery distribution</text>
+  <text x="1872" y="1518" fill="#334155" font-size="12.5">• Groups students by Misconception ID</text>
+  <text x="1872" y="1538" fill="#334155" font-size="12.5">• Scoped strictly to single assessment_id</text>
+
+  <rect x="2218" y="1388" width="356" height="170" rx="10" fill="#FFFFFF" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="2234" y="1414" fill="#92400E" font-size="14.5" font-weight="800">Differentiated Teaching Plans</text>
+  <text x="2234" y="1434" fill="#64748B" font-size="11.5" font-family="monospace">recommendations.py</text>
+  <text x="2234" y="1458" fill="#334155" font-size="12.5">• Generates small-group &amp; whole-class</text>
+  <text x="2234" y="1478" fill="#334155" font-size="12.5">  re-teaching cards per misconception</text>
+  <text x="2234" y="1498" fill="#334155" font-size="12.5">• Enforces <tspan font-weight="700" fill="#B45309">Topic-Isolation Filter</tspan>:</text>
+  <text x="2234" y="1518" fill="#334155" font-size="12.5">  blocks cross-topic intervention leakage</text>
+  <text x="2234" y="1538" fill="#334155" font-size="12.5">• Includes CRA manipulatives &amp; prompts</text>
+
+  <rect x="2588" y="1388" width="334" height="170" rx="10" fill="#FFFFFF" stroke="#FCD34D" stroke-width="1.5"/>
+  <text x="2604" y="1414" fill="#92400E" font-size="14.5" font-weight="800">Exit Ticket Generator &amp; Guard</text>
+  <text x="2604" y="1434" fill="#64748B" font-size="11.5" font-family="monospace">exit_ticket_validator.py</text>
+  <text x="2604" y="1458" fill="#334155" font-size="12.5">• Synthesizes targeted 3-5 min exit</text>
+  <text x="2604" y="1478" fill="#334155" font-size="12.5">  tickets for each student cluster</text>
+  <text x="2604" y="1498" fill="#334155" font-size="12.5">• Validates question domain, answer</text>
+  <text x="2604" y="1518" fill="#334155" font-size="12.5">  key &amp; distractor rationale</text>
+  <text x="2604" y="1538" fill="#334155" font-size="12.5">• Rejects off-domain items automatically</text>
+
+  <!-- Vertical Flow Arrows inside Zone 3 -->
+  <line x1="2150" y1="582" x2="2150" y2="602" stroke="#4F46E5" stroke-width="3.5" marker-end="url(#arrow-indigo)"/>
+  <line x1="2670" y1="810" x2="2670" y2="830" stroke="#4F46E5" stroke-width="3.5" marker-end="url(#arrow-indigo)"/>
+  <line x1="2389" y1="1084" x2="2389" y2="1104" stroke="#059669" stroke-width="3.5" marker-end="url(#arrow-emerald)"/>
+  <line x1="2389" y1="1308" x2="2389" y2="1328" stroke="#D97706" stroke-width="3.5" marker-end="url(#arrow-amber)"/>
+
+
+  <!-- ===================================================================== -->
+  <!-- ZONE 4: MANAGED DATA PERSISTENCE & STORAGE (X: 3054 to 3780)          -->
+  <!-- ===================================================================== -->
+  <rect x="3054" y="196" width="726" height="1404" rx="18" fill="url(#zone-data-grad)" stroke="#059669" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="3054" y="196" width="726" height="52" rx="18" fill="#047857"/>
+  <rect x="3054" y="228" width="726" height="20" fill="#047857"/>
+  <text x="3417" y="230" fill="#FFFFFF" font-size="19.5" font-weight="800" text-anchor="middle">4. Durable Persistence &amp; Private Storage</text>
+
+  <!-- Cloud Storage Private Bucket Card -->
+  <rect x="3078" y="268" width="678" height="432" rx="14" fill="#FFFFFF" stroke="#059669" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="3098" y="286" width="155" height="24" rx="6" fill="#059669"/>
+  <text x="3175" y="303" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">PROD: GCP MANAGED</text>
+  <rect x="3264" y="286" width="170" height="24" rx="6" fill="#475569"/>
+  <text x="3349" y="303" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">LOCAL: FILESYSTEM</text>
+  <text x="3448" y="304" fill="#64748B" font-size="12" font-family="monospace">infra/terraform/storage.tf</text>
+
+  <text x="3098" y="338" fill="#0F172A" font-size="20" font-weight="800">Google Cloud Storage (Private Bucket)</text>
+  <text x="3098" y="362" fill="#047857" font-size="14" font-weight="600">Bucket: &lt;project-id&gt;-classlens-worksheets (asia-southeast1)</text>
+  <text x="3098" y="384" fill="#64748B" font-size="12.5" font-family="monospace">services/api/storage/gcs_storage.py (GoogleCloudStorageBackend)</text>
+
+  <rect x="3098" y="400" width="638" height="174" rx="10" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="3114" y="426" fill="#065F46" font-size="14.5" font-weight="700">Security, Privacy &amp; Lifecycle Controls</text>
+  <text x="3114" y="450" fill="#334155" font-size="13">• <tspan font-weight="700">Public Access Prevention:</tspan> Enforced (zero public object URLs)</text>
+  <text x="3114" y="472" fill="#334155" font-size="13">• <tspan font-weight="700">Access Control:</tspan> Uniform Bucket-Level Access (IAM only via backend SA)</text>
+  <text x="3114" y="494" fill="#334155" font-size="13">• <tspan font-weight="700">Data Protection:</tspan> Object Versioning enabled + 90-day retention lifecycle</text>
+  <text x="3114" y="516" fill="#334155" font-size="13">• <tspan font-weight="700">Content Integrity:</tspan> Stores EXIF-stripped images keyed by assessment &amp; UUID</text>
+  <text x="3114" y="538" fill="#334155" font-size="13">• <tspan font-weight="700">Serving:</tspan> Streamed only through authenticated <tspan font-family="monospace" font-size="12">/api/v1/responses/{id}/image</tspan></text>
+
+  <rect x="3098" y="588" width="638" height="92" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3114" y="614" fill="#334155" font-size="13.5" font-weight="700">Storage Abstraction &amp; Local Development Fallback</text>
+  <text x="3114" y="636" fill="#475569" font-size="12.5">• Factory (<tspan font-family="monospace" font-size="11.5">storage/factory.py</tspan>) selects backend via <tspan font-family="monospace" font-size="11.5">CLASSLENS_STORAGE_BACKEND</tspan></text>
+  <text x="3114" y="658" fill="#475569" font-size="12.5">• Local Dev uses <tspan font-family="monospace" font-size="11.5">LocalFilesystemStorage</tspan> (<tspan font-family="monospace" font-size="11.5">data/uploads/</tspan>); blocked in prod</text>
+
+  <!-- Cloud SQL for PostgreSQL 15 Card -->
+  <rect x="3078" y="722" width="678" height="856" rx="14" fill="#FFFFFF" stroke="#059669" stroke-width="2" filter="url(#shadow-sm)"/>
+  <rect x="3098" y="740" width="155" height="24" rx="6" fill="#059669"/>
+  <text x="3175" y="757" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">PROD: GCP MANAGED</text>
+  <rect x="3264" y="740" width="170" height="24" rx="6" fill="#475569"/>
+  <text x="3349" y="757" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">LOCAL: SQLITE WAL</text>
+  <text x="3448" y="758" fill="#64748B" font-size="12" font-family="monospace">infra/terraform/cloud_sql.tf</text>
+
+  <text x="3098" y="792" fill="#0F172A" font-size="20" font-weight="800">Cloud SQL for PostgreSQL 15</text>
+  <text x="3098" y="816" fill="#047857" font-size="14" font-weight="600">Instance: classlens-postgres • DB: classlens (asia-southeast1)</text>
+  <text x="3098" y="838" fill="#64748B" font-size="12.5" font-family="monospace">services/api/repository/postgres_storage.py (PostgresDatabaseManager)</text>
+
+  <rect x="3098" y="854" width="638" height="118" rx="10" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="3114" y="880" fill="#065F46" font-size="14.5" font-weight="700">Connection, Durability &amp; Migration Architecture</text>
+  <text x="3114" y="904" fill="#334155" font-size="13">• Connected via Cloud SQL Auth Proxy Unix Socket (<tspan font-family="monospace" font-size="12">/cloudsql/&lt;conn&gt;</tspan>)</text>
+  <text x="3114" y="926" fill="#334155" font-size="13">• Automated daily backups + Point-in-Time Recovery (PITR) + Deletion Protection</text>
+  <text x="3114" y="948" fill="#334155" font-size="13">• Idempotent schema migrations via <tspan font-family="monospace" font-size="12">scripts/migrate.py</tspan> (<tspan font-family="monospace" font-size="12">schema_migrations</tspan>)</text>
+
+  <!-- Relational Schema Tables inside Cloud SQL -->
+  <text x="3098" y="1002" fill="#0F172A" font-size="15.5" font-weight="800">Relational Schema &amp; Core Entities (Tenant-Scoped by org_id)</text>
+
+  <rect x="3098" y="1018" width="310" height="116" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3114" y="1042" fill="#0F766E" font-size="14" font-weight="800" font-family="monospace">assessments</text>
+  <text x="3114" y="1064" fill="#334155" font-size="12">• id (PK), org_id, title, topic</text>
+  <text x="3114" y="1084" fill="#334155" font-size="12">• question_prompt, expected_answer</text>
+  <text x="3114" y="1104" fill="#334155" font-size="12">• rubric_json, task_type</text>
+  <text x="3114" y="1122" fill="#334155" font-size="12">• cohort_synthesis_json, status</text>
+
+  <rect x="3424" y="1018" width="312" height="116" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3440" y="1042" fill="#0F766E" font-size="14" font-weight="800" font-family="monospace">student_responses</text>
+  <text x="3440" y="1064" fill="#334155" font-size="12">• id (PK), assessment_id (FK), org_id</text>
+  <text x="3440" y="1084" fill="#334155" font-size="12">• student_name, image_storage_path</text>
+  <text x="3440" y="1104" fill="#334155" font-size="12">• classification, misconception_id</text>
+  <text x="3440" y="1122" fill="#334155" font-size="12">• steps_json, critic_json, confidence</text>
+
+  <rect x="3098" y="1148" width="310" height="116" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3114" y="1172" fill="#0F766E" font-size="14" font-weight="800" font-family="monospace">teacher_reviews</text>
+  <text x="3114" y="1194" fill="#334155" font-size="12">• id (PK), response_id (FK), org_id</text>
+  <text x="3114" y="1214" fill="#334155" font-size="12">• reviewer_id, review_decision</text>
+  <text x="3114" y="1234" fill="#334155" font-size="12">• override_classification</text>
+  <text x="3114" y="1252" fill="#334155" font-size="12">• override_misconception_id, notes</text>
+
+  <rect x="3424" y="1148" width="312" height="116" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3440" y="1172" fill="#0F766E" font-size="14" font-weight="800" font-family="monospace">audit_events &amp; jobs</text>
+  <text x="3440" y="1194" fill="#334155" font-size="12">• Immutable audit trail per response</text>
+  <text x="3440" y="1214" fill="#334155" font-size="12">• Records AI run, critic flag &amp; HITL</text>
+  <text x="3440" y="1234" fill="#334155" font-size="12">• analysis_jobs tracks batch status</text>
+  <text x="3440" y="1252" fill="#334155" font-size="12">• correlation_id &amp; timestamps</text>
+
+  <rect x="3098" y="1280" width="638" height="162" rx="10" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="3114" y="1306" fill="#166534" font-size="14.5" font-weight="700">Transactional Integrity &amp; Repository Pattern</text>
+  <text x="3114" y="1330" fill="#334155" font-size="13">• Unified interface across <tspan font-family="monospace" font-size="12">PostgresDatabaseManager</tspan> &amp; <tspan font-family="monospace" font-size="12">SqliteDatabaseManager</tspan></text>
+  <text x="3114" y="1352" fill="#334155" font-size="13">• Atomic transactions when saving student diagnoses, teacher overrides &amp; audits</text>
+  <text x="3114" y="1374" fill="#334155" font-size="13">• Teacher review updates immediately invalidate/recompute cohort aggregations</text>
+  <text x="3114" y="1396" fill="#334155" font-size="13">• Production fail-closed check prevents accidental container-local SQLite usage</text>
+  <text x="3114" y="1418" fill="#475569" font-size="12.5">• Local Dev Fallback: <tspan font-family="monospace" font-size="11.5">data/classlens.db</tspan> (SQLite WAL mode)</text>
+
+  <rect x="3098" y="1456" width="638" height="98" rx="10" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="3114" y="1482" fill="#1E3A8A" font-size="14.5" font-weight="700">Cloud Logging &amp; Structured Observability</text>
+  <text x="3114" y="1506" fill="#334155" font-size="13">• Structured JSON logs with <tspan font-family="monospace" font-size="12">X-Correlation-ID</tspan>, stage latency &amp; Gemini metadata</text>
+  <text x="3114" y="1530" fill="#334155" font-size="13">• Zero credential/PII logging enforced across all API &amp; worker modules</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- ZONE 5 (BOTTOM BAR, Y: 1690 to 2116): SECURITY, IAM & DEVOPS          -->
+  <!-- ===================================================================== -->
+  <rect x="484" y="1690" width="3296" height="424" rx="18" fill="url(#zone-devops-grad)" stroke="#475569" stroke-width="2" filter="url(#shadow-md)"/>
+  <rect x="484" y="1690" width="3296" height="50" rx="18" fill="#1E293B"/>
+  <rect x="484" y="1720" width="3296" height="20" fill="#1E293B"/>
+  <text x="2132" y="1722" fill="#FFFFFF" font-size="19.5" font-weight="800" text-anchor="middle">5. Cloud Security, Secret Manager, Least-Privilege IAM &amp; One-Command Terraform Deployment Pipeline</text>
+
+  <!-- Sub-card 5A: Secret Manager & Least-Privilege IAM -->
+  <rect x="508" y="1756" width="1040" height="338" rx="14" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <rect x="528" y="1774" width="190" height="24" rx="6" fill="#B91C1C"/>
+  <text x="623" y="1791" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">SECURITY &amp; IAM GOVERNANCE</text>
+  <text x="732" y="1792" fill="#64748B" font-size="12" font-family="monospace">infra/terraform/secrets.tf • infra/terraform/iam.tf</text>
+
+  <text x="528" y="1822" fill="#0F172A" font-size="18.5" font-weight="800">Google Secret Manager &amp; Dedicated Service Accounts</text>
+
+  <rect x="528" y="1838" width="490" height="236" rx="10" fill="#FEF2F2" stroke="#FECACA" stroke-width="1.5"/>
+  <text x="544" y="1864" fill="#991B1B" font-size="14.5" font-weight="700">Google Secret Manager (Runtime Env Injection)</text>
+  <text x="544" y="1890" fill="#334155" font-size="13">• <tspan font-family="monospace" font-weight="700">classlens-session-secret</tspan> → Cookie signing key</text>
+  <text x="544" y="1914" fill="#334155" font-size="13">• <tspan font-family="monospace" font-weight="700">classlens-teacher-password</tspan> → Argon2id / teacher auth</text>
+  <text x="544" y="1938" fill="#334155" font-size="13">• <tspan font-family="monospace" font-weight="700">classlens-live-auth-key</tspan> → Gate 6 Gemini billing token</text>
+  <text x="544" y="1962" fill="#334155" font-size="13">• <tspan font-family="monospace" font-weight="700">classlens-database-url</tspan> → Cloud SQL DSN string</text>
+  <text x="544" y="1992" fill="#7F1D1D" font-size="12.5" font-weight="600">✓ Mounted exclusively into classlens-backend at startup</text>
+  <text x="544" y="2014" fill="#7F1D1D" font-size="12.5" font-weight="600">✓ Never stored in Git, Terraform state plaintext, or images</text>
+  <text x="544" y="2036" fill="#7F1D1D" font-size="12.5" font-weight="600">✓ Zero secret exposure to Next.js client bundle</text>
+
+  <rect x="1036" y="1838" width="492" height="236" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1052" y="1864" fill="#0F172A" font-size="14.5" font-weight="700">Least-Privilege Service Account Separation</text>
+  <text x="1052" y="1890" fill="#1D4ED8" font-size="13" font-weight="700" font-family="monospace">1. classlens-frontend-sa (Next.js Cloud Run)</text>
+  <text x="1052" y="1912" fill="#334155" font-size="12.5">• Minimal identity: <tspan font-family="monospace" font-size="11.5">roles/logging.logWriter</tspan> only</text>
+  <text x="1052" y="1932" fill="#334155" font-size="12.5">• Zero access to Cloud SQL, Cloud Storage, or Secrets</text>
+  <text x="1052" y="1960" fill="#0F766E" font-size="13" font-weight="700" font-family="monospace">2. classlens-backend-sa (FastAPI Cloud Run)</text>
+  <text x="1052" y="1982" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">roles/cloudsql.client</tspan> (PostgreSQL Unix socket)</text>
+  <text x="1052" y="2002" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">roles/storage.objectAdmin</tspan> (Scoped to worksheet bucket)</text>
+  <text x="1052" y="2022" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">roles/aiplatform.user</tspan> (Vertex AI Gemini invocation)</text>
+  <text x="1052" y="2042" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">roles/secretmanager.secretAccessor</tspan> (4 app secrets)</text>
+
+  <!-- Sub-card 5B: Artifact Registry & Immutable Containers -->
+  <rect x="1572" y="1756" width="760" height="338" rx="14" fill="#FFFFFF" stroke="#475569" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <rect x="1592" y="1774" width="190" height="24" rx="6" fill="#334155"/>
+  <text x="1687" y="1791" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">CONTAINER SUPPLY CHAIN</text>
+  <text x="1796" y="1792" fill="#64748B" font-size="12" font-family="monospace">infra/terraform/artifact_registry.tf</text>
+
+  <text x="1592" y="1822" fill="#0F172A" font-size="18.5" font-weight="800">Artifact Registry &amp; Multi-Stage Docker Builds</text>
+
+  <rect x="1592" y="1838" width="720" height="110" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="1608" y="1864" fill="#0F172A" font-size="14.5" font-weight="700">Repository: asia-southeast1-docker.pkg.dev/&lt;project&gt;/classlens-repo</text>
+  <text x="1608" y="1888" fill="#334155" font-size="13">• Immutable Git SHA image tags (<tspan font-family="monospace" font-size="12" font-weight="700">sha-&lt;git-commit&gt;</tspan>); <tspan font-family="monospace" font-size="12">:latest</tspan> tag blocked in Terraform</text>
+  <text x="1608" y="1910" fill="#334155" font-size="13">• Automated cleanup policy retains recent production revisions for instant rollback</text>
+  <text x="1608" y="1932" fill="#334155" font-size="13">• Built for <tspan font-family="monospace" font-size="12">linux/amd64</tspan> with strict <tspan font-family="monospace" font-size="12">.dockerignore</tspan> excluding <tspan font-family="monospace" font-size="12">.env</tspan>, <tspan font-family="monospace" font-size="12">.git</tspan>, and local DBs</text>
+
+  <rect x="1592" y="1962" width="350" height="112" rx="10" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="1608" y="1986" fill="#1E3A8A" font-size="14" font-weight="700">apps/web/Dockerfile</text>
+  <text x="1608" y="2008" fill="#334155" font-size="12.5">• 3-stage Node 20 Alpine build</text>
+  <text x="1608" y="2028" fill="#334155" font-size="12.5">• Next.js standalone output trace</text>
+  <text x="1608" y="2048" fill="#334155" font-size="12.5">• Runs as non-root <tspan font-family="monospace" font-size="11.5">nextjs:1001</tspan></text>
+
+  <rect x="1962" y="1962" width="350" height="112" rx="10" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="1.5"/>
+  <text x="1978" y="1986" fill="#115E59" font-size="14" font-weight="700">Dockerfile.backend</text>
+  <text x="1978" y="2008" fill="#334155" font-size="12.5">• Multi-stage Python 3.12-slim</text>
+  <text x="1978" y="2028" fill="#334155" font-size="12.5">• Bundles services/api + worker</text>
+  <text x="1978" y="2048" fill="#334155" font-size="12.5">• Runs as non-root <tspan font-family="monospace" font-size="11.5">appuser:10001</tspan></text>
+
+  <!-- Sub-card 5C: One-Command Deployment & Verification Pipeline -->
+  <rect x="2358" y="1756" width="1398" height="338" rx="14" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.8" filter="url(#shadow-sm)"/>
+  <rect x="2378" y="1774" width="215" height="24" rx="6" fill="#1D4ED8"/>
+  <text x="2485" y="1791" fill="#FFFFFF" font-size="11.5" font-weight="700" text-anchor="middle">INFRASTRUCTURE AS CODE</text>
+  <text x="2608" y="1792" fill="#64748B" font-size="12" font-family="monospace">scripts/gcp/deploy-all.sh • preflight.sh • build.sh • plan.sh • deploy.sh • verify.sh • rollback.sh</text>
+
+  <text x="2378" y="1822" fill="#0F172A" font-size="18.5" font-weight="800">One-Command Fail-Closed GCP Deployment Workflow (scripts/gcp/deploy-all.sh)</text>
+
+  <!-- 4 Pipeline Phase Boxes inside 5C -->
+  <rect x="2378" y="1838" width="322" height="236" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="2394" y="1864" fill="#1E3A8A" font-size="14.5" font-weight="800">Phase 1: Preflight &amp; Gates</text>
+  <text x="2394" y="1888" fill="#334155" font-size="12.5">• Validates gcloud ADC, Project ID,</text>
+  <text x="2394" y="1908" fill="#334155" font-size="12.5">  active billing &amp; required GCP APIs</text>
+  <text x="2394" y="1932" fill="#334155" font-size="12.5">• Runs <tspan font-family="monospace" font-size="11.5">terraform fmt &amp; validate</tspan></text>
+  <text x="2394" y="1956" fill="#334155" font-size="12.5">• Verifies PostgreSQL driver &amp; blocks</text>
+  <text x="2394" y="1976" fill="#334155" font-size="12.5">  container-local SQLite configuration</text>
+  <text x="2394" y="2000" fill="#334155" font-size="12.5">• Audits Secret Manager versions</text>
+  <text x="2394" y="2020" fill="#334155" font-size="12.5">  without exposing secret values</text>
+  <text x="2394" y="2044" fill="#059669" font-size="12" font-weight="700">• Supports --dry-run preview mode</text>
+
+  <rect x="2718" y="1838" width="322" height="236" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="2734" y="1864" fill="#1E3A8A" font-size="14.5" font-weight="800">Phase 2: Build &amp; TF Plan</text>
+  <text x="2734" y="1888" fill="#334155" font-size="12.5">• Bootstraps Artifact Registry repo</text>
+  <text x="2734" y="1908" fill="#334155" font-size="12.5">  via targeted Terraform stage</text>
+  <text x="2734" y="1932" fill="#334155" font-size="12.5">• Builds &amp; pushes frontend/backend</text>
+  <text x="2734" y="1952" fill="#334155" font-size="12.5">  images tagged with <tspan font-family="monospace" font-size="11.5">sha-&lt;commit&gt;</tspan></text>
+  <text x="2734" y="1976" fill="#334155" font-size="12.5">• Generates saved <tspan font-family="monospace" font-size="11.5">tfplan</tspan> with exact</text>
+  <text x="2734" y="1996" fill="#334155" font-size="12.5">  digest/SHA image references</text>
+  <text x="2734" y="2020" fill="#334155" font-size="12.5">• Prints billable resource summary</text>
+  <text x="2734" y="2044" fill="#B45309" font-size="12" font-weight="700">• Requires interactive confirmation</text>
+
+  <rect x="3058" y="1838" width="322" height="236" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3074" y="1864" fill="#1E3A8A" font-size="14.5" font-weight="800">Phase 3: Apply &amp; Migrate</text>
+  <text x="3074" y="1888" fill="#334155" font-size="12.5">• Applies reviewed Terraform plan:</text>
+  <text x="3074" y="1908" fill="#334155" font-size="12.5">  Cloud SQL, GCS, IAM, Cloud Run,</text>
+  <text x="3074" y="1928" fill="#334155" font-size="12.5">  Serverless NEGs &amp; HTTPS LB</text>
+  <text x="3074" y="1952" fill="#334155" font-size="12.5">• Executes <tspan font-family="monospace" font-size="11.5">scripts/migrate.py</tspan></text>
+  <text x="3074" y="1972" fill="#334155" font-size="12.5">  idempotent PostgreSQL schema</text>
+  <text x="3074" y="1992" fill="#334155" font-size="12.5">  migrations &amp; index creation</text>
+  <text x="3074" y="2016" fill="#334155" font-size="12.5">• Zero-downtime Cloud Run revision</text>
+  <text x="3074" y="2036" fill="#334155" font-size="12.5">  traffic cutover</text>
+
+  <rect x="3398" y="1838" width="336" height="236" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="3414" y="1864" fill="#1E3A8A" font-size="14.5" font-weight="800">Phase 4: Verify &amp; Rollback</text>
+  <text x="3414" y="1888" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">verify.sh</tspan> checks Load Balancer</text>
+  <text x="3414" y="1908" fill="#334155" font-size="12.5">  routing (<tspan font-family="monospace" font-size="11.5">/*</tspan> &amp; <tspan font-family="monospace" font-size="11.5">/api/*</tspan>, <tspan font-family="monospace" font-size="11.5">/health</tspan>)</text>
+  <text x="3414" y="1932" fill="#334155" font-size="12.5">• Verifies Cloud Run ingress lock,</text>
+  <text x="3414" y="1952" fill="#334155" font-size="12.5">  private GCS bucket &amp; TLS status</text>
+  <text x="3414" y="1976" fill="#334155" font-size="12.5">• Tests teacher auth session flow</text>
+  <text x="3414" y="2000" fill="#334155" font-size="12.5">• <tspan font-family="monospace" font-size="11.5">rollback.sh</tspan> restores previous</text>
+  <text x="3414" y="2020" fill="#334155" font-size="12.5">  Cloud Run revision on failure</text>
+  <text x="3414" y="2044" fill="#059669" font-size="12" font-weight="700">• Emits deployment audit summary</text>
+
+
+  <!-- ===================================================================== -->
+  <!-- INTER-ZONE DATA FLOW CONNECTORS & NUMBERED SEQUENCE BADGES (1 -> 10)  -->
+  <!-- ===================================================================== -->
+
+  <!-- Flow 1: Educator -> HTTPS Load Balancer (Corridor X: 396..508) -->
+  <line x1="396" y1="398" x2="504" y2="398" stroke="#1D4ED8" stroke-width="4.5" marker-end="url(#arrow-blue)"/>
+  <circle cx="430" cy="368" r="16" fill="#1D4ED8"/>
+  <text x="430" y="374" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle">1</text>
+  <rect x="398" y="408" width="64" height="20" rx="4" fill="#EFF6FF"/>
+  <text x="430" y="422" fill="#1E3A8A" font-size="11.5" font-weight="700" text-anchor="middle">TLS :443</text>
+
+  <!-- Flow 2A: Load Balancer /* -> Next.js Cloud Run -->
+  <line x1="769" y1="530" x2="769" y2="554" stroke="#1D4ED8" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <circle cx="738" cy="542" r="14" fill="#1D4ED8"/>
+  <text x="738" y="547" fill="#FFFFFF" font-size="12.5" font-weight="800" text-anchor="middle">2a</text>
+
+  <!-- Flow 2B: Load Balancer /api/* -> FastAPI Backend Cloud Run (Corridor X: 1030..1158) -->
+  <line x1="1030" y1="488" x2="1154" y2="488" stroke="#0F766E" stroke-width="4.5" marker-end="url(#arrow-teal)"/>
+  <circle cx="1094" cy="458" r="16" fill="#0F766E"/>
+  <text x="1094" y="464" fill="#FFFFFF" font-size="13.5" font-weight="800" text-anchor="middle">2b</text>
+  <rect x="1060" y="498" width="68" height="20" rx="4" fill="#F0FDFA"/>
+  <text x="1094" y="512" fill="#115E59" font-size="11.5" font-weight="700" text-anchor="middle">/api/* NEG</text>
+
+  <!-- Flow 2C: Next.js API Client <-> FastAPI Routers (Corridor X: 1030..1158) -->
+  <line x1="1030" y1="920" x2="1154" y2="920" stroke="#1D4ED8" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <line x1="1154" y1="960" x2="1030" y2="960" stroke="#0F766E" stroke-width="4" marker-end="url(#arrow-teal)"/>
+  <rect x="1056" y="894" width="76" height="20" rx="4" fill="#EFF6FF"/>
+  <text x="1094" y="908" fill="#1E3A8A" font-size="11" font-weight="700" text-anchor="middle">REST+Cookie</text>
+  <rect x="1056" y="968" width="76" height="20" rx="4" fill="#F0FDFA"/>
+  <text x="1094" y="982" fill="#0F766E" font-size="11" font-weight="700" text-anchor="middle">JSON+Stream</text>
+
+  <!-- Flow 3: Intake Pipeline -> Private Cloud Storage Bucket (Routed cleanly via Corridor Y=1622) -->
+  <path d="M 1710 1372 L 1764 1372 L 1764 1622 L 3018 1622 L 3018 475 L 3074 475" fill="none" stroke="#047857" stroke-width="4" marker-end="url(#arrow-emerald)"/>
+  <circle cx="1764" cy="1480" r="16" fill="#047857"/>
+  <text x="1764" y="1486" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle">3</text>
+  <rect x="2020" y="1609" width="440" height="24" rx="6" fill="#ECFDF5" stroke="#059669" stroke-width="1.5"/>
+  <text x="2240" y="1626" fill="#065F46" font-size="12.5" font-weight="700" text-anchor="middle">3. Persist Sanitized (EXIF-Stripped) Worksheet Bytes to Private GCS</text>
+
+  <!-- Flow 4: Intake Pipeline -> MultiAgentPipeline Stage 1 (Corridor X: 1710..1838) -->
+  <path d="M 1710 1500 L 1786 1500 L 1786 472 L 1834 472" fill="none" stroke="#4F46E5" stroke-width="4.5" marker-end="url(#arrow-indigo)"/>
+  <circle cx="1786" cy="820" r="16" fill="#4F46E5"/>
+  <text x="1786" y="826" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle">4</text>
+
+  <!-- Flow 8: Stage 5 Verified Diagnosis -> Cloud SQL PostgreSQL (Corridor X: 2940..3078) -->
+  <line x1="2940" y1="1236" x2="3074" y2="1236" stroke="#047857" stroke-width="4" marker-end="url(#arrow-emerald)"/>
+  <circle cx="3009" cy="1206" r="16" fill="#047857"/>
+  <text x="3009" y="1212" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle">8</text>
+  <rect x="2966" y="1244" width="86" height="20" rx="4" fill="#ECFDF5"/>
+  <text x="3009" y="1258" fill="#065F46" font-size="11" font-weight="700" text-anchor="middle">Save Diagnosis</text>
+
+  <!-- Flow 9: Stage 6 Cohort & Action Plans -> Cloud SQL PostgreSQL (Corridor X: 2940..3078) -->
+  <line x1="2940" y1="1474" x2="3074" y2="1474" stroke="#B45309" stroke-width="4" marker-end="url(#arrow-amber)"/>
+  <circle cx="3009" cy="1444" r="16" fill="#D97706"/>
+  <text x="3009" y="1450" fill="#FFFFFF" font-size="15" font-weight="800" text-anchor="middle">9</text>
+  <rect x="2966" y="1482" width="86" height="20" rx="4" fill="#FFFBEB"/>
+  <text x="3009" y="1496" fill="#92400E" font-size="11" font-weight="700" text-anchor="middle">Cohort &amp; Plans</text>
+
+  <!-- Flow 10: FastAPI Routers <-> Cloud SQL (Routed cleanly via Corridor Y=1656) -->
+  <path d="M 1710 945 L 1748 945 L 1748 1656 L 3036 1656 L 3036 1080 L 3074 1080" fill="none" stroke="#0F766E" stroke-width="3.5" stroke-dasharray="10,5" marker-end="url(#arrow-teal)"/>
+  <circle cx="3009" cy="1050" r="16" fill="#0F766E"/>
+  <text x="3009" y="1056" fill="#FFFFFF" font-size="14" font-weight="800" text-anchor="middle">10</text>
+  <rect x="2520" y="1643" width="430" height="24" rx="6" fill="#F0FDFA" stroke="#0D9488" stroke-width="1.5"/>
+  <text x="2735" y="1660" fill="#115E59" font-size="12.5" font-weight="700" text-anchor="middle">10. Teacher Review Overrides, Cohort Queries &amp; Audit Events</text>
+
+  <!-- Artifact Registry -> Cloud Run Services Dashed Connector (Corridor Y: 1656) -->
+  <path d="M 1680 1690 L 1680 1656 L 1540 1656 L 1540 1604" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="8,5" marker-end="url(#arrow-slate)"/>
+  <path d="M 1640 1690 L 1640 1656 L 820 1656 L 820 1604" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="8,5" marker-end="url(#arrow-slate)"/>
+  <rect x="1390" y="1644" width="215" height="24" rx="5" fill="#F1F5F9" stroke="#64748B" stroke-width="1.2"/>
+  <text x="1497" y="1660" fill="#334155" font-size="12" font-weight="700" text-anchor="middle">Deploy sha-&lt;commit&gt; Images</text>
+
+  <!-- Secret Manager -> FastAPI Backend Dashed Connector (Corridor Y: 1618) -->
+  <path d="M 1190 1690 L 1190 1604" fill="none" stroke="#DC2626" stroke-width="3.5" stroke-dasharray="8,5" marker-end="url(#arrow-crimson)"/>
+  <rect x="1095" y="1614" width="190" height="24" rx="5" fill="#FEF2F2" stroke="#EF4444" stroke-width="1.2"/>
+  <text x="1190" y="1630" fill="#B91C1C" font-size="12" font-weight="700" text-anchor="middle">Runtime Secret Injection</text>
+
+</svg>

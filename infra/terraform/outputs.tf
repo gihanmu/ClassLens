@@ -2,14 +2,9 @@
 # Terraform Infrastructure Outputs
 # ==============================================================================
 
-output "load_balancer_ip" {
-  description = "The static public IPv4 address of the HTTPS Application Load Balancer."
-  value       = google_compute_global_address.lb_ip.address
-}
-
 output "application_url" {
-  description = "The public application URL accessible by reviewers."
-  value       = var.domain_name != "" ? "https://${var.domain_name}" : "https://${google_compute_global_address.lb_ip.address}"
+  description = "The public HTTPS application URL (Google-managed Cloud Run TLS certificate)."
+  value       = google_cloud_run_v2_service.frontend.uri
 }
 
 output "worksheets_bucket" {
@@ -48,11 +43,11 @@ output "cloud_sql_instance_name" {
 }
 
 output "cloud_run_backend_url" {
-  description = "Direct Cloud Run backend URL (internal ingress)."
+  description = "Private Cloud Run backend URL (IAM-restricted to frontend service account)."
   value       = google_cloud_run_v2_service.backend.uri
 }
 
 output "cloud_run_frontend_url" {
-  description = "Direct Cloud Run frontend URL (internal ingress)."
+  description = "Public Cloud Run frontend URL (Google-managed HTTPS)."
   value       = google_cloud_run_v2_service.frontend.uri
 }

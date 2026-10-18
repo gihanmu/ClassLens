@@ -10,10 +10,6 @@ terraform {
       source  = "hashicorp/google-beta"
       version = "~> 5.30"
     }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"

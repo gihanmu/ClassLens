@@ -62,8 +62,8 @@ if [ "$IS_DRY_RUN" = true ]; then
   echo -e "\n${YELLOW}[DRY-RUN] Simulating deployment execution (No resources will be modified):${NC}"
   echo -e "  1. Would verify pre-generated execution plan in ${TF_DIR}/tfplan"
   echo -e "  2. Would check Artifact Registry bootstrap state"
-  echo -e "  3. Would apply Cloud SQL PostgreSQL, Cloud Storage, Cloud Run, and Load Balancer"
-  echo -e "  4. Would output Load Balancer IP and application URL"
+  echo -e "  3. Would apply Cloud SQL PostgreSQL, Cloud Storage, and Cloud Run (Public Frontend BFF + Private Backend)"
+  echo -e "  4. Would output Cloud Run HTTPS application URL and private backend URL"
   echo -e "\n${GREEN}[DRY-RUN] Deployment simulation complete. Ready for live deployment with --confirm.${NC}"
   exit 0
 fi
@@ -72,10 +72,10 @@ fi
 if [ "$CONFIRMED" = false ]; then
   echo -e "\n${YELLOW}WARNING: You are about to deploy live infrastructure to Google Cloud Platform.${NC}"
   echo -e "This will provision:"
-  echo -e "  - Cloud SQL PostgreSQL instance (PostgreSQL 15)"
+  echo -e "  - Cloud SQL PostgreSQL instance (PostgreSQL 15, db-f1-micro)"
   echo -e "  - Google Cloud Storage private bucket (worksheets)"
-  echo -e "  - Google Cloud Run services (Frontend & Backend, internal ingress)"
-  echo -e "  - Google Cloud HTTPS External Application Load Balancer with Serverless NEGs"
+  echo -e "  - Google Cloud Run Frontend (Public Google-managed HTTPS + BFF OIDC proxy)"
+  echo -e "  - Google Cloud Run Backend (Private IAM-restricted service)"
   echo -e "  - Google Secret Manager secret bindings\n"
 
   if [ -t 0 ]; then
@@ -121,18 +121,18 @@ else
     -auto-approve
 fi
 
-# Retrieve Load Balancer and infrastructure outputs
+# Retrieve Cloud Run and infrastructure outputs
 echo -e "\n${YELLOW}[3/3] Fetching deployment outputs...${NC}"
-LB_IP=$(terraform output -raw load_balancer_ip 2>/dev/null || echo "Pending")
 APP_URL=$(terraform output -raw application_url 2>/dev/null || echo "Pending")
+BACKEND_URL=$(terraform output -raw cloud_run_backend_url 2>/dev/null || echo "Pending")
 SQL_INSTANCE=$(terraform output -raw cloud_sql_instance_name 2>/dev/null || echo "none")
 
 echo -e "\n${GREEN}==============================================================================${NC}"
 echo -e "${GREEN} Infrastructure deployment completed successfully!${NC}"
-echo -e "${GREEN} Application Load Balancer IP: ${LB_IP}${NC}"
-echo -e "${GREEN} Application URL:              ${APP_URL}${NC}"
-echo -e "${GREEN} Cloud SQL Instance:           ${SQL_INSTANCE}${NC}"
-echo -e "${GREEN} Next step: Run database migrations and smoke test:${NC}"
-echo -e "  python3 scripts/migrate.py"
-echo -e "  ./scripts/gcp/verify.sh ${APP_URL}"
+echo -e "${GREEN} Public Application URL: ${APP_URL}${NC}"
+echo -e "${GREEN} Private Backend URL:    ${BACKEND_URL}${NC}"
+echo -e "${GREEN} Cloud SQL Instance:     ${SQL_INSTANCE}${NC}"
+echo -e "${GREEN} Next step: Verify remote PostgreSQL migrations and run smoke tests:${NC}"
+echo -e "  python3 scripts/migrate.py --verify-remote ${APP_URL}"
+echo -e "  ./scripts/gcp/verify.sh ${APP_URL} ${PROJECT_ID}"
 echo -e "${GREEN}==============================================================================${NC}"

@@ -50,9 +50,17 @@ MODEL_PRICING: Dict[str, Dict[str, float]] = {
         "input_per_million": 0.75,  # Introductory rate through Dec 2026
         "output_per_million": 3.75,
     },
+    "gemini-3.5-flash-lite": {
+        "input_per_million": 0.10,
+        "output_per_million": 0.40,
+    },
     "gemini-2.5-flash": {
         "input_per_million": 0.30,
         "output_per_million": 2.50,
+    },
+    "gemini-2.5-pro": {
+        "input_per_million": 1.25,
+        "output_per_million": 10.00,
     },
     "gemini-1.5-flash": {
         "input_per_million": 0.075,

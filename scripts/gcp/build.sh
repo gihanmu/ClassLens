@@ -79,8 +79,8 @@ if [ "$IS_DRY_RUN" = true ]; then
   [ -f "apps/web/Dockerfile" ] && echo -e "  ${GREEN}[PASS]${NC} apps/web/Dockerfile exists."
   [ -f "Dockerfile" ] && echo -e "  ${GREEN}[PASS]${NC} root Dockerfile exists."
   echo -e "\n${YELLOW}[DRY-RUN] Image build commands that would be executed:${NC}"
-  echo -e "  docker build -t ${FRONTEND_IMAGE} -f apps/web/Dockerfile apps/web/"
-  echo -e "  docker build -t ${BACKEND_IMAGE} -f Dockerfile ."
+  echo -e "  docker build --platform linux/amd64 -t ${FRONTEND_IMAGE} -f apps/web/Dockerfile apps/web/"
+  echo -e "  docker build --platform linux/amd64 -t ${BACKEND_IMAGE} -f Dockerfile ."
   if [ "$DO_PUSH" = true ]; then
     echo -e "\n${YELLOW}[DRY-RUN] Push commands that would be executed:${NC}"
     echo -e "  gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet"
@@ -92,8 +92,9 @@ if [ "$IS_DRY_RUN" = true ]; then
 fi
 
 # 1. Build Frontend Image
-echo -e "\n${YELLOW}[1/2] Building Next.js Frontend image (apps/web)...${NC}"
+echo -e "\n${YELLOW}[1/2] Building Next.js Frontend image (apps/web) for linux/amd64...${NC}"
 docker build \
+  --platform linux/amd64 \
   -t "${FRONTEND_IMAGE}" \
   -t "classlens-frontend:local" \
   -f apps/web/Dockerfile \
@@ -102,8 +103,9 @@ docker build \
 echo -e "${GREEN}[PASS] Frontend image built successfully: ${FRONTEND_IMAGE}${NC}"
 
 # 2. Build Backend Image
-echo -e "\n${YELLOW}[2/2] Building FastAPI Backend image...${NC}"
+echo -e "\n${YELLOW}[2/2] Building FastAPI Backend image for linux/amd64...${NC}"
 docker build \
+  --platform linux/amd64 \
   -t "${BACKEND_IMAGE}" \
   -t "classlens-backend:local" \
   -f Dockerfile \

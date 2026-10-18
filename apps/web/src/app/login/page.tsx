@@ -14,7 +14,6 @@ import {
   EyeOff,
   GraduationCap,
   ShieldCheck,
-  Info,
   Sparkles,
 } from "lucide-react";
 
@@ -179,18 +178,7 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Reviewer Guidance Notice */}
-      <div className="rounded-xl border border-border-default bg-surface-subtle/80 p-3.5 text-xs text-ink-muted">
-        <div className="flex items-start gap-2.5">
-          <Info className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-ink-primary">AI Builder Cup Reviewer Access</p>
-            <p className="mt-0.5 leading-relaxed text-[11px]">
-              Use the password configured locally in <code className="font-mono bg-surface-muted px-1 py-0.5 rounded text-ink-primary">CLASSLENS_DEMO_PASSWORD</code> or provided in your reviewer instructions.
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Submit Button */}
       <Button

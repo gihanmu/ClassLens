@@ -21,8 +21,8 @@ export function OfflineDemoBanner({ className, onViewDetails }: OfflineDemoBanne
     let isMounted = true;
     const fetchHealth = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${apiUrl}/api/v1/health`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+        const res = await fetch(`${apiUrl}/health`);
         if (res.ok && isMounted) {
           const data = await res.json();
           setHealth(data);

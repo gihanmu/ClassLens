@@ -66,6 +66,30 @@ variable "gemini_model" {
   default     = "gemini-3.8-flash"
 }
 
+variable "gemini_location" {
+  type        = string
+  description = "Vertex AI endpoint location for Gemini inference (default: global for gemini-3.8-flash / gemini-2.5-flash)."
+  default     = "global"
+}
+
+variable "ai_mode" {
+  type        = string
+  description = "ClassLens AI inference mode (live or mock)."
+  default     = "live"
+}
+
+variable "live_inference_enabled" {
+  type        = bool
+  description = "Whether live Vertex AI Gemini inference is enabled in production."
+  default     = true
+}
+
+variable "db_tier" {
+  type        = string
+  description = "Cloud SQL PostgreSQL machine tier (db-f1-micro for cost-optimized deployment)."
+  default     = "db-f1-micro"
+}
+
 variable "min_scale" {
   type        = number
   description = "Minimum container instances (0 for scale-to-zero cost optimization)."

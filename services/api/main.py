@@ -59,12 +59,28 @@ app.include_router(responses.router, prefix="/api/v1")
 app.include_router(dev.router, prefix="/api/v1")
 
 
-@app.get("/health")
-@app.get("/api/v1/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"])
 async def health_check():
-    """Health check endpoint for liveness and readiness probes."""
+    """Health check endpoint for liveness, readiness, and post-deployment verification probes."""
+    from services.api.repository.memory_repo import memory_repo
+
+    db_backend = "postgresql" if memory_repo.db_manager.__class__.__name__ == "PostgresDatabaseManager" else "sqlite"
+    db_healthy = True
+    schema_version = "1.0.0"
+    try:
+        if hasattr(memory_repo.db_manager, "check_health"):
+            db_healthy = bool(memory_repo.db_manager.check_health())
+        sv = memory_repo.db_manager.get_metadata("schema_version")
+        if sv:
+            schema_version = sv
+    except Exception:
+        db_healthy = False
+
+    storage_backend = "gcs" if settings.gcs_bucket else "local"
+
     return {
-        "status": "ok",
+        "status": "ok" if db_healthy else "degraded",
         "app": settings.app_name,
         "version": settings.app_version,
         "environment": settings.environment,
@@ -73,4 +89,8 @@ async def health_check():
         "is_live_authorized": settings.is_live_authorized(),
         "gemini_model": settings.gemini_model,
         "google_cloud_project": settings.google_cloud_project,
+        "database_backend": db_backend,
+        "database_healthy": db_healthy,
+        "schema_version": schema_version,
+        "storage_backend": storage_backend,
     }

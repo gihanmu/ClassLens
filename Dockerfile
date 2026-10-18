@@ -26,9 +26,11 @@ RUN addgroup --system --gid 1001 appgroup && \
 # Copy installed Python packages
 COPY --from=builder /install /usr/local
 
-# Copy application code
+# Copy application code & verified synthetic fixtures
 COPY services/ ./services/
 COPY scripts/ ./scripts/
+COPY tests/fixtures/ ./tests/fixtures/
+COPY dataset/ ./dataset/
 COPY pyproject.toml README.md ./
 
 # Create runtime directories for isolated local storage fallback if needed
@@ -46,4 +48,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--proxy-headers"]
+CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]
